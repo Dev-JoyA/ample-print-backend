@@ -3,7 +3,8 @@ import dotenv from "dotenv";
 import sequelize from "./config.js/postgresDb.js"
 import connectDB from "./config.js/mongoDB.js"; 
 import router from "./routes/authRoute.js"
-import bodyParser from "body-parser"
+import passport from "./middleware/passport.js";
+
 
 dotenv.config();
 
@@ -21,6 +22,8 @@ const PORT = process.env.PORT || 8000;
 
 app.use(express.json());
 app.use(express.urlencoded({extended : true}));
+
+app.use(passport.initialize());
 
 app.use("/auth", router)
 
