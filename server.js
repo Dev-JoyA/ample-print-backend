@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
-import sequelize from "./config.js/postgresDb.js"
-import connectDB from "./config.js/mongoDB.js"; 
+import sequelize from "./config/postgresDb.js"
+import connectDB from "./config/mongoDB.js"; 
 import router from "./routes/authRoute.js"
 import passport from "./middleware/passport.js";
 
