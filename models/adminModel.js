@@ -1,9 +1,7 @@
-import {DataTypes} from "sequelize";
-import sequelize from "../config/postgresDb.js";
+import sequelize from "../config/postgresDb.js"
+import { DataTypes } from "sequelize"
 
-
-
-const User = sequelize.define("User",
+const Admin = sequelize.define("Admin",
     {
        id: {
             type: DataTypes.INTEGER,
@@ -38,10 +36,15 @@ const User = sequelize.define("User",
         phoneNumber : {
             type : DataTypes.INTEGER,
             allowNull : false
+        },
+        role : {
+            type : DataTypes.ENUM("normal", "super"),
+            defaultValue : "super",
+            allowNull : false
         }
     },
     {
-        tableName : "Users",
+        tableName : "Admin",
         timestamps : true
     }
 )
@@ -54,4 +57,4 @@ sequelize.sync({ force: false }) // Set 'force: true' to recreate tables (will d
         console.error('Error synchronizing database:', error);
     });
 
-export default User;
+export default Admin;
