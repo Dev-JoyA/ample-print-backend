@@ -1,6 +1,7 @@
 import express from "express";
 import User from "../models/userModel.js"
-import {hashPassword, generateToken, comparePassword, verifyToken} from "../utils/utils.js"
+import {hashPassword, generateToken, comparePassword, verifyToken} from "../utils/auth.js"
+import emails from "../utils/email.js";
 
 export const signIn = (async(req, res) => {
     
@@ -44,12 +45,16 @@ export const signUp = (async(req, res) => {
         if(exisitingUser){
             return res.status(200).json({message : "User already exist"})
         }
+        
 
         const hashedPassword = await hashPassword(password)
 
         //create a new user
-        const newUser = await User.create({firstName, lastName, userName, email, password : hashPassword, phoneNumber})
-        return res.status(201).json({message : "User registered successfuly"})
+        const newUser = await User.create({firstName, lastName, userName, email, password : hashedPassword, phoneNumber})
+       
+
+        await emails( email,  "Sign up successfull", `Hello ${userName} you have successfully signed up to AMPLE PRINTHUB ACCOUNT, dont be scared o, its me your me testing my code to ensure mail path works correctly , when this mails come in send me a hi on whatsapp or when you are coming home`)
+        return res.status(201).json({message : `User registered successfuly`})
     
     }catch(error){
         return  res.status(500).json({message : `Error registring User :  ${error}`})
