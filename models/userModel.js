@@ -46,7 +46,7 @@ const User = sequelize.define("User",
     }
 )
 
-sequelize.sync({ force: false }) // Set 'force: true' to recreate tables (will delete existing data!)
+sequelize.sync({ force: true }) // Set 'force: true' to recreate tables (will delete existing data!)
     .then(() => {
         console.log('Database synchronized successfully.');
     })
