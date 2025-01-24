@@ -1,5 +1,5 @@
 import Admin from "../models/adminModel.js";
-import { hashPassword, comparePassword, generateToken } from "../utils/utils.js";
+import { hashPassword, comparePassword, generateToken } from "../utils/auth.js";
 
 
 // Admin Sign-In (for both normal and super admin)
