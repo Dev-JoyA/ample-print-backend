@@ -1,12 +1,27 @@
-import sequelize from "../config/postgresDb.js"
-import { DataTypes } from "sequelize"
+import {DataTypes} from "sequelize";
+import sequelize from "../config/postgresDb.js";
+import User from "./userModel.js";
 
-const Admin = sequelize.define("Admin",
+
+
+const Profile = sequelize.define("Profile",
     {
-       id: {
+       profile_id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
-            autoIncrement: true
+            autoIncrement: true,
+            unique : true
+        },
+        user_id: {
+            type: DataTypes.INTEGER,
+            allowNull : false,
+            unique : true,
+            references : {
+                model : User,
+                key : "user_id"
+            },
+            onDelete : 'CASCADE',
+            onUpdate : 'CASCADE'
         },
         firstName : {
             type: DataTypes.STRING,
@@ -34,27 +49,17 @@ const Admin = sequelize.define("Admin",
             allowNull : false
         },
         phoneNumber : {
-            type : DataTypes.INTEGER,
-            allowNull : false
-        },
-        role : {
-            type : DataTypes.ENUM("normal", "super"),
-            defaultValue : "super",
+            type : DataTypes.STRING,
             allowNull : false
         }
     },
     {
-        tableName : "Admin",
+        tableName : "PROFILE",
         timestamps : true
     }
 )
 
-sequelize.sync({ force: false }) // Set 'force: true' to recreate tables (will delete existing data!)
-    .then(() => {
-        console.log('Database synchronized successfully.');
-    })
-    .catch((error) => {
-        console.error('Error synchronizing database:', error);
-    });
+Profile.belongsTo(User, { foreignKey: 'user_id' });
 
-export default Admin;
+
+export default Profile;

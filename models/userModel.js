@@ -1,57 +1,49 @@
-import {DataTypes} from "sequelize";
-import sequelize from "../config/postgresDb.js";
-
+import {DataTypes} from "sequelize"
+import sequelize from "../config/postgresDb.js"
+import Profile from "./profileModel.js"
+import Orders from "./orderModel.js";
 
 
 const User = sequelize.define("User",
     {
-       id: {
+        user_id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
-            autoIncrement: true
-        },
-        firstName : {
-            type: DataTypes.STRING,
-            allowNull : false
-        },
-        lastName : {
-            type: DataTypes.STRING,
-            allowNull : false
-        },
-        userName : {
-            type : DataTypes.TEXT,
-            allowNull :false,
+            autoIncrement: true,
             unique : true
         },
-        email : {
-            type: DataTypes.STRING,
-            allowNull: false,
-            unique : true, 
-            validate : {
-                isEmail : true
-            }
-        },
-        password : {
-            type : DataTypes.STRING,
+        role : {
+            type : DataTypes.ENUM("customer", "superadmin", "admin"),
+            defaultValue : "customer",
             allowNull : false
         },
-        phoneNumber : {
-            type : DataTypes.INTEGER,
-            allowNull : false
-        }
     },
     {
-        tableName : "Users",
+        tableName : "User",
         timestamps : true
     }
 )
 
-sequelize.sync({ force: true }) // Set 'force: true' to recreate tables (will delete existing data!)
-    .then(() => {
-        console.log('Database synchronized successfully.');
-    })
-    .catch((error) => {
-        console.error('Error synchronizing database:', error);
-    });
+ User.hasOne(Profile, {
+    foreignKey: 'user_id', 
+    onDelete: 'CASCADE',   
+  });
+ 
+  User.hasMany(User_Design, {
+    foreignKey: 'user_id', 
+    onDelete: 'CASCADE',   
+  });
+  User.hasMany(Orders, {
+    foreignKey: 'user_id', 
+    onDelete: 'CASCADE',   
+  });
+  User.hasOne(Cart, {
+    foreignKey: 'user_id', 
+    onDelete: 'CASCADE',   
+  });
 
-export default User;
+
+
+  export default User;
+
+

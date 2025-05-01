@@ -6,7 +6,6 @@ import emails from "../utils/email.js";
 export const signIn = (async(req, res) => {
     
     try{
-        //ensures user sign in with email and password
         const {email, password} = req.body;
         if(!email || !password){
             return res.status(400).json({message : "Email and password is required"})

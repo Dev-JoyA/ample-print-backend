@@ -2,7 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import sequelize from "./config/postgresDb.js"
 import connectDB from "./config/mongoDB.js"; 
-import router from "./routes/authRoute.js"
+import authRouter from "./routes/authRoute.js";
+import userFlowRouter from "./routes/userFlowRoute.js";
 import passport from "./middleware/passport.js";
 
 
@@ -25,7 +26,9 @@ app.use(express.urlencoded({extended : true}));
 
 app.use(passport.initialize());
 
-app.use("/auth", router)
+app.use("/auth", authRouter)
+app.use("/design", userFlowRouter)
+
 
 app.listen(PORT, () => {
     console.log(`Server started on port ${PORT}`)
