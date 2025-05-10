@@ -1,6 +1,6 @@
-import { DataTypes, Transaction } from "sequelize";
+import { DataTypes } from "sequelize";
 import sequelize from "../config/postgresDb.js";
-import User from "./userModel.js";
+import { User } from "./userModel.js";
 import Invoice from "./invoiceModel.js";
 import Transaction from "./transactionModel.js";
 import Order_Product from "./orderProduct.js";
@@ -18,7 +18,7 @@ const Order = sequelize.define("Order",
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: "User",
+                model: "USER",
                 key: "user_id"
             }
         },
@@ -37,39 +37,13 @@ const Order = sequelize.define("Order",
         }
     },
     {
-        tableName: "ORDERS",
+        tableName: "ORDER",
         timestamps: true,
         createdAt: 'created_at'
     }
 );
 
-Order.hasMany(Order_Product, {
-    foreignKey: 'order_id', 
-    onDelete: 'CASCADE', 
-    onUpdate: 'CASCADE'
-});
 
-Order.belongsTo(User, {
-    foreignKey: 'user_id',
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
-});
-
-Order.hasOne(Invoice, {
-    foreignKey: 'order_id',
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
-});
-Order.hasOne(Transaction, {
-    foreignKey: 'order_id',
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
-});
-Order.hasOne(Shipping, {
-    foreignKey: 'order_id',
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
-});
 
 
 export default Order;

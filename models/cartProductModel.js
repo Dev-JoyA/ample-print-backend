@@ -16,7 +16,7 @@ const Cart_Product = sequelize.define("Cart_Product",
             allowNull: false,
             unique: true,
             references: {
-                model: "Cart",
+                model: "CART",
                 key: "cart_id"
             }
         },
@@ -25,7 +25,7 @@ const Cart_Product = sequelize.define("Cart_Product",
             allowNull: false,
             unique: true,
             references: {
-                model: Product,
+                model: "PRODUCT",
                 key: "product_id"
             }
         },
@@ -39,15 +39,6 @@ const Cart_Product = sequelize.define("Cart_Product",
         timestamps: true
     }
 );
-Cart_Product.belongsTo(Product, {
-     foreignKey: 'product_id', 
-     onDelete: 'CASCADE',
-     onUpdate: 'CASCADE'
-    });
-Cart_Product.belongsTo(Cart, { 
-    foreignKey: 'cart_id', 
-    onDelete: 'CASCADE', 
-    onUpdate: 'CASCADE' 
-});
+
 
 export default Cart_Product;

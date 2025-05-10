@@ -1,23 +1,20 @@
 import {DataTypes} from "sequelize";
 import sequelize from "../config/postgresDb.js";
-import User from "./userModel.js";
+import { User } from "./userModel.js";
 
-
-
-const Profile = sequelize.define("Profile",
+export const Profile = sequelize.define("Profile",
     {
        profile_id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
-            autoIncrement: true,
-            unique : true
+            autoIncrement: true
         },
         user_id: {
             type: DataTypes.INTEGER,
             allowNull : false,
             unique : true,
             references : {
-                model : User,
+                model : 'USER',
                 key : "user_id"
             },
             onDelete : 'CASCADE',
@@ -32,7 +29,7 @@ const Profile = sequelize.define("Profile",
             allowNull : false
         },
         userName : {
-            type : DataTypes.TEXT,
+            type : DataTypes.STRING,
             allowNull :false,
             unique : true
         },
@@ -59,7 +56,6 @@ const Profile = sequelize.define("Profile",
     }
 )
 
-Profile.belongsTo(User, { foreignKey: 'user_id' });
 
 
-export default Profile;
+

@@ -16,7 +16,7 @@ const Shipping = sequelize.define("Shipping",
             allowNull: false,
             unique: true,
             references: {
-                model: "Order",
+                model: "ORDER",
                 key: "order_id"
             }
         },
@@ -35,15 +35,11 @@ const Shipping = sequelize.define("Shipping",
         },
     },
     {
-        tableName: "Shipping",
+        tableName: "SHIPPING",
         timestamps: true,
         createdAt: 'CURRENT_TIMESTAMP'
     }
 );
 
-Shipping.belongsTo(Order, {
-    foreignKey: 'order_id',
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
-});
+
 export default Shipping;

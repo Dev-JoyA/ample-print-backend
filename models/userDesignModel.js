@@ -14,7 +14,7 @@ const User_Design = sequelize.define("User_Design",
             allowNull: false,
             unique: true,
             references: {
-                model: "User",
+                model: "USER",
                 key: "user_id"
             }
         },
@@ -23,25 +23,19 @@ const User_Design = sequelize.define("User_Design",
             allowNull: false,
             unique: true,
             references: {
-                model: "Design",
+                model: "DESIGN",
                 key: "design_id"
             }
         }
     },
     {
-        tableName: "User_Design",
+        tableName: "USER_DESIGN",
+        // createdAt: 'created_at',
         timestamps: true
     }
 );
 
-User_Design.belongsTo(Design, { foreignKey: 'design_id' });
-User_Design.belongsTo(User, { foreignKey: 'user_id' });
 
-sequelize.sync({ alter: true })
-    .then(() => {
-        console.log("User_Design table created successfully");
-    })
-    .catch((error) => {
-        console.error("Error creating User_Design table:", error);
-    });
+
+
 export default User_Design;

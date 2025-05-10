@@ -18,5 +18,14 @@ const sequelize = new Sequelize(
 )
 
 
+sequelize.sync({ alter: true })
+  .then(() => {
+    console.log("Database synchronized successfully.");
+  })
+  .catch((error) => {
+    console.error("Error synchronizing database:", error);
+  });
+
+
 
 export default sequelize;
