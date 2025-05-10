@@ -21,9 +21,6 @@ const Collection = sequelize.define("Collection",
     }
 )
 
-Collection.hasMany(Product, {
-    foreignKey: 'collection_id', 
-    onDelete: 'CASCADE',   
-  });
+
 
 export default Collection;

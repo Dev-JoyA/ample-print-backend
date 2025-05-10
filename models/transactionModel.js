@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/postgresDb.js";
 
-const transaction = sequelize.define("Transaction",
+const Transaction = sequelize.define("Transaction",
     {
         transaction_id: {
             type: DataTypes.INTEGER,
@@ -14,7 +14,7 @@ const transaction = sequelize.define("Transaction",
             allowNull: false,
             unique: true,
             references: {
-                model: "Order",
+                model: "ORDER",
                 key: "order_id"
             }
         },
@@ -38,17 +38,6 @@ const transaction = sequelize.define("Transaction",
     }
 );
 
-transaction.belongsTo(Order, {
-    foreignKey: 'order_id',
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
-});
 
-sequelize.sync({ alter: true }) // Set 'force: true' to recreate tables (will delete existing data!)
-    .then(() => {
-        console.log('Database synchronized successfully.');
-    })
-    .catch((error) => {
-        console.error('Error synchronizing database:', error);
-    });
-export default transaction_model;
+
+export default Transaction;

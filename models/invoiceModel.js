@@ -15,7 +15,7 @@ const Invoice = sequelize.define("Invoice",
             allowNull: false,
             unique: true,
             references: {
-                model: "Order",
+                model: "ORDER",
                 key: "order_id"
             }
         },
@@ -36,11 +36,7 @@ const Invoice = sequelize.define("Invoice",
     }
 );
 
-Invoice.belongsTo(Order, {
-    foreignKey: 'order_id',
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
-});
+
 
 
 export default Invoice;

@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import User from "./userModel.js";
+import { User }from "./userModel.js";
 import sequelize from "../config/postgresDb.js";
 import Cart_Product from "./cartProductModel.js";
 
@@ -16,7 +16,7 @@ const Cart = sequelize.define("Cart",
             allowNull: false,
             unique: true,
             references: {
-                model: "User",
+                model: "USER",
                 key: "user_id"
             }
         }
@@ -28,11 +28,5 @@ const Cart = sequelize.define("Cart",
     }
 );
 
-Cart.belongsTo(User, { foreignKey: 'user_id' });
-Cart.hasMany(Cart_Product, {
-    foreignKey: 'cart_id',
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
-});
 
 export default Cart;

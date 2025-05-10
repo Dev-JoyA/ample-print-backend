@@ -17,7 +17,7 @@ const Order_Product = sequelize.define("Order_Product",
             allowNull: false,
             unique: true,
             references: {
-                model: "Order",
+                model: "ORDER",
                 key: "order_id"
             }
         },
@@ -26,7 +26,7 @@ const Order_Product = sequelize.define("Order_Product",
             allowNull: false,
             unique: true,
             references: {
-                model: "Product",
+                model: "PRODUCT",
                 key: "product_id"
             }
         },
@@ -35,7 +35,7 @@ const Order_Product = sequelize.define("Order_Product",
             allowNull: true,
             unique: true,
             references: {
-                model: "Design",
+                model: "DESIGN",
                 key: "design_id"
             }
         },
@@ -53,27 +53,13 @@ const Order_Product = sequelize.define("Order_Product",
         }
     },
     {
-        tableName: "ORDERS_PRODUCT",
+        tableName: "ORDER_PRODUCT",
         timestamps: true,
         createdAt: 'created_at'
     }
 );
 
-Order_Product.belongsTo(Order, {
-    foreignKey: 'order_id',
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
-});
-Order_Product.belongsTo(Product, {
-    foreignKey: 'product_id',
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
-});
-Order_Product.belongsTo(Design, {
-    foreignKey: 'design_id',
-    onDelete: 'SET NULL',
-    onUpdate: 'CASCADE'
-});
+
 
 
 export default Order_Product;

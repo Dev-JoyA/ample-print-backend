@@ -17,7 +17,7 @@ const Product = sequelize.define("Product",
             allowNull : false,
             unique : true,
             references : {
-                model : Collection,
+                model : "COLLECTION",
                 key : "collection_id"
             },
             onDelete : 'SET NULL',
@@ -59,16 +59,5 @@ const Product = sequelize.define("Product",
     }
 )
 
-Product.belongsTo(Collection, { foreignKey: 'collection_id' });
-Product.hasMany(Order_Product, {
-    foreignKey: 'product_id', 
-    onDelete: 'CASCADE', 
-    onUpdate: 'CASCADE'
-});
-Product.hasOne(Cart, {
-    foreignKey: 'product_id', 
-    onDelete: 'CASCADE', 
-    onUpdate: 'CASCADE'
-});
 
 export default Product;
