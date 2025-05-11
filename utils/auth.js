@@ -5,37 +5,41 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const saltRounds = 10;
-const jwt_key = process.env.JWT_SECRET_KEY;
+const jwtSecret = process.env.JWT_SECRET_KEY; // Consistent with previous messages
 
-export const hashPassword = (async(password) => {
-    try{
-        const salt = await bcrypt.genSalt(saltRounds)
-        return await bcrypt.hash(password, salt);
-    }catch(error){
-        throw new Error (`Error hasing password ${error}`)
-    }
-})
+export const hashPassword = async (password) => {
+  try {
+    const salt = await bcrypt.genSalt(saltRounds);
+    return await bcrypt.hash(password, salt);
+  } catch (error) {
+    console.error("Error hashing password:", error.message); // Log for debugging
+    throw new Error(`Error hashing password: ${error.message}`);
+  }
+};
 
-export const comparePassword = async(password, hashPassword) => {
-    try{
-        return await bcrypt.compare(password, hashPassword);
-    }catch(error){
-        throw new Error (`Error comparing password ${error}`)
-    }
-}
+export const comparePassword = async (password, hashedPassword) => {
+  try {
+    return await bcrypt.compare(password, hashedPassword);
+  } catch (error) {
+    console.error("Error comparing password:", error.message);
+    throw new Error(`Error comparing password: ${error.message}`);
+  }
+};
 
 export const generateToken = (payload) => {
-    try{
-        return jwt.sign(payload, jwt_key, {expiresIn : "1h"})
-    }catch(error){
-        throw new Error (`Error generating token ${error}`)
-    }
-}
+  try {
+    return jwt.sign(payload, jwtSecret, { expiresIn: "1h" });
+  } catch (error) {
+    console.error("Error generating token:", error.message);
+    throw new Error(`Error generating token: ${error.message}`);
+  }
+};
 
 export const verifyToken = (token) => {
-    try{
-        return jwt.verify(token, jwt_key);
-    }catch(error){
-        throw new Error (`Error veryfying token ${error}`)
-    }
-}
+  try {
+    return jwt.verify(token, jwtSecret);
+  } catch (error) {
+    console.error("Error verifying token:", error.message);
+    throw new Error(`Error verifying token: ${error.message}`);
+  }
+};
