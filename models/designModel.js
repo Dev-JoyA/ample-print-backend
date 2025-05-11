@@ -32,7 +32,7 @@ const Design = sequelize.define(
     tableName: "DESIGN",
     timestamps: true,
     createdAt: "created_at",
-    updatedAt: false, // Schema doesn’t include updated_at
+    updatedAt: "updated_at"
   }
 );
 

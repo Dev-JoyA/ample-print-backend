@@ -6,13 +6,11 @@ const User_Design = sequelize.define("User_Design",
         user_design_id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
-            autoIncrement: true,
-            unique: true
+            autoIncrement: true
         },
         user_id: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            unique: true,
             references: {
                 model: "USER",
                 key: "user_id"
@@ -21,7 +19,6 @@ const User_Design = sequelize.define("User_Design",
         design_id: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            unique: true,
             references: {
                 model: "DESIGN",
                 key: "design_id"

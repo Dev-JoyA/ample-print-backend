@@ -4,7 +4,8 @@ import sequelize from "./config/postgresDb.js"
 import authRoute from "./routes/authRoute.js";
 import uploadRoute from "./routes/uploadRoute.js";
 import contentRoute from "./routes/contentRoute.js";
-import passport from "./middleware/passport.js";
+import passport from "./config/passport.js";
+// import passport from "./middleware/passport.js";
 import { setupAssociations } from "./models/associations.js"
 
 
@@ -24,8 +25,9 @@ const PORT = process.env.PORT || 8000;
 
 app.use(express.json());
 app.use(express.urlencoded({extended : true}));
-
 app.use(passport.initialize());
+
+// app.use(passport.initialize());
 
 app.use("/auth", authRoute)
 app.use("/upload", uploadRoute)

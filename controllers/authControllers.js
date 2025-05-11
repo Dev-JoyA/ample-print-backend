@@ -2,15 +2,13 @@ import { checkRole, checkSuperAdmin } from "../middleware/authorization.js";
 import { User} from "../models/userModel.js"; 
 import { Profile } from "../models/profileModel.js";
 import PasswordResetToken from "../models/passwordResetToken.js"; 
-import { hashPassword, generateToken, comparePassword } from "../utils/auth.js";
+import { hashPassword, generateToken, comparePassword, verifyToken } from "../utils/auth.js";
 import emails from "../utils/email.js";
 import passport from "../middleware/passport.js"
 import crypto from "crypto";
 
 // Sign in (all roles: customer, admin, superadmin)
 export const signIn = [
-  passport.authenticate("jwt", { session: false }),
-  checkRole(["customer", "admin", "superadmin"]),
   async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -37,12 +35,14 @@ export const signIn = [
       }
 
       // Generate token
-      const token = generateToken({ user_id: user.user_id, email: profile.email, role: user.role });
+      const accessToken = generateToken({ user_id: user.user_id, email: profile.email, role: user.role });
+       
 
       return res.status(200).json({
         message: "Sign in successful",
-        token,
+        accessToken,
         role: user.role,
+        email : profile.email
       });
     } catch (error) {
       return res.status(500).json({ message: `Error during sign in: ${error.message}` });
@@ -69,7 +69,7 @@ export const signUp = async (req, res) => {
     }
 
     // Validate password strength
-    if (password.lenght < 5) {
+    if (password.length < 5) {
       return res.status(400).json({ message: "Password must be at least 5 characters" });
     }
 
@@ -101,7 +101,7 @@ export const signUp = async (req, res) => {
       console.error(`Email failed: ${emailError}`);
     }
 
-    return res.status(201).json({ message: "User registered successfully" });
+    return res.status(201).json({ message: "User registered successfully", user: newProfile });
   } catch (error) {
     return res.status(500).json({ message: `Error registering user: ${error.message}` });
   }

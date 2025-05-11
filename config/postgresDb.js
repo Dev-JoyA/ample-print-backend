@@ -12,13 +12,14 @@ const sequelize = new Sequelize(
         host : process.env.POSTGRES_HOST,
         port : process.env.POSTGRES_PORT || 5432,
         dialect : "postgres",
+        // logging: (msg) => console.log(msg)
         logging : false
-       // logging :  (msg) => console.log(msg)
+        
     }
 )
 
 
-sequelize.sync({ alter: true })
+sequelize.sync({ force: false })
   .then(() => {
     console.log("Database synchronized successfully.");
   })

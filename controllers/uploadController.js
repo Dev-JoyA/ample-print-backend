@@ -1,6 +1,7 @@
-import User_Design  from '../models/designModel.js'; 
+import User_Design  from '../models/userDesignModel.js'; 
 import  Design  from "../models/designModel.js";
 import { checkRole, checkSuperAdmin } from "../middleware/authorization.js";
+import { verifyToken } from '../utils/auth.js';
 import upload from "../config/upload.js";
 import fs from "fs/promises";
 
@@ -20,11 +21,22 @@ export const createDesign = [
         return res.status(403).json({ error: "Unauthorized: Only customers can create designs" });
       }
 
+      if (
+        !req.files?.logo &&
+        !req.files?.voice_note &&
+        !req.files?.other_image &&
+        !description
+      ) {
+        return res.status(400).json({
+          error: "At least one of logo, voice note, other image, or description is required",
+        });
+      }
+
       const design = await Design.create({
-        logo_url: req.files.logo ? req.files.logo[0].path : null,
-        voice_note_url: req.files.voice_note ? req.files.voice_note[0].path : null,
-        other_image: req.files.other_image ? req.files.other_image[0].path : null,
-        description,
+        logo_url: req.files?.logo ? req.files.logo[0].path : null,
+        voice_note_url: req.files?.voice_note ? req.files.voice_note[0].path : null,
+        other_image: req.files?.other_image ? req.files.other_image[0].path : null,
+        description: description || null,
       });
 
       // Link design to user
