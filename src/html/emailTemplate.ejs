@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Email</title>
+  <style>
+    /* Reset default styles */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0; padding: 0; width: 100% !important; font-family: Arial, Helvetica, sans-serif; }
+
+    /* Email wrapper */
+    .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+
+    /* Header */
+    .header { padding: 20px; text-align: center; background-color: #f8f8f8; }
+    .header img { max-width: 150px; height: auto; }
+
+    /* Body */
+    .content { padding: 30px; color: #333333; font-size: 16px; line-height: 1.6; }
+    .content h1 { font-size: 24px; color: #111111; margin: 0 0 20px; }
+    .content p { margin: 0 0 20px; }
+
+    /* Button */
+    .button { display: inline-block; padding: 12px 25px; background-color: #007BFF; color: #ffffff !important; text-decoration: none; border-radius: 5px; font-size: 16px; }
+
+    /* Footer */
+    .footer { padding: 20px; text-align: center; background-color: #f8f8f8; font-size: 14px; color: #666666; }
+
+    /* Responsive design */
+    @media screen and (max-width: 600px) {
+      .email-container { width: 100% !important; }
+      .content { padding: 20px !important; }
+      .header img { max-width: 120px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td style="padding: 20px 0; background-color: #f4f4f4;" align="center">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="email-container">
+          <!-- Header -->
+          <tr>
+            <td class="header" style="padding: 0; text-align: center; background-color: #ffffff;">
+              <!-- Outlook Fallback (MSO) -->
+              <!--[if mso]>
+                <v:image 
+                  xmlns:v="urn:schemas-microsoft-com:vml" 
+                  style="width:600px; height:auto;"
+                  src="cid:ample_logo" 
+                  alt="Ample Printhub Logo"
+                />
+              <![endif]-->
+              <!-- Modern Clients -->
+              <!--[if !mso]><!-->
+                <img 
+                  src="cid:ample_logo" 
+                  alt="Ample Printhub Logo" 
+                  width="900" 
+                  style="
+                    width: 100%; 
+                    max-width: 900px; 
+                    height: auto; 
+                    display: block; 
+                    margin: 0 auto;
+                    border: 0;
+                  "
+                >
+              <!--<![endif]-->
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td class="content">
+              <h1><%- header %></h1>
+              <p>Dear <%- name %>,</p>
+              <p><%- bodyMessage %></p>
+              <p style="text-align: center;">
+                <a href="<%= linkUrl %>" class="button">Visit Our Website</a>
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td class="footer">
+              <p>© 2025 Ample Printhub. All rights reserved.</p>
+              <p><a href="<%= linkUrl %>/unsubscribe" style="color: #007BFF;">Unsubscribe</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
