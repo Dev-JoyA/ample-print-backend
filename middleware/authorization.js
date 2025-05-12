@@ -14,7 +14,7 @@ export const checkSuperAdmin = async (req, res, next) => {
       return res.status(403).json({ message: "Unauthorized: Superadmin access required" });
     }
     const profile = await Profile.findOne({ where: { user_id: req.user.user_id } });
-    if (!profile || profile.email !== "ampleprinthub@gmail.com") {
+    if (!profile || !profile.email) {
       return res.status(403).json({ message: "Unauthorized: Invalid superadmin account" });
     }
     next();
