@@ -1,24 +1,26 @@
 import express from 'express';
 import  Collection  from '../models/collectionModel.js';
+import upload from  "../config/upload.js";
 import Product from '../models/productModel.js';
 import { checkRole } from '../middleware/authorization.js';
+import { authenticateToken } from '../utils/auth.js';
 
-const createCollection = [
+export const createCollection = [
+    authenticateToken,
     checkRole(["admin"]),
     async (req, res) => {
         try{
-            const { collectionName } = req.body;
-            const user = req.user;
-            if (user.role !== "admin" ){
-                return res.status(500).json({message : "Only Admin can create a collection"});
-            }
-
-            const existingCollection = await Collection.findOne({ where: { collectionName } });
+            const { collection_name } = req.body;
+            
+            const existingCollection = await Collection.findOne({ where : {collection_name}});
             if (existingCollection) {
                 return res.status(409).json({ message: "Collection already exists" });
             }
             
-            const newCollection = await Collection.createCollection({collectionName});
+            const newCollection = await Collection.create({
+                collection_name ,
+            });
+
             return res.status(201).json({ message: "Collection created successfully", newCollection });
         }catch (error) {
             console.error("Error creating collection:", error);
@@ -27,24 +29,25 @@ const createCollection = [
     }
 ]
 
-const updateCollection = [
+export const updateCollection = [
+    authenticateToken,
     checkRole(["admin"]),
     async(req, res) => {
         try{
-            const { collectionId } = req.params;
-            const { collectionName } = req.body;
+            const { collection_id } = req.params;
+            const { collection_name } = req.body;
             const user = req.user;
 
             if (user.role !== "admin") {
                 return res.status(403).json({ message: "Only Admin can update a collection" });
             }
 
-            const existingCollection = await Collection.findByPk(collectionId);
+            const existingCollection = await Collection.findByPk(collection_id);
             if (!existingCollection) {
                 return res.status(404).json({ message: "Collection not found" });
             }
 
-            existingCollection.collectionName = collectionName;
+            existingCollection.collection_name = collection_name;
             await existingCollection.save();
 
             return res.status(200).json({ message: "Collection updated successfully", existingCollection });
@@ -56,38 +59,42 @@ const updateCollection = [
     }
 ]
 
-const deleteCollection = [
+export const deleteCollection = [
+    authenticateToken,
     checkRole(["admin"]),
     async (req, res) => {
-        try {
-            const { collectionId } = req.params;
-            const user = req.user;
-
-            if (user.role !== "admin"){
-                return res.status(403).json({ message: "Only Admin can delete a collection" });
-            }
-
-            const existing = Collection.findByPk(collectionId);
-            if (!existing) {
-                return res.status(404).json({ message: "Collection not found" });
-            }
-            // Check if there are products associated with the collection
-            const products = await Product.findAll({ where: { collectionId } });
-            if (products.length > 0) {
-                return res.status(400).json({ message: "Cannot delete collection with associated products" });
-            }
-            await existing.destroy();
-            return res.status(200).json({ message: "Collection deleted successfully" }); 
-
-        }catch (error) {
-            console.error("Error deleting collection:", error);
-            return res.status(500).json({ message: "Internal server error" });
+      try {
+        const { collection_id } = req.params;
+        const user = req.user;
+  
+        if (user.role !== "admin") {
+          return res.status(403).json({ message: "Only Admin can delete a collection" });
         }
-    }
-]
+  
+        const existing = Collection.findByPk(collection_id);
+        if (!existing) {
+          return res.status(404).json({ message: "Collection not found" });
+        }
 
-const getAllCollections = [
-    checkRole(["admin", "customer"]),
+        if (!collection_id) {
+            return res.status(400).json({ error: 'Collection ID is required' });
+          }
+  
+        const products = await Product.findAll({ where: { collection_id } });
+        if (products.length > 0) {
+            return res.status(400).json({ message: "Cannot delete collection with associated products" });
+        }
+  
+        await Collection.destroy({ where: { collection_id } });
+        return res.status(200).json({ message: "Collection deleted successfully" });
+      } catch (error) {
+        console.error("Error deleting collection:", error);
+        return res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  ];
+
+export const getAllCollections = [
     async (req, res) => {
         try {
             const collections = await Collection.findAll();
@@ -98,8 +105,7 @@ const getAllCollections = [
         }
     }
 ]
-const getCollectionById = [
-    checkRole(["admin", "customer"]),
+export const getCollectionById = [
     async (req, res) => {
         try {
             const { collectionId } = req.params;
@@ -115,33 +121,49 @@ const getCollectionById = [
     }
 ]   
 
-const createProduct = [
+export const createProduct = [
+    authenticateToken,
     checkRole(["admin"]),
+    upload.fields([
+        {name : "product_image", maxCount: 1}
+    ]),
     async (req, res) => {
         try{
-            const { collection_Id, 
-                product_name,
+            const { product_name,
                 product_description,
                 product_price,
-                product_image,
                 dimension,
                 min_order,
                 delivery_time
             } = req.body;
+            const { collection_Id } = req.params;
             const user = req.user;
             if (user.role !== "admin") {
                 return res.status(403).json({ message: "Only Admin can create a product" });
             }
-            const existingProduct = await Product.findOne({ where: { product_name } });
+            const collection = await Collection.findByPk(collection_Id);
+            if (!collection) {
+                return res.status(404).json({ message: "Collection not found" });
+            }
+            const existingProduct = await Product.findOne({ 
+                where: { 
+                    product_name,          
+                    collection_Id         
+                } 
+            });
             if (existingProduct) {
-                return res.status(409).json({ message: "Product already exists" });
+                return res.status(409).json({ message: "Product already exists in this collection" });
+            }
+            if (!product_name || !product_description || !product_price || !dimension || 
+                !min_order || !delivery_time || !req.files?.product_image) {
+                return res.status(400).json({ message: "Please provide all required fields" });
             }
             const newProduct = await Product.create({
                 collection_Id,
                 product_name,
                 product_description,
                 product_price,
-                product_image,
+                product_image : req.files.product_image[0].path,
                 dimension,
                 min_order,
                 delivery_time
@@ -154,33 +176,51 @@ const createProduct = [
     }
 ]
 
-    const updateProduct = [ 
-        checkRole(["admin"]),
+export const updateProduct = [ 
+    authenticateToken,
+    checkRole(["admin"]),
+    upload.fields([
+         {name : "product_image", maxCount: 1}
+    ]),
         async (req, res) => {
             try{
-                const { productId } = req.params;
-                const { collection_Id, 
-                    product_name,
+                const { productId, collectionId } = req.params;
+                const { product_name,
                     product_description,
                     product_price,
-                    product_image,
                     dimension,
                     min_order,
                     delivery_time
                 } = req.body;
+                const {product_image} = req.files;
                 const user = req.user;
                 if (user.role !== "admin") {
                     return res.status(403).json({ message: "Only Admin can update a product" });
                 }
+                const collection = await Collection.findOne({ where: { collectionId } });
+                if (!collection) {
+                    return res.status(404).json({ message: "Collection not found" });
+                }
                 const existingProduct = await Product.findByPk(productId);
                 if (!existingProduct) {
-                    return res.status(404).json({ message: "Product not found" });
+                    return res.status(404).json({ message: "No Product found" });
                 }
-                existingProduct.collection_Id = collection_Id;
+                const duplicateProduct = await Product.findOne({
+                    where: {
+                        product_name : existingProduct.product_name,
+                        collection_Id : existingProduct.collection_Id
+                    }
+                });
+                if(product_name == duplicateProduct){
+                    return res.status(409).json({ message: "Product name already exists in this collection" });
+                }
+                if(product_image){
+                    existingProduct.product_image = product_image[0].path;
+                }
+                existingProduct.collection_Id = collection.collection_Id;
                 existingProduct.product_name = product_name;
                 existingProduct.product_description = product_description;
                 existingProduct.product_price = product_price;
-                existingProduct.product_image = product_image;
                 existingProduct.dimension = dimension;
                 existingProduct.min_order = min_order;
                 existingProduct.delivery_time = delivery_time;
@@ -192,13 +232,15 @@ const createProduct = [
                 console.error("Error updating product:", error);
                 return res.status(500).json({ message: "Internal server error" });
             }
-        }
-    ]
-const deleteProduct = [ 
+    }
+]
+
+export const deleteProduct = [ 
+    authenticateToken,
     checkRole(["admin"]),
     async (req, res) => {
         try {
-            const { productId } = req.params;
+            const { productId, collectionId } = req.params;
             const user = req.user;
             if (user.role !== "admin") {
                 return res.status(403).json({ message: "Only Admin can delete a product" });
@@ -206,6 +248,13 @@ const deleteProduct = [
             const existingProduct = await Product.findByPk(productId);
             if (!existingProduct) {
                 return res.status(404).json({ message: "Product not found" });
+            }
+            const collection = await Product.findOne({ where: { collectionId } });
+            if (!collection) {
+                return res.status(404).json({ message: "Collection not found" });
+            }
+            if (existingProduct.collectionId !== collection.collectionId) {
+                return res.status(400).json({ message: "Product does not belong to this collection" });
             }
             await existingProduct.destroy();
             return res.status(200).json({ message: "Product deleted successfully" });
@@ -216,7 +265,7 @@ const deleteProduct = [
     }
 ]
 
-const getAllProducts = [
+export const getAllProducts = [
     checkRole(["admin", "customer"]),
     async (req, res) => {
         try {
@@ -229,7 +278,7 @@ const getAllProducts = [
     }
 ]
 
-const getProductById = [
+export const getProductById = [
     checkRole(["admin", "customer"]),
     async (req, res) => {
         try {
@@ -246,15 +295,3 @@ const getProductById = [
     }
 ]
 
-export {
-    createCollection,
-    updateCollection,
-    deleteCollection,
-    getAllCollections,
-    getCollectionById,
-    createProduct,
-    updateProduct,
-    deleteProduct,  
-    getAllProducts,
-    getProductById
-}
