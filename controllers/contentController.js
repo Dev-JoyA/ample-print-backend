@@ -1,9 +1,11 @@
 import express from 'express';
 import  Collection  from '../models/collectionModel.js';
 import Product from '../models/productModel.js';
+import { authenticateToken } from '../middleware/auth.js';
 import { checkRole } from '../middleware/authorization.js';
 
 const createCollection = [
+    authenticateToken,
     checkRole(["admin"]),
     async (req, res) => {
         try{
@@ -87,7 +89,6 @@ const deleteCollection = [
 ]
 
 const getAllCollections = [
-    checkRole(["admin", "customer"]),
     async (req, res) => {
         try {
             const collections = await Collection.findAll();
@@ -99,7 +100,6 @@ const getAllCollections = [
     }
 ]
 const getCollectionById = [
-    checkRole(["admin", "customer"]),
     async (req, res) => {
         try {
             const { collectionId } = req.params;
@@ -217,7 +217,6 @@ const deleteProduct = [
 ]
 
 const getAllProducts = [
-    checkRole(["admin", "customer"]),
     async (req, res) => {
         try {
             const products = await Product.findAll();
@@ -230,7 +229,6 @@ const getAllProducts = [
 ]
 
 const getProductById = [
-    checkRole(["admin", "customer"]),
     async (req, res) => {
         try {
             const { productId } = req.params;

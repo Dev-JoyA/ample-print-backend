@@ -1,6 +1,6 @@
 import passport from "passport";
 import dotenv from "dotenv"
-import { Strategy as GoogleStrategy } from "passport-google-oauth2";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { User } from "../models/userModel.js"
 
 
@@ -11,14 +11,18 @@ dotenv.config();
 passport.use(new GoogleStrategy({
     clientID : process.env.CLIENT_ID,
     clientSecret : process.env.CLIENT_SECRET,
-    callbackUrl : "http://localhost:4001/auth/google/signIn",
-    passReqToCallback : true
+    callbackUrl : "http://localhost:4001/auth/google/sign-in"
 },
 
-    async(request, accessToken, refreshToken, profile, done)=> {
+    async(accessToken, refreshToken, profile, cb)=> {
         try {
-            const user = await User.findOrCreate({googleId : profileId});
-            return done(err, user)
+            await User.findOrCreate({googleId : profile.id}), function(err, user){
+              if(err){
+                return cb(err, null)
+              }
+              console.log("User found or created:", user, accessToken);
+              return cb(err, user)
+            }
         }catch(error){
            return done(err, null)
         }

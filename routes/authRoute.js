@@ -9,7 +9,7 @@ import { signIn,
         forgotPassword,
         resetPassword
     } from "../controllers/authControllers.js";
-import { authenticateToken } from "../utils/auth.js";
+
 
 
 const router = Router();
@@ -26,7 +26,7 @@ router.get("/google",  passport.authenticate('google', { scope:
     [ 'email', 'profile' ] }
 ));
 
-router.get( '/google/signI',
+router.get( '/google/sign-in',
     passport.authenticate( 'google', {
         successRedirect: '/auth/google/success',
         failureRedirect: '/auth/google/failure'
