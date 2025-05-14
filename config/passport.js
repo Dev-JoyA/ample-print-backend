@@ -1,20 +1,20 @@
 import passport from "passport";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
-import { Profile } from "../models/profileModel.js"; // Adjust path
-import { User } from "../models/userModel.js"; // Adjust path
+import { Profile } from "../models/profileModel.js"; 
+import { User } from "../models/userModel.js"; 
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const opts = {
-  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), // Extract JWT from Authorization: Bearer <token>
-  secretOrKey: process.env.JWT_SECRET_KEY, // Must match utils/authUtils.js
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), 
+  secretOrKey: process.env.JWT_SECRET_KEY, 
 };
 
 passport.use(
   new JwtStrategy(opts, async (jwt_payload, done) => {
     try {
-      console.log("JWT Payload:", jwt_payload); // Debug
+      console.log("JWT Payload:", jwt_payload); 
       const profile = await Profile.findOne({ where: { email: jwt_payload.email } });
       if (!profile) {
         console.log("Profile not found for email:", jwt_payload.email);
