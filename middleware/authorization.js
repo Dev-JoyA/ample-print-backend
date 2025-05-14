@@ -4,7 +4,7 @@ import { Profile } from "../models/profileModel.js";
 
 export const checkRole = (roles) => (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ error: "Unauthorized" });
+      return res.status(403).json({ error: "Unauthorized", message: `You do not have permission to access this resource only ${roles} have access` });
     }
     next();
   };
