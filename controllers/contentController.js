@@ -4,6 +4,7 @@ import upload from  "../config/upload.js";
 import Product from '../models/productModel.js';
 import { checkRole } from '../middleware/authorization.js';
 import { authenticateToken } from '../utils/auth.js';
+import {Op} from "sequelize"
 
 export const createCollection = [
     authenticateToken,
@@ -67,10 +68,6 @@ export const deleteCollection = [
         const { collection_id } = req.params;
         const user = req.user;
   
-        if (user.role !== "admin") {
-          return res.status(403).json({ message: "Only Admin can delete a collection" });
-        }
-  
         const existing = Collection.findByPk(collection_id);
         if (!existing) {
           return res.status(404).json({ message: "Collection not found" });
@@ -98,7 +95,7 @@ export const getAllCollections = [
     async (req, res) => {
         try {
             const collections = await Collection.findAll();
-            return res.status(200).json({ message: "Collections retrieved successfully", collections });
+            return res.status(200).json({ message: "Collections retrieved successfully", collections});
         } catch (error) {
             console.error("Error retrieving collections:", error);
             return res.status(500).json({ message: "Internal server error" });
@@ -136,19 +133,17 @@ export const createProduct = [
                 min_order,
                 delivery_time
             } = req.body;
-            const { collection_Id } = req.params;
-            const user = req.user;
-            if (user.role !== "admin") {
-                return res.status(403).json({ message: "Only Admin can create a product" });
-            }
-            const collection = await Collection.findByPk(collection_Id);
+            const { product_image } = req.files;
+            const { collection_id } = req.params;
+           
+            const collection = await Collection.findByPk(collection_id);
             if (!collection) {
                 return res.status(404).json({ message: "Collection not found" });
             }
             const existingProduct = await Product.findOne({ 
                 where: { 
-                    product_name,          
-                    collection_Id         
+                    product_name ,
+                    collection_id
                 } 
             });
             if (existingProduct) {
@@ -158,8 +153,8 @@ export const createProduct = [
                 !min_order || !delivery_time || !req.files?.product_image) {
                 return res.status(400).json({ message: "Please provide all required fields" });
             }
-            const newProduct = await Product.create({
-                collection_Id,
+            const product = await Product.create({
+                collection_id : collection.collection_id,
                 product_name,
                 product_description,
                 product_price,
@@ -168,7 +163,11 @@ export const createProduct = [
                 min_order,
                 delivery_time
             });
-            return res.status(201).json({ message: "Product created successfully", newProduct });
+            return res.status(201).json({ message: "Product created successfully", collection :{
+                collection_id : collection.collection_id,
+                collection_name : collection.collection_name,
+                product
+            } });
         }catch (error) {
             console.error("Error creating product:", error);
             return res.status(500).json({ message: "Internal server error" });
@@ -184,8 +183,8 @@ export const updateProduct = [
     ]),
         async (req, res) => {
             try{
-                const { productId, collectionId } = req.params;
-                const { product_name,
+                const { product_id, collection_id} = req.params;
+                let { product_name,
                     product_description,
                     product_price,
                     dimension,
@@ -193,41 +192,49 @@ export const updateProduct = [
                     delivery_time
                 } = req.body;
                 const {product_image} = req.files;
-                const user = req.user;
-                if (user.role !== "admin") {
-                    return res.status(403).json({ message: "Only Admin can update a product" });
-                }
-                const collection = await Collection.findOne({ where: { collectionId } });
+                
+                const collection = await Collection.findOne({ where: { collection_id } });
                 if (!collection) {
                     return res.status(404).json({ message: "Collection not found" });
                 }
-                const existingProduct = await Product.findByPk(productId);
+               
+                const existingProduct = await Product.findByPk(product_id);
                 if (!existingProduct) {
                     return res.status(404).json({ message: "No Product found" });
                 }
                 const duplicateProduct = await Product.findOne({
                     where: {
                         product_name : existingProduct.product_name,
-                        collection_Id : existingProduct.collection_Id
+                        collection_id : existingProduct.collection_id
                     }
                 });
-                if(product_name == duplicateProduct){
+                if(duplicateProduct){
                     return res.status(409).json({ message: "Product name already exists in this collection" });
                 }
                 if(product_image){
                     existingProduct.product_image = product_image[0].path;
                 }
-                existingProduct.collection_Id = collection.collection_Id;
-                existingProduct.product_name = product_name;
-                existingProduct.product_description = product_description;
-                existingProduct.product_price = product_price;
-                existingProduct.dimension = dimension;
-                existingProduct.min_order = min_order;
-                existingProduct.delivery_time = delivery_time;
+                if(product_name){
+                    existingProduct.product_name = product_name;
+                }
+                
+                
+                existingProduct.product_description = product_description || existingProduct.product_description;
+                existingProduct.product_price = product_price || existingProduct.product_price;
+                existingProduct.product_image = product_image ? product_image[0].path : existingProduct.product_image;
+                existingProduct.dimension = dimension || existingProduct.dimension;
+                existingProduct.min_order = min_order || existingProduct.min_order;
+                existingProduct.delivery_time = delivery_time || existingProduct.delivery_time;
+               
+                
 
                 await existingProduct.save();
                 
-                return res.status(200).json({ message: "Product updated successfully", existingProduct });
+                return res.status(200).json({ message: "Product updated successfully", collection : {
+                    collection_name : collection.collection_name,
+                    product : existingProduct
+                } 
+                });
             }catch (error) {
                 console.error("Error updating product:", error);
                 return res.status(500).json({ message: "Internal server error" });
@@ -240,20 +247,17 @@ export const deleteProduct = [
     checkRole(["admin"]),
     async (req, res) => {
         try {
-            const { productId, collectionId } = req.params;
-            const user = req.user;
-            if (user.role !== "admin") {
-                return res.status(403).json({ message: "Only Admin can delete a product" });
-            }
-            const existingProduct = await Product.findByPk(productId);
+            const { product_id, collection_id } = req.params;
+            
+            const existingProduct = await Product.findByPk(product_id);
             if (!existingProduct) {
                 return res.status(404).json({ message: "Product not found" });
             }
-            const collection = await Product.findOne({ where: { collectionId } });
+            const collection = await Product.findOne({ where: { collection_id } });
             if (!collection) {
                 return res.status(404).json({ message: "Collection not found" });
             }
-            if (existingProduct.collectionId !== collection.collectionId) {
+            if (existingProduct.collection_id !== collection.collection_id) {
                 return res.status(400).json({ message: "Product does not belong to this collection" });
             }
             await existingProduct.destroy();
@@ -266,11 +270,14 @@ export const deleteProduct = [
 ]
 
 export const getAllProducts = [
-    checkRole(["admin", "customer"]),
     async (req, res) => {
         try {
             const products = await Product.findAll();
-            return res.status(200).json({ message: "Products retrieved successfully", products });
+            
+            return res.status(200).json({ message: "Products retrieved successfully", product : {
+                collection_id : products.collection_id,
+                products
+            }});
         } catch (error) {
             console.error("Error retrieving products:", error);
             return res.status(500).json({ message: "Internal server error" });
@@ -279,7 +286,6 @@ export const getAllProducts = [
 ]
 
 export const getProductById = [
-    checkRole(["admin", "customer"]),
     async (req, res) => {
         try {
             const { productId } = req.params;
@@ -294,4 +300,62 @@ export const getProductById = [
         }
     }
 ]
+
+export const getProductsByCollectionId = async (req, res) => {
+    try {
+        const {collection_id} = req.params;
+        const products = await Product.findAll({where : {
+            collection_id
+        }});
+       return res.status(200).json({ message: "Products retrieved successfully", products });
+    }catch (error) {
+        console.error("Error retrieving products by collection ID:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}   
+
+export const getProductByCollectionName = async(req, res) => {
+    try{
+       const {collection_name} = req.query;
+         
+          const collection = await Collection.findAll({where : {
+            collection_name : {
+                [Op.iLike] : `%${collection_name}%`
+            }
+        }});
+          if(!collection){
+                return res.status(404).json({message : "No collection found with this name"})
+          }
+          const products = await Product.findAll();
+         
+          return res.status(200).json({message : "products successfully found", collection : {
+            collection_id : collection.collection_id,
+            collection_name : collection.collection_name,
+            products
+          }})
+    }catch(error){
+        console.error("Error getting product by collecction name ", error);
+        return res.status(500).json({message : "Error getting product by collection name"})
+    }
+}
+
+export const getProductByProductName = async (req, res) => {
+    try{
+        const {product_name} = req.query;
+        if(!product_name){
+            return res.status(400).json({message : "No product dound with this name"})
+        }
+        const products = Product.findAll({where: {product_name}})
+        if(!products || products.length < 0 ){
+            return res.status(400).json({message : "No product found for with this name"}) 
+         
+        }
+        
+        return res.status(200).json({message : "products successfully found", products})
+
+    }catch(error){
+        console.error("Error getting product by collecction name ", error);
+        return res.status(500).json({message : "Error getting product by collection name"})
+    }
+}
 

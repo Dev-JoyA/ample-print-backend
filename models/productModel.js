@@ -15,7 +15,6 @@ const Product = sequelize.define("Product",
         collection_id: {
             type: DataTypes.INTEGER,
             allowNull : false,
-            unique : true,
             references : {
                 model : "COLLECTION",
                 key : "collection_id"
