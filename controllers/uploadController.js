@@ -1,9 +1,11 @@
 import User_Design  from '../models/userDesignModel.js'; 
 import  Design  from "../models/designModel.js";
+import Order_Product from '../models/orderProduct.js';
 import { checkRole, checkSuperAdmin } from "../middleware/authorization.js";
 import { verifyToken } from '../utils/auth.js';
 import upload from "../config/upload.js";
 import fs from "fs/promises";
+import { where } from 'sequelize';
 
 // Create a new design with file uploads
 export const createDesign = [

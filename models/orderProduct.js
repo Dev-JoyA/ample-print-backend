@@ -1,8 +1,6 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/postgresDb.js";
-import Order from "./orderModel.js";
-import Product from "./productModel.js";
-import Design from "./userDesignModel.js";
+
 
 const Order_Product = sequelize.define("Order_Product",
     {
@@ -15,7 +13,6 @@ const Order_Product = sequelize.define("Order_Product",
         order_id: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            unique: true,
             references: {
                 model: "ORDER",
                 key: "order_id"
@@ -24,7 +21,6 @@ const Order_Product = sequelize.define("Order_Product",
         product_id: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            unique: true,
             references: {
                 model: "PRODUCT",
                 key: "product_id"
@@ -33,7 +29,6 @@ const Order_Product = sequelize.define("Order_Product",
         design_id: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            unique: true,
             references: {
                 model: "DESIGN",
                 key: "design_id"

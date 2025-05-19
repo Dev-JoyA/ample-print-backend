@@ -1,10 +1,6 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/postgresDb.js";
-import { User } from "./userModel.js";
-import Invoice from "./invoiceModel.js";
-import Transaction from "./transactionModel.js";
-import Order_Product from "./orderProduct.js";
-import Shipping from "./shippingModel.js";
+
 
 const Order = sequelize.define("Order",
     {
@@ -25,6 +21,10 @@ const Order = sequelize.define("Order",
         payment_status: {
             type: DataTypes.ENUM("pending", "completed", "failed"),
             defaultValue: "pending"
+        },
+        is_deposit_paid: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
         },
         deposit_paid: {
             type: DataTypes.DECIMAL(10, 2),
