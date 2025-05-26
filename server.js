@@ -28,7 +28,9 @@ app.use(express.urlencoded({extended : true}));
 app.use(passport.initialize());
 
 // app.use(passport.initialize());
-
+app.get("/home", (req, res) => {
+    res.send("Welcome to the server");
+})
 app.use("/auth", authRoute)
 app.use("/upload", uploadRoute)
 app.use("/content", contentRoute)
