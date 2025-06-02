@@ -18,10 +18,13 @@ export const signUp = async (req, res) => {
         }
         const existingUserName = await Profile.findOne({ where: { userName } });
         if (existingUserName) {
-        return res.status(400).json({ message: "Username already exists" });
+            return res.status(400).json({ message: "Username already exists" });
         }
         if (password.length < 5) {
-        return res.status(400).json({ message: "Password must be at least 5 characters" });
+            return res.status(400).json({ message: "Password must be at least 5 characters" });
+        }
+        if(phoneNumber.length < 11){
+            return res.status(400).json({ message: "Phone number is incomplete" });
         }
         const hashedPassword = await hashPassword(password);
 
@@ -49,7 +52,7 @@ export const signUp = async (req, res) => {
         }catch (emailError) {
             console.error(`Email failed: ${emailError}`);
         }
-
+        console.log("new sign up created")
         return res.status(201).json({ message: "User registered successfully", user: newProfile });
     }catch(error) {
         return res.status(500).json({ message: `Error registering user: ${error.message}` });

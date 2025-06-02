@@ -2,10 +2,7 @@ version: '3.8'
 
 services:
   app:
-    build:
-      context: .  # Use current directory for Dockerfile
-      dockerfile: Dockerfile
-    image : ample-printhub-backend:latest  # Name the image for easy reference
+    image : joygold/ample-printhub-backend:v1.1  # Name the image for easy reference
     ports:
       - "4001:4001"  # Map host port 4001 to container port 4001
     env_file:
