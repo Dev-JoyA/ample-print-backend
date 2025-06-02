@@ -5,7 +5,7 @@ import authRoute from "./routes/authRoute.js";
 import uploadRoute from "./routes/uploadRoute.js";
 import contentRoute from "./routes/contentRoute.js";
 import passport from "./config/passport.js";
-// import passport from "./middleware/passport.js";
+import cors from "cors";
 import { setupAssociations } from "./models/associations.js"
 
 
@@ -21,6 +21,7 @@ try {
 }
 
 const app = express();
+app.use(cors())
 const PORT = process.env.PORT || 8000;
 
 app.use(express.json());
