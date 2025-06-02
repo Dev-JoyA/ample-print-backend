@@ -15,6 +15,7 @@ import {
 
 const router = express.Router();
 
+router.get('/products',  getAllProducts);
 router.post('/collection', createCollection);
 router.put('/:collection_id', ...updateCollection);
 router.delete('/:collection_id', deleteCollection);
@@ -23,7 +24,7 @@ router.get('/:collectionId', getCollectionById);
 router.post('/product', createProduct);
 router.put('/:productId/:collectionId', ...updateProduct);
 router.delete('/:productId', deleteProduct);
-router.get('/product',  getAllProducts);
+
 router.get('/:productId',  getProductById);
 
 export default router;
