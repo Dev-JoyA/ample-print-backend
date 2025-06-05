@@ -28,7 +28,9 @@
     "passport-jwt": "^4.0.1",
     "pg": "^8.13.1",
     "pg-hstore": "^2.3.4",
-    "sequelize": "^6.37.5"
+    "sequelize": "^6.37.5",
+    "speakeasy": "^2.0.0",
+    "twilio": "^5.7.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
