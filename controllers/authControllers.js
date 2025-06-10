@@ -2,7 +2,6 @@ import { checkRole, checkSuperAdmin } from "../middleware/authorization.js";
 import { User} from "../models/userModel.js"; 
 import { Profile } from "../models/profileModel.js";
 import PasswordResetToken from "../models/passwordResetToken.js"; 
-import { secret, token, verifyToken} from "../utils/otp.js"
 import { hashPassword, generateToken, comparePassword, verifyToken, authenticateToken } from "../utils/auth.js";
 import emails from "../utils/email.js";
 import crypto from "crypto";
