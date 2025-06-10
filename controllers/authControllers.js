@@ -10,11 +10,11 @@ export const signUp = async (req, res) => {
     try {
         const { firstName, lastName, userName, email, password, phoneNumber } = req.body;
         if (!email || !password || !phoneNumber || !firstName || !lastName || !userName) {
-        return res.status(400).json({ message: "All fields are required" });
+            return res.status(400).json({ message: "All fields are required" });
         }
         const existingProfile = await Profile.findOne({ where: { email } });
         if (existingProfile) {
-        return res.status(400).json({ message: "Email already exists" });
+            return res.status(400).json({ message: "Email already exists" });
         }
         const existingUserName = await Profile.findOne({ where: { userName } });
         if (existingUserName) {
@@ -32,12 +32,12 @@ export const signUp = async (req, res) => {
 
         const newProfile = await Profile.create({
         user_id: newUser.user_id,
-        firstName,
-        lastName,
-        userName,
-        email,
-        password: hashedPassword,
-        phoneNumber,
+            firstName,
+            lastName,
+            userName,
+            email,
+            password: hashedPassword,
+            phoneNumber,
         });
 
         try {
