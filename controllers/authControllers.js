@@ -14,6 +14,7 @@ export const signUp = async (req, res) => {
         if (!email || !password || !phoneNumber || !firstName || !lastName || !userName) {
             return res.status(400).json({ message: "All fields are required" });
         }
+        
         const existingProfile = await Profile.findOne({ where: { email } });
         if (existingProfile) {
             return res.status(400).json({ message: "Email already exists" });
@@ -107,6 +108,22 @@ export const adminSignUp = [
                 password: hashedPassword,
                 phoneNumber,
             });
+
+            const superAdminEmail = req.user.email;
+            const superAdminUserName = req.user.userName;
+
+             try{
+                await emails(
+                    superAdminEmail,
+                    "New Admin Created in AMPLE PRINTHUB",
+                    "New Admin Created in AMPLE PRINTHUB",
+                    superAdminUserName,
+                    `A new admin has been created in AMPLE PRINTHUB. Admin details:\n\nEmail: ${email}\nUsername: ${userName}\n\nYou can now manage this admin from your dashboard.`,
+                    "https://ampleprinthub.com"
+                )
+                }catch(error){
+                    return res.status(500).json({ message: "Error sending email to super admin" });
+                }
             
             try{
                 await emails(
@@ -264,11 +281,27 @@ export const deactivateAdmin = [
             user.isActive = false;
             await user.save();
 
+             const superAdminEmail = req.user.email;
+            const superAdminUserName = req.user.userName;
+
+             try{
+                await emails(
+                    superAdminEmail,
+                    "Admin Deactivated Successfully",
+                    "Admin Deactivated Successfully",
+                    superAdminUserName,
+                    `Admin ${userName} with email : ${email} has been deactivated in AMPLE PRINTHUB. \n\nYou can now manage this admin from your dashboard.`,
+                    "https://ampleprinthub.com"
+                )
+                }catch(error){
+                    return res.status(500).json({ message: "Error sending deactivation email to super admin" });
+                }
+
             try{
                 await emails(
                     email,
-                    "Account Deactivation",
-                    "Account Deactivation",
+                    "Account Deactivation Successful",
+                    "Account Deactivation Successful",
                     profile.userName,
                     `Your AMPLE PRINTHUB account has been deactivated by superadmin ${req.user.email}. If you believe this is a mistake, please contact support.`,
                     "https://ampleprinthub.com"
@@ -315,6 +348,23 @@ export const reactivateAdmin = [
             // Reactivate user
             user.isActive = true;
             await user.save();
+
+             const superAdminEmail = req.user.email;
+            const superAdminUserName = req.user.userName;
+
+             try{
+                await emails(
+                    superAdminEmail,
+                    "Admin Reactivation Successful",
+                    "Admin Reactivation Successful",
+                    superAdminUserName,
+                    `Admin ${userName} with email : ${email} has been reactivated in AMPLE PRINTHUB. \n\nYou can now manage this admin from your dashboard.`,
+                    "https://ampleprinthub.com"
+                )
+                }catch(error){
+                    return res.status(500).json({ message: "Error sending reactivation email to super admin" });
+                }
+
             try{
                 await emails(
                     email,
