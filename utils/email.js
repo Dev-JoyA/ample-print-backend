@@ -14,8 +14,8 @@ const projectRoot = path.resolve(__dirname, "..");
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
@@ -57,3 +57,42 @@ const emails = async (to, subject, header, name, bodyMessage, linkUrl = "https:/
 };
 
 export default emails;
+
+// import nodemailer from 'nodemailer';
+// import dotenv from 'dotenv';
+// dotenv.config();
+
+// async function sendEmail() {
+//   const transporter = nodemailer.createTransport({
+//     host: 'localhost',
+//     port: 587, // Use STARTTLS
+//     secure: false,
+//     service: 'gmail', // Use STARTTLS
+//     auth: {
+//       user: process.env.EMAIL_USER,
+//       pass: process.env.EMAIL_PASSWORD,
+//     },
+//     tls: {
+//       minVersion: 'TLSv1.2',
+//       ciphers: 'HIGH:!SSLv3',
+//     },
+//     debug: true,
+//     pool: true, // Enable connection pooling
+//     maxConnections: 5, // Limit concurrent connections
+//     maxMessages: 100,
+//   });
+
+//   try {
+//     await transporter.sendMail({
+//       from: process.env.EMAIL_USER,
+//       to: 'joy.graces13@gmail.com',
+//       subject: 'Test Email',
+//       text: 'This is a test email.',
+//     });
+//     console.log('Email sent successfully');
+//   } catch (error) {
+//     console.error('Error sending email:', error);
+//   }
+// }
+
+// sendEmail();
