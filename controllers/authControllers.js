@@ -6,6 +6,8 @@ import { hashPassword, generateToken, comparePassword, verifyToken, authenticate
 import emails from "../utils/email.js";
 import crypto from "crypto";
 
+const token = crypto.randomBytes(32).toString("hex");
+
 export const signUp = async (req, res) => {
     try {
         const { firstName, lastName, userName, email, password, phoneNumber } = req.body;
@@ -349,7 +351,7 @@ export const forgotPassword = async (req, res) => {
             if (!user || !user.isActive) {
             return res.status(403).json({ message: "Account is inactive or not found" });
             }
-            const token = crypto.randomBytes(10).toString("hex");
+            
             const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
             const hours = expiresAt.getHours().toString().padStart(2, '0');
             const minutes = expiresAt.getMinutes().toString().padStart(2, '0');
@@ -388,23 +390,24 @@ export const forgotPassword = async (req, res) => {
 // Reset password (all users)
 export const resetPassword = async (req, res) => {
     try {
-        const { newPassword, confirmPassword } = req.body;
-        if (!newPassword ) {
+        const { password, confirmPassword } = req.body;
+        if (!password ) {
         return res.status(400).json({ message: "A new password is required" });
         }
 
         if (!confirmPassword) {
         return res.status(400).json({ message: "Kindly confirm your password is required" });
         }
-        if (newPassword !== confirmPassword) {
+        if (password !== confirmPassword) {
         return res.status(400).json({ message: "Passwords do not match" });
         }
-        const token = req.query.token;
+        // const token = req.query.token;
         if (!token) {           
         return res.status(400).json({ message: "Token is required" });
         }
-        const password = newPassword;
-        if (password.length < 5) {
+        console.log("Reset password token:", token);
+        const newPassword = password;
+        if (newPassword.length < 5) {
         return res.status(400).json({ message: "New password must be at least 5 characters" });
         }
         const resetToken = await PasswordResetToken.findOne({ where: { token } });
@@ -424,8 +427,10 @@ export const resetPassword = async (req, res) => {
         return res.status(404).json({ message: "Profile not found" });
         }
 
-        const hashedPassword = await hashPassword(newPassword);
-
+        const hashedPassword = await hashPassword(password);
+        if (!hashedPassword) {
+            return res.status(500).json({ message: "Error hashing password" });
+        }
         profile.password = hashedPassword;
         await profile.save();
 
@@ -446,3 +451,4 @@ export const resetPassword = async (req, res) => {
         return res.status(500).json({ message: `Error resetting password: ${error.message}` });
     }
 };
+
