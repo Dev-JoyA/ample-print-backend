@@ -261,7 +261,8 @@ export const deactivateAdmin = [
             if (!email) {
                 return res.status(400).json({ message: "Email is required" });
             }
-            if (email === "ampleprinthub@gmail.com") {
+            const superAdminEmail = req.user.email;
+            if (email === superAdminEmail) {
                 return res.status(403).json({ message: "Cannot deactivate the permanent superadmin" });
             }
             const profile = await Profile.findOne({ where: { email } });
@@ -281,7 +282,7 @@ export const deactivateAdmin = [
             user.isActive = false;
             await user.save();
 
-             const superAdminEmail = req.user.email;
+             
             const superAdminUserName = req.user.userName;
 
              try{
