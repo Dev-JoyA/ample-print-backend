@@ -18,13 +18,15 @@ export const createCollection = [
             }
             
             const newCollection = await Collection.create({
-                collection_name ,
+                collection_name 
             });
+
+            newCollection.save()
 
             return res.status(201).json({ message: "Collection created successfully", newCollection });
         }catch (error) {
             console.error("Error creating collection:", error);
-            return res.status(500).json({ message: "Internal server error" });
+            return res.status(500).json({ message: "Error creating collection" });
         }
     }
 ]
@@ -36,11 +38,6 @@ export const updateCollection = [
         try{
             const { collection_id } = req.params;
             const { collection_name } = req.body;
-            const user = req.user;
-
-            if (user.role !== "admin") {
-                return res.status(403).json({ message: "Only Admin can update a collection" });
-            }
 
             const existingCollection = await Collection.findByPk(collection_id);
             if (!existingCollection) {
@@ -54,7 +51,7 @@ export const updateCollection = [
 
         }catch (error) {
             console.error("Error updating collection:", error);
-            return res.status(500).json({ message: "Internal server error" });
+            return res.status(500).json({ message: "Error updating collection" });
         }
     }
 ]
@@ -65,11 +62,6 @@ export const deleteCollection = [
     async (req, res) => {
       try {
         const { collection_id } = req.params;
-        const user = req.user;
-  
-        if (user.role !== "admin") {
-          return res.status(403).json({ message: "Only Admin can delete a collection" });
-        }
   
         const existing = Collection.findByPk(collection_id);
         if (!existing) {
@@ -89,7 +81,7 @@ export const deleteCollection = [
         return res.status(200).json({ message: "Collection deleted successfully" });
       } catch (error) {
         console.error("Error deleting collection:", error);
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ message: "Error deleting collection" });
       }
     }
   ];
@@ -98,9 +90,6 @@ export const getAllCollections = [
     async (req, res) => {
         try {
             const collections = await Collection.findAll();
-            if (collections.length === 0) {
-                return res.status(404).json({ message: "No collections found" });
-            }
             return res.status(200).json({ message: "Collections retrieved successfully", collections });
         } catch (error) {
             console.error("Error retrieving collections:", error);
@@ -114,7 +103,7 @@ export const getCollectionById = [
             const { collectionId } = req.params;
             const collection = await Collection.findByPk(collectionId);
             if (!collection) {
-                return res.status(404).json({ message: "Collection not found" });
+                return res.status(404).json({ message: `Collection with id ${collectionId} not found` });
             }
             return res.status(200).json({ message: "Collection retrieved successfully", collection });
         } catch (error) {
@@ -123,6 +112,8 @@ export const getCollectionById = [
         }
     }
 ]   
+
+
 
 export const createProduct = [
     authenticateToken,
