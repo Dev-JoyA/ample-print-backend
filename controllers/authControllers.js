@@ -6,22 +6,28 @@ import { hashPassword, generateToken, comparePassword, verifyToken, authenticate
 import emails from "../utils/email.js";
 import crypto from "crypto";
 
+const token = crypto.randomBytes(32).toString("hex");
+
 export const signUp = async (req, res) => {
     try {
         const { firstName, lastName, userName, email, password, phoneNumber } = req.body;
         if (!email || !password || !phoneNumber || !firstName || !lastName || !userName) {
-        return res.status(400).json({ message: "All fields are required" });
+            return res.status(400).json({ message: "All fields are required" });
         }
+        
         const existingProfile = await Profile.findOne({ where: { email } });
         if (existingProfile) {
-        return res.status(400).json({ message: "Email already exists" });
+            return res.status(400).json({ message: "Email already exists" });
         }
         const existingUserName = await Profile.findOne({ where: { userName } });
         if (existingUserName) {
-        return res.status(400).json({ message: "Username already exists" });
+            return res.status(400).json({ message: "Username already exists" });
         }
         if (password.length < 5) {
-        return res.status(400).json({ message: "Password must be at least 5 characters" });
+            return res.status(400).json({ message: "Password must be at least 5 characters" });
+        }
+        if(phoneNumber.length < 11){
+            return res.status(400).json({ message: "Phone number is incomplete" });
         }
         const hashedPassword = await hashPassword(password);
 
@@ -29,12 +35,12 @@ export const signUp = async (req, res) => {
 
         const newProfile = await Profile.create({
         user_id: newUser.user_id,
-        firstName,
-        lastName,
-        userName,
-        email,
-        password: hashedPassword,
-        phoneNumber,
+            firstName,
+            lastName,
+            userName,
+            email,
+            password: hashedPassword,
+            phoneNumber,
         });
 
         try {
@@ -49,7 +55,7 @@ export const signUp = async (req, res) => {
         }catch (emailError) {
             console.error(`Email failed: ${emailError}`);
         }
-
+        console.log("new sign up created")
         return res.status(201).json({ message: "User registered successfully", user: newProfile });
     }catch(error) {
         return res.status(500).json({ message: `Error registering user: ${error.message}` });
@@ -102,6 +108,22 @@ export const adminSignUp = [
                 password: hashedPassword,
                 phoneNumber,
             });
+
+            const superAdminEmail = req.user.email;
+            const superAdminUserName = req.user.userName;
+
+             try{
+                await emails(
+                    superAdminEmail,
+                    "New Admin Created in AMPLE PRINTHUB",
+                    "New Admin Created in AMPLE PRINTHUB",
+                    superAdminUserName,
+                    `A new admin has been created in AMPLE PRINTHUB. Admin details:\n\nEmail: ${email}\nUsername: ${userName}\n\nYou can now manage this admin from your dashboard.`,
+                    "https://ampleprinthub.com"
+                )
+                }catch(error){
+                    return res.status(500).json({ message: "Error sending email to super admin" });
+                }
             
             try{
                 await emails(
@@ -239,7 +261,8 @@ export const deactivateAdmin = [
             if (!email) {
                 return res.status(400).json({ message: "Email is required" });
             }
-            if (email === "ampleprinthub@gmail.com") {
+            const superAdminEmail = req.user.email;
+            if (email === superAdminEmail) {
                 return res.status(403).json({ message: "Cannot deactivate the permanent superadmin" });
             }
             const profile = await Profile.findOne({ where: { email } });
@@ -259,11 +282,27 @@ export const deactivateAdmin = [
             user.isActive = false;
             await user.save();
 
+             
+            const superAdminUserName = req.user.userName;
+
+             try{
+                await emails(
+                    superAdminEmail,
+                    "Admin Deactivated Successfully",
+                    "Admin Deactivated Successfully",
+                    superAdminUserName,
+                    `Admin ${userName} with email : ${email} has been deactivated in AMPLE PRINTHUB. \n\nYou can now manage this admin from your dashboard.`,
+                    "https://ampleprinthub.com"
+                )
+                }catch(error){
+                    return res.status(500).json({ message: "Error sending deactivation email to super admin" });
+                }
+
             try{
                 await emails(
                     email,
-                    "Account Deactivation",
-                    "Account Deactivation",
+                    "Account Deactivation Successful",
+                    "Account Deactivation Successful",
                     profile.userName,
                     `Your AMPLE PRINTHUB account has been deactivated by superadmin ${req.user.email}. If you believe this is a mistake, please contact support.`,
                     "https://ampleprinthub.com"
@@ -310,6 +349,23 @@ export const reactivateAdmin = [
             // Reactivate user
             user.isActive = true;
             await user.save();
+
+             const superAdminEmail = req.user.email;
+            const superAdminUserName = req.user.userName;
+
+             try{
+                await emails(
+                    superAdminEmail,
+                    "Admin Reactivation Successful",
+                    "Admin Reactivation Successful",
+                    superAdminUserName,
+                    `Admin ${userName} with email : ${email} has been reactivated in AMPLE PRINTHUB. \n\nYou can now manage this admin from your dashboard.`,
+                    "https://ampleprinthub.com"
+                )
+                }catch(error){
+                    return res.status(500).json({ message: "Error sending reactivation email to super admin" });
+                }
+
             try{
                 await emails(
                     email,
@@ -346,8 +402,13 @@ export const forgotPassword = async (req, res) => {
             if (!user || !user.isActive) {
             return res.status(403).json({ message: "Account is inactive or not found" });
             }
-            const token = crypto.randomBytes(32).toString("hex");
-            const expiresAt = new Date(Date.now() + 60 * 60 * 1000); 
+            
+            const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+            const hours = expiresAt.getHours().toString().padStart(2, '0');
+            const minutes = expiresAt.getMinutes().toString().padStart(2, '0');
+            const seconds = expiresAt.getSeconds().toString().padStart(2, '0');
+
+            const timeString = `${hours}:${minutes}:${seconds}`;
 
             await PasswordResetToken.destroy({ where: { user_id: user.user_id } });
 
@@ -357,12 +418,14 @@ export const forgotPassword = async (req, res) => {
             expiresAt,
             });
 
-            const resetUrl = `http://localhost:4001/auth/reset-password?token=${token}`; // Replace with frontend URL
+            const resetUrl = `http://localhost:3001/reset-password?token=${token}`; // Replace with frontend URL
             try {
                 await emails(
                     email,
                     "Password Reset Request",
-                    `Hello ${profile.userName},\n\nYou requested a password reset for your AMPLE PRINTHUB ACCOUNT. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link expires in 1 hour. If you did not request this, ignore this email.\n\nBest,\nAmple PrintHub`
+                    "Password Reset Request",
+                    profile.userName,
+                    `Hello ${profile.userName},\n\nYou requested a password reset for your AMPLE PRINTHUB ACCOUNT. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link expires in 1 hour at ${timeString}. If you did not request this, ignore this email.\n\nBest,\nAmple PrintHub`
                 );
             } catch (emailError) {
                 console.error(`Email failed: ${emailError}`);
@@ -378,23 +441,24 @@ export const forgotPassword = async (req, res) => {
 // Reset password (all users)
 export const resetPassword = async (req, res) => {
     try {
-        const { newPassword, confirmPassword } = req.body;
-        if (!newPassword ) {
+        const { password, confirmPassword } = req.body;
+        if (!password ) {
         return res.status(400).json({ message: "A new password is required" });
         }
 
         if (!confirmPassword) {
         return res.status(400).json({ message: "Kindly confirm your password is required" });
         }
-        if (newPassword !== confirmPassword) {
+        if (password !== confirmPassword) {
         return res.status(400).json({ message: "Passwords do not match" });
         }
-        const token = req.query.token;
+        // const token = req.query.token;
         if (!token) {           
         return res.status(400).json({ message: "Token is required" });
         }
-        const password = newPassword;
-        if (password.length < 5) {
+        console.log("Reset password token:", token);
+        const newPassword = password;
+        if (newPassword.length < 5) {
         return res.status(400).json({ message: "New password must be at least 5 characters" });
         }
         const resetToken = await PasswordResetToken.findOne({ where: { token } });
@@ -414,8 +478,10 @@ export const resetPassword = async (req, res) => {
         return res.status(404).json({ message: "Profile not found" });
         }
 
-        const hashedPassword = await hashPassword(newPassword);
-
+        const hashedPassword = await hashPassword(password);
+        if (!hashedPassword) {
+            return res.status(500).json({ message: "Error hashing password" });
+        }
         profile.password = hashedPassword;
         await profile.save();
 
@@ -436,3 +502,4 @@ export const resetPassword = async (req, res) => {
         return res.status(500).json({ message: `Error resetting password: ${error.message}` });
     }
 };
+
