@@ -19,13 +19,15 @@ export const createCollection = [
             }
             
             const newCollection = await Collection.create({
-                collection_name ,
+                collection_name 
             });
+
+            newCollection.save()
 
             return res.status(201).json({ message: "Collection created successfully", newCollection });
         }catch (error) {
             console.error("Error creating collection:", error);
-            return res.status(500).json({ message: "Internal server error" });
+            return res.status(500).json({ message: "Error creating collection" });
         }
     }
 ]
@@ -37,11 +39,6 @@ export const updateCollection = [
         try{
             const { collection_id } = req.params;
             const { collection_name } = req.body;
-            const user = req.user;
-
-            if (user.role !== "admin") {
-                return res.status(403).json({ message: "Only Admin can update a collection" });
-            }
 
             const existingCollection = await Collection.findByPk(collection_id);
             if (!existingCollection) {
@@ -55,7 +52,7 @@ export const updateCollection = [
 
         }catch (error) {
             console.error("Error updating collection:", error);
-            return res.status(500).json({ message: "Internal server error" });
+            return res.status(500).json({ message: "Error updating collection" });
         }
     }
 ]
@@ -66,7 +63,6 @@ export const deleteCollection = [
     async (req, res) => {
       try {
         const { collection_id } = req.params;
-        const user = req.user;
   
         const existing = Collection.findByPk(collection_id);
         if (!existing) {
@@ -86,7 +82,7 @@ export const deleteCollection = [
         return res.status(200).json({ message: "Collection deleted successfully" });
       } catch (error) {
         console.error("Error deleting collection:", error);
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ message: "Error deleting collection" });
       }
     }
   ];
@@ -98,7 +94,7 @@ export const getAllCollections = [
             return res.status(200).json({ message: "Collections retrieved successfully", collections});
         } catch (error) {
             console.error("Error retrieving collections:", error);
-            return res.status(500).json({ message: "Internal server error" });
+            return res.status(500).json({ message: "Error retrieving collections" });
         }
     }
 ]
@@ -108,7 +104,7 @@ export const getCollectionById = [
             const { collectionId } = req.params;
             const collection = await Collection.findByPk(collectionId);
             if (!collection) {
-                return res.status(404).json({ message: "Collection not found" });
+                return res.status(404).json({ message: `Collection with id ${collectionId} not found` });
             }
             return res.status(200).json({ message: "Collection retrieved successfully", collection });
         } catch (error) {
@@ -117,6 +113,8 @@ export const getCollectionById = [
         }
     }
 ]   
+
+
 
 export const createProduct = [
     authenticateToken,
@@ -270,17 +268,17 @@ export const deleteProduct = [
 ]
 
 export const getAllProducts = [
+    // checkRole(["admin", "customer"]),
     async (req, res) => {
         try {
             const products = await Product.findAll();
-            
-            return res.status(200).json({ message: "Products retrieved successfully", product : {
-                collection_id : products.collection_id,
-                products
-            }});
+            if (products.length === 0) {
+                return res.status(404).json({ message: "No products found" });
+            }
+            return res.status(200).json({ message: "Products retrieved successfully", products });
         } catch (error) {
             console.error("Error retrieving products:", error);
-            return res.status(500).json({ message: "Internal server error" });
+            return res.status(500).json({ message: "Error retrieving products" });
         }
     }
 ]

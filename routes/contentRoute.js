@@ -17,22 +17,15 @@ import {
 
 const router = express.Router();
 
-
-// Static routes first
-router.get('/collection', getAllCollections);
-router.get('/products', getAllProducts); 
-router.get('/product_name', getProductByProductName);
-router.get('/', getProductByCollectionName); 
-
-// Dynamic routes after static routes
+router.get('/products',  getAllProducts);
 router.post('/collection', createCollection);
 router.put('/:collection_id', ...updateCollection);
 router.delete('/:collection_id', deleteCollection);
 router.get('/:collectionId', getCollectionById);
-router.post('/product/:collection_id', createProduct);
-router.put('/:product_id/:collection_id', ...updateProduct);
-router.delete('/:product_id/:collection_id', deleteProduct);
-router.get('/:product_id', getProductById);
-router.get('/:collection_id', getProductsByCollectionId); 
+router.post('/product', createProduct);
+router.put('/:productId/:collectionId', ...updateProduct);
+router.delete('/:productId', deleteProduct);
+
+router.get('/:productId',  getProductById);
 
 export default router;
