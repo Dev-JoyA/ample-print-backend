@@ -114,6 +114,29 @@ export const getCollectionById = [
     }
 ]   
 
+export const findByCollectionName = async(req, res) => {
+    try{
+        const { collection_name } = req.query;
+        if (!collection_name) {
+            return res.status(400).json({ message: "Collection name is required" });
+        }
+        const collection = await Collection.findOne({
+            where: {
+                collection_name: {
+                    [Op.iLike]: `${collection_name}%`
+                }
+            }
+        });
+        if (!collection) {
+            return res.status(404).json({ message: "Collection not found" });
+        }
+        return res.status(200).json({ message: "Collection found", collection });
+    }catch(error){
+        console.error("Error finding collection by name:", error);
+        return res.status(500).json({ message: "Error finding collection by name" });
+    }
+}
+
 
 
 export const createProduct = [
@@ -343,7 +366,11 @@ export const getProductByProductName = async (req, res) => {
         if(!product_name){
             return res.status(400).json({message : "No product dound with this name"})
         }
-        const products = Product.findAll({where: {product_name}})
+        const products = await Product.findAll({where: {
+            product_name: {
+                [Op.iLike]: `${product_name}%`
+            }
+        }})
         if(!products || products.length < 0 ){
             return res.status(400).json({message : "No product found for with this name"}) 
          
