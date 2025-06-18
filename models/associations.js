@@ -137,5 +137,4 @@ export const setupAssociations = () => {
         foreignKey: 'user_id', 
         onDelete: 'CASCADE',   
       });
-  // Add other associations here, e.g., User.hasOne(Profile, { foreignKey: "user_id" });
 };

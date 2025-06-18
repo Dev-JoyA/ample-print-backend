@@ -13,19 +13,19 @@ const Design = sequelize.define(
     },
     logo_url: {
       type: DataTypes.STRING(255),
-      allowNull: true, // Optional, for logo uploads
+      allowNull: true, 
     },
     voice_note_url: {
       type: DataTypes.STRING(255),
-      allowNull: true, // Optional, for voice notes
+      allowNull: true, 
     },
     description: {
       type: DataTypes.TEXT,
-      allowNull: true, // Optional, for customization details
+      allowNull: true, 
     },
     other_image: {
       type: DataTypes.STRING(255),
-      allowNull: true, // Optional, for one additional image
+      allowNull: true,
     },
   },
   {
