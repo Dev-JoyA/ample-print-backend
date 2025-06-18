@@ -1,8 +1,5 @@
 import {DataTypes} from "sequelize";
 import sequelize from "../config/postgresDb.js";
-import Collection from "./collectionModel.js"
-import Order_Product from "./orderProduct.js";
-import Cart from "./cartModel.js";
 
 const Product = sequelize.define("Product",
     {
@@ -49,8 +46,7 @@ const Product = sequelize.define("Product",
         delivery_time : {
             type : DataTypes.STRING,
             allowNull : false
-        },
-     
+        }
     },
     {
         tableName : "PRODUCT",
