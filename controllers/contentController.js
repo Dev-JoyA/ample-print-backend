@@ -384,3 +384,54 @@ export const getProductByProductName = async (req, res) => {
     }
 }
 
+export const filteredProducts = async (req, res) => {
+    try{
+        const {product_name, product_price, min_order} = req.query;
+        const filters = {};
+        if (product_name) {
+            filters.product_name = {
+                [Op.iLike]: `%${product_name}%`
+            };
+        }
+        if (product_price) {
+            filters.product_price = {
+                [Op.lte]: parseFloat(product_price)
+            };
+        }
+        if (min_order) {
+            filters.min_order = {
+                [Op.gte]: parseInt(min_order, 10)
+            };
+        }
+        const products = await Product.findAll({ where: filters });
+        return res.status(200).json({ message: "Filtered products retrieved successfully", products });
+
+    }catch (error){
+        console.error("Error filtering products:", error);
+        return res.status(500).json({ message: "Error filtering products" });
+    }
+}
+
+export const paginatedProducts = async (req, res) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+        const offset = (page - 1) * limit;
+
+        const products = await Product.findAndCountAll({
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        });
+
+        return res.status(200).json({
+            message: "Products retrieved successfully",
+            products: products.rows,
+            totalItems: products.count,
+            totalPages: Math.ceil(products.count / limit),
+            currentPage: parseInt(page)
+        });
+    } catch (error) {
+        console.error("Error retrieving paginated products:", error);
+        return res.status(500).json({ message: "Error retrieving paginated products" });
+    }
+}
+
