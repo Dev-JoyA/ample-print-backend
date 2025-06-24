@@ -241,6 +241,7 @@ export const signIn = [
             return res.status(200).json({
                 message: "Sign in successful",
                 accessToken,
+                id : user.user_id,
                 role: user.role,
                 email : profile.email
             });
