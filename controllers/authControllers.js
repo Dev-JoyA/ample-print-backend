@@ -2,6 +2,7 @@ import { checkRole, checkSuperAdmin } from "../middleware/authorization.js";
 import { User} from "../models/userModel.js"; 
 import { Profile } from "../models/profileModel.js";
 import PasswordResetToken from "../models/passwordResetToken.js"; 
+import { serialize } from "cookie"
 import { hashPassword, generateToken, comparePassword, verifyToken, authenticateToken } from "../utils/auth.js";
 import emails from "../utils/email.js";
 import crypto from "crypto";
@@ -237,14 +238,49 @@ export const signIn = [
             if (!isPasswordValid) {
                 return res.status(401).json({ message: "Invalid password" });
             }
-            const accessToken = generateToken({ user_id: user.user_id, email: profile.email, role: user.role });
-            return res.status(200).json({
-                message: "Sign in successful",
-                accessToken,
-                id : user.user_id,
+            const payload = {
+                user_id: user.user_id,
+                email: profile.email,
+                userName: profile.userName,
                 role: user.role,
-                email : profile.email
+            };
+
+            const accessToken = generateToken(payload);
+            const refreshToken = generateRefreshToken(payload);
+
+            // Set access token in HttpOnly cookie
+            const accessCookie = serialize("token", accessToken, {
+                httpOnly: true,
+                // secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                path: "/",
+                maxAge: 3600, // 1 hour
             });
+
+            // Set refresh token in HttpOnly cookie
+            const refreshCookie = serialize("refreshToken", refreshToken, {
+                httpOnly: true,
+                // secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                path: "/",
+                maxAge: 7 * 24 * 60 * 60, // 7 days
+            });
+
+            res.setHeader("Set-Cookie", [accessCookie, refreshCookie]);
+                    return res.status(200).json({
+                        message: "Sign in successful",
+                        accessToken,
+                        id : user.user_id,
+                        userName: profile.userName,
+                        role: user.role,
+                        email : profile.email
+                    });
+                res.status(200).json({
+                    message: "Sign in successful",
+                    accessToken,
+                    role: user.role,
+                    email: profile.email,
+                });
         } catch (error) {
             return res.status(500).json({ message: `Error during sign in: ${error.message}` });
         }
@@ -502,5 +538,32 @@ export const resetPassword = async (req, res) => {
     } catch (error) {
         return res.status(500).json({ message: `Error resetting password: ${error.message}` });
     }
+};
+
+export const logout = async (req, res) => {
+  try {
+    const accessCookie = serialize("token", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      maxAge: 0,
+    });
+
+    const refreshCookie = serialize("refreshToken", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      maxAge: 0,
+    });
+
+    res.setHeader("Set-Cookie", [accessCookie, refreshCookie]);
+
+    return res.status(200).json({ message: "Signed out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error.message);
+    return res.status(500).json({ message: `Error during logout: ${error.message}` });
+  }
 };
 
