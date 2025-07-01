@@ -267,7 +267,7 @@ export const signIn = [
             });
 
             res.setHeader("Set-Cookie", [accessCookie, refreshCookie]);
-                    return res.status(200).json({
+            return res.status(200).json({
                         message: "Sign in successful",
                         accessToken,
                         id : user.user_id,
@@ -275,12 +275,7 @@ export const signIn = [
                         role: user.role,
                         email : profile.email
                     });
-                res.status(200).json({
-                    message: "Sign in successful",
-                    accessToken,
-                    role: user.role,
-                    email: profile.email,
-                });
+            
         } catch (error) {
             return res.status(500).json({ message: `Error during sign in: ${error.message}` });
         }
