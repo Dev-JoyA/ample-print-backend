@@ -7,11 +7,13 @@ import contentRoute from "./routes/contentRoute.js";
 import passport from "./config/passport.js";
 import cors from "cors";
 import { setupAssociations } from "./models/associations.js"
+import { startServer } from "./src/config/db.js";
 
 
 dotenv.config();
 
 setupAssociations();
+startServer().catch((err) => console.log(err));
 
 try {
   await sequelize.authenticate();
