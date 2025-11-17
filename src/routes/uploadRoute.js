@@ -1,5 +1,5 @@
 import express from "express";
-import passport from "../middleware/passport.js";
+import passport from "../../middleware/passport.js";
 import { createDesign, updateDesign, getDesigns, getOne, deleteDesign } from "../controllers/uploadController.js";
 
 

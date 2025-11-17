@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../config/postgresDb.js";
+import sequelize from "../config/db.js";
 
 const User_Design = sequelize.define("User_Design",
     {

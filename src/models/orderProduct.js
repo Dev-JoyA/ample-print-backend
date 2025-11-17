@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../config/postgresDb.js";
+import sequelize from "../config/db.js";
 import Order from "./orderModel.js";
 import Product from "./productModel.js";
 import Design from "./userDesignModel.js";
