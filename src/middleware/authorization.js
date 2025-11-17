@@ -1,6 +1,6 @@
 import express from "express";
-import { User} from "../models/userModel.js";
-import { Profile } from "../models/profileModel.js";
+import { User} from "../src/models/userModel.js";
+import { Profile } from "../src/models/profileModel.js";
 
 export const checkRole = (roles) => (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
