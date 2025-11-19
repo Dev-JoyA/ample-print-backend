@@ -22,7 +22,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const emails = async (to, subject, header, name, bodyMessage, linkUrl = "https://www.yourbusinesswebsite.com") => {
+const emails = async (to: string, subject: string, header: string, name: string, bodyMessage: string, linkUrl = "https://www.yourbusinesswebsite.com") => {
   try {
     const templatePath = path.resolve(projectRoot, "src/html/emailTemplate.ejs");
     const template = await fs.readFile(templatePath, "utf-8");
