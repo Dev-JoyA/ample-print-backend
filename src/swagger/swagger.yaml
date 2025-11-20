@@ -1,154 +1,104 @@
 openapi: 3.0.3
 info:
   title: AMPLE PRINT HUB API
-  description: API documentation for AMPLE PRINT HUB authentication endpoints
+  description: API documentation for AMPLE PRINT HUB endpoints
   version: 1.0.0
 
 servers:
-  - url: http://localhost:4001
+  - url: http://localhost:5000
     description: Local server
 
-tags:
-  - name: Authentication
-    description: Endpoints for user authentication and admin management
-
 paths:
-  /auth/signup:
+  /auth/sign-up:
     post:
-      tags:
-        - Authentication
-      summary: Register a new user
+      summary: Register a new customer
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/SignUpData'
-            example:
-              username: johndoe
-              email: johndoe@example.com
-              password: password123
       responses:
-        '201':
-          description: User successfully created
+        '200':
+          description: User and profile created successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+                  profile:
+                    $ref: '#/components/schemas/Profile'
         '400':
-          description: Bad request
+          description: Validation error or email/username exists
 
-  /auth/signin:
+  /auth/sign-in:
     post:
-      tags:
-        - Authentication
-      summary: Sign in an existing user
+      summary: Log in
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/SignInData'
-            example:
-              email: johndoe@example.com
-              password: password123
       responses:
         '200':
-          description: Successful login
+          description: Authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid credentials
+
+  /auth/create-admin:
+    post:
+      summary: Create a new admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpData'
+      responses:
+        '200':
+          description: Admin created successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  token:
-                    type: string
-        '401':
-          description: Unauthorized
-
-  /auth/create-admin:
-    post:
-      tags:
-        - Authentication
-      summary: Create a new admin user
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdminData'
-            example:
-              username: adminuser
-              email: admin@example.com
-              password: admin123
-      responses:
-        '201':
-          description: Admin successfully created
-        '400':
-          description: Bad request
+                  user:
+                    $ref: '#/components/schemas/User'
+                  profile:
+                    $ref: '#/components/schemas/Profile'
 
   /auth/create-super-admin:
     post:
-      tags:
-        - Authentication
-      summary: Create a super admin
+      summary: Create superadmin (only once)
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminData'
-            example:
-              username: superadmin
-              email: superadmin@example.com
-              password: superpass
-      responses:
-        '201':
-          description: Super admin successfully created
-        '400':
-          description: Bad request
-
-  /auth/deactivate-admin/{adminId}:
-    patch:
-      tags:
-        - Authentication
-      summary: Deactivate an admin account
-      parameters:
-        - in: path
-          name: adminId
-          required: true
-          schema:
-            type: string
+              $ref: '#/components/schemas/SignUpData'
       responses:
         '200':
-          description: Admin deactivated
-        '404':
-          description: Admin not found
+          description: Superadmin created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  profile:
+                    $ref: '#/components/schemas/Profile'
 
-  /auth/reactivate-admin/{adminId}:
-    patch:
-      tags:
-        - Authentication
-      summary: Reactivate an admin account
-      parameters:
-        - in: path
-          name: adminId
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Admin reactivated
-        '404':
-          description: Admin not found
-
-  /auth/forgot-password:
+  /auth/deactivate-admin:
     post:
-      tags:
-        - Authentication
-      summary: Initiate password reset
+      summary: Deactivate an admin
       requestBody:
         required: true
         content:
@@ -159,20 +109,57 @@ paths:
                 email:
                   type: string
                   format: email
-              required:
-                - email
-            example:
-              email: johndoe@example.com
       responses:
         '200':
-          description: Password reset link sent
-        '404':
-          description: User not found
+          description: Admin deactivated successfully
+        '400':
+          description: Validation error
+
+  /auth/reactivate-admin:
+    post:
+      summary: Reactivate an admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Admin reactivated successfully
+        '400':
+          description: Validation error
+
+  /auth/forgot-password:
+    post:
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
 
   /auth/reset-password:
     post:
-      tags:
-        - Authentication
       summary: Reset password using token
       requestBody:
         required: true
@@ -185,58 +172,105 @@ paths:
                   type: string
                 newPassword:
                   type: string
-              required:
-                - token
-                - newPassword
-            example:
-              token: "resetToken123"
-              newPassword: "newPassword123"
+                confirmPassword:
+                  type: string
       responses:
         '200':
-          description: Password successfully reset
-        '400':
-          description: Invalid token or password
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
 
 components:
   schemas:
     SignUpData:
       type: object
+      required:
+        - firstName
+        - lastName
+        - userName
+        - email
+        - password
+        - phoneNumber
       properties:
-        username:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        userName:
           type: string
         email:
           type: string
           format: email
         password:
           type: string
-      required:
-        - username
-        - email
-        - password
+        phoneNumber:
+          type: string
+        address:
+          type: string
+          nullable: true
 
     SignInData:
       type: object
+      required:
+        - email
+        - password
       properties:
         email:
           type: string
           format: email
         password:
           type: string
-      required:
-        - email
-        - password
 
-    AdminData:
+    User:
       type: object
       properties:
-        username:
+        _id:
           type: string
         email:
           type: string
           format: email
-        password:
+        role:
           type: string
-      required:
-        - username
-        - email
-        - password
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Profile:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        userName:
+          type: string
+        phoneNumber:
+          type: string
+        address:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        profile:
+          $ref: '#/components/schemas/Profile'
+        accessToken:
+          type: string
+        refreshToken:
+          type: string

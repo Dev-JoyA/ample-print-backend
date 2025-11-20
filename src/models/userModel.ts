@@ -1,5 +1,4 @@
 import { Document, Schema , model } from 'mongoose';
-import { v4 as uuid } from "uuid";
 
 export enum UserRole {
     Customer = 'Customer',
@@ -8,7 +7,6 @@ export enum UserRole {
 }
 
 export interface IUser extends Document {
-    userId : string;
     email : string;
     password : string;
     role : UserRole;
@@ -19,12 +17,6 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>(
   {
-      userId: {
-        type : String,
-        default : uuid,
-        required : true,
-        unique : true
-    },
     email : {
         type : String,
         required : true,
