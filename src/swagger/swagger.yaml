@@ -1,0 +1,242 @@
+openapi: 3.0.3
+info:
+  title: AMPLE PRINT HUB API
+  description: API documentation for AMPLE PRINT HUB authentication endpoints
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:4001
+    description: Local server
+
+tags:
+  - name: Authentication
+    description: Endpoints for user authentication and admin management
+
+paths:
+  /auth/signup:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpData'
+            example:
+              username: johndoe
+              email: johndoe@example.com
+              password: password123
+      responses:
+        '201':
+          description: User successfully created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Bad request
+
+  /auth/signin:
+    post:
+      tags:
+        - Authentication
+      summary: Sign in an existing user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInData'
+            example:
+              email: johndoe@example.com
+              password: password123
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '401':
+          description: Unauthorized
+
+  /auth/create-admin:
+    post:
+      tags:
+        - Authentication
+      summary: Create a new admin user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminData'
+            example:
+              username: adminuser
+              email: admin@example.com
+              password: admin123
+      responses:
+        '201':
+          description: Admin successfully created
+        '400':
+          description: Bad request
+
+  /auth/create-super-admin:
+    post:
+      tags:
+        - Authentication
+      summary: Create a super admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminData'
+            example:
+              username: superadmin
+              email: superadmin@example.com
+              password: superpass
+      responses:
+        '201':
+          description: Super admin successfully created
+        '400':
+          description: Bad request
+
+  /auth/deactivate-admin/{adminId}:
+    patch:
+      tags:
+        - Authentication
+      summary: Deactivate an admin account
+      parameters:
+        - in: path
+          name: adminId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin deactivated
+        '404':
+          description: Admin not found
+
+  /auth/reactivate-admin/{adminId}:
+    patch:
+      tags:
+        - Authentication
+      summary: Reactivate an admin account
+      parameters:
+        - in: path
+          name: adminId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin reactivated
+        '404':
+          description: Admin not found
+
+  /auth/forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Initiate password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+              required:
+                - email
+            example:
+              email: johndoe@example.com
+      responses:
+        '200':
+          description: Password reset link sent
+        '404':
+          description: User not found
+
+  /auth/reset-password:
+    post:
+      tags:
+        - Authentication
+      summary: Reset password using token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+              required:
+                - token
+                - newPassword
+            example:
+              token: "resetToken123"
+              newPassword: "newPassword123"
+      responses:
+        '200':
+          description: Password successfully reset
+        '400':
+          description: Invalid token or password
+
+components:
+  schemas:
+    SignUpData:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - username
+        - email
+        - password
+
+    SignInData:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AdminData:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - username
+        - email
+        - password
