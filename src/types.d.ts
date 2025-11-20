@@ -5,7 +5,7 @@ declare global {
     interface Request {
       // Only attach what you actually store in the middleware
       user?: {
-        userId: string;
+        _id: string;
         role: UserRole;
       };
     }

@@ -1,8 +1,6 @@
 import { Document, Schema , model, Types } from "mongoose";
-import { v4 as uuid } from "uuid";
 
 export interface IProfile extends Document {
-    profileId : string;
     userId : Types.ObjectId;
     firstName : string;
     lastName : string;
@@ -15,12 +13,6 @@ export interface IProfile extends Document {
 
 const ProfileSchema = new Schema<IProfile>(
   {
-      profileId: {
-        type : String,
-        default : uuid,
-        required : true,
-        unique : true
-    },
     userId: {
         type : Schema.Types.ObjectId,
         ref : 'User',
