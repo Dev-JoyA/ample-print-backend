@@ -2,7 +2,7 @@
 import passport from "passport";
 import dotenv from "dotenv";
 import { Strategy as GoogleStrategy  } from "passport-google-oauth2";
-import { User, IUser } from "../models/userModel.js";
+import { User, IUser, UserRole } from "../models/userModel.js";
 
 dotenv.config();
 
@@ -21,15 +21,15 @@ passport.use(
     async (request: Express.Request, accessToken: string, refreshToken: string, profile: any, done: (error: any, user?: any) => void) => {
       try {
         // Check if user already exists
-        let user = await User.findOne({ googleId: profile.id }).exec();
+        let user = await User.findOne({ googleId: profile._id }).exec();
         if (!user) {
           // Create new user if not exists
           user = await User.create({
             email: profile.email,
-            password: "", // blank because using Google OAuth
-            role: "Customer",
+            password: "", // OAuth user
+            role: UserRole.Customer,
             isActive: true,
-            googleId: profile.id,
+            googleId: profile._id,
           } as Partial<IUser>);
         }
         return done(null, user);
@@ -42,12 +42,13 @@ passport.use(
 );
 
 passport.serializeUser((user: any, done) => {
-  done(null, user.id);
+  done(null, user._id);
 });
 
-passport.deserializeUser(async (id: string, done) => {
+// Deserialize the user by ID from the session
+passport.deserializeUser(async (_id: string, done) => {
   try {
-    const user = await User.findById(id).exec();
+    const user = await User.findById(_id).exec();
     done(null, user);
   } catch (err) {
     done(err as Error, null);

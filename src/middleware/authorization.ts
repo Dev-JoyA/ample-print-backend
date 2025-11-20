@@ -1,9 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { User, UserRole } from "../models/userModel.js";
 
-// ----------------------
-// Role-based access control
-// ----------------------
+
 export const checkRole = (roles: UserRole[]) => async (req: Request, res: Response, next: NextFunction) => {
   try {
     // req.user is typed via Express augmentation
@@ -29,13 +27,13 @@ export const checkRole = (roles: UserRole[]) => async (req: Request, res: Respon
 // ----------------------
 export const checkSuperAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const currentUser = req.user as unknown as { role?: UserRole; userId?: string };
+    const currentUser = req.user as unknown as { role?: UserRole; _id?: string };
     if (!currentUser || currentUser.role !== UserRole.SuperAdmin) {
       return res.status(403).json({ message: "Unauthorized: Superadmin access required" });
     }
 
     // Verify active superadmin account in DB
-    const user = await User.findOne({ userId: currentUser.userId, isActive: true }).exec();
+    const user = await User.findOne({ _id: currentUser._id, isActive: true }).exec();
     if (!user) {
       return res.status(403).json({ message: "Unauthorized: Inactive superadmin account" });
     }
