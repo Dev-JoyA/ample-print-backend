@@ -3,23 +3,23 @@ import { UserRole } from "./models/userModel";
 declare global {
   namespace Express {
     interface Request {
+      // Only attach what you actually store in the middleware
       user?: {
         userId: string;
-        email: string;
-        userName: string;
         role: UserRole;
       };
     }
   }
 }
 
-// Export other common types you might need
+// Generic API response
 export interface ApiResponse<T = any> {
   success: boolean;
   message: string;
   data?: T;
 }
 
+// For paginated endpoints
 export interface PaginatedResponse<T = any> extends ApiResponse<T> {
   pagination?: {
     page: number;
@@ -29,11 +29,13 @@ export interface PaginatedResponse<T = any> extends ApiResponse<T> {
   };
 }
 
+// Validation error structure
 export interface ValidationError {
   field: string;
   message: string;
 }
 
+// Service response for internal use
 export interface ServiceResponse<T = any> {
   success: boolean;
   data?: T;
