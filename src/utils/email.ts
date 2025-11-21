@@ -24,7 +24,7 @@ const transporter = nodemailer.createTransport({
 
 const emails = async (to: string, subject: string, header: string, name: string, bodyMessage: string, linkUrl = "https://www.yourbusinesswebsite.com") => {
   try {
-    const templatePath = path.resolve(projectRoot, "src/html/emailTemplate.ejs");
+    const templatePath = path.resolve(projectRoot, "html/emailTemplate.ejs");
     const template = await fs.readFile(templatePath, "utf-8");
 
     // Render the EJS template with dynamic data

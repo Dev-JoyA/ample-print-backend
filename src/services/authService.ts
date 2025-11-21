@@ -1,10 +1,14 @@
 import mongoose from "mongoose";
-import crypto from "crypto";
 import { IUser, User, UserRole } from "../models/userModel.js";
 import { IProfile, Profile } from "../models/profileModel.js";
 import { PasswordResetToken } from "../models/passwordResetToken.js";
+import { RefreshToken } from "../models/refreshTokenModel.js";
 import { hashPassword, comparePassword, generateToken, generateRefreshToken } from "../utils/auth.js";
 import emails from "../utils/email.js";
+import crypto from "crypto";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const FRONTEND_BASE = process.env.FRONTEND_BASE_URL ?? "http://localhost:3000";
 const RESET_PATH = process.env.PASSWORD_RESET_PATH ?? "/auth/reset-password";
@@ -80,24 +84,15 @@ export async function signUpService(data: SignUpData) {
   try {
     session.startTransaction();
 
-    // Create user
     const newUser = await User.create(
       [{ email, password: hashedPassword, role: UserRole.Customer, isActive: true }],
       { session }
-    ).then((res) => res[0]);
+    ).then(res => res[0]);
 
-    // Create profile with reference to user
     const newProfile = await Profile.create(
-      [{
-        userId: newUser._id,
-        firstName,
-        lastName,
-        userName,
-        phoneNumber,
-        address
-      }],
+      [{ userId: newUser._id, firstName, lastName, userName, phoneNumber, address }],
       { session }
-    ).then((res) => res[0]);
+    ).then(res => res[0]);
 
     await session.commitTransaction();
     session.endSession();
@@ -123,6 +118,65 @@ export async function signUpService(data: SignUpData) {
   }
 }
 
+export async function signInService(data: SignInData): Promise<AuthResponse> {
+  const { email, password } = data;
+  if (!email || !password) throw new Error("Email and password are required");
+
+  const user = await User.findOne({ email }).exec();
+  if (!user || !user.isActive) throw new Error("Account is inactive or not found");
+
+  const isPasswordValid = await comparePassword(password, user.password);
+  if (!isPasswordValid) throw new Error("Invalid password");
+
+  const profile = await Profile.findOne({ userId: user._id }).exec();
+  if (!profile) throw new Error("Profile not found");
+
+  // Rotate refresh token
+  await RefreshToken.deleteMany({ userId: user._id });
+  const refreshToken = generateRefreshToken({ userId: user._id, role: user.role });
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await RefreshToken.create({ userId: user._id, token: refreshToken, expiresAt });
+
+  const accessToken = generateToken({ userId: user._id, role: user.role });
+
+  return {
+    user: sanitizeUser(user)!,
+    profile: sanitizeProfile(profile)!,
+    accessToken,
+    refreshToken
+  };
+}
+
+/* ---------- Refresh Token ---------- */
+export async function refreshTokenService(refreshToken: string) {
+  if (!refreshToken) throw new Error("Refresh token is required");
+
+  const existing = await RefreshToken.findOne({ token: refreshToken });
+  if (!existing) throw new Error("Invalid refresh token");
+  if (existing.expiresAt < new Date()) {
+    await RefreshToken.deleteOne({ token: refreshToken });
+    throw new Error("Refresh token expired");
+  }
+
+  const user = await User.findById(existing.userId);
+  if (!user || !user.isActive) throw new Error("User no longer exists or is deactivated");
+
+  // Rotate refresh token
+  await RefreshToken.deleteMany({ userId: user._id });
+  const newRefreshToken = generateRefreshToken({ userId: user._id, role: user.role });
+  const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await RefreshToken.create({ userId: user._id, token: newRefreshToken, expiresAt: newExpiry });
+
+  const newAccessToken = generateToken({ userId: user._id, role: user.role });
+  return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+}
+
+/* ---------- Logout ---------- */
+export async function logoutService(refreshToken: string) {
+  await RefreshToken.deleteOne({ token: refreshToken });
+}
+
+/* ---------- Admin Services ---------- */
 export async function createAdminService(data: SignUpData, superAdmin: AdminData) {
   const { firstName, lastName, userName, email, password, phoneNumber, address } = data;
 
@@ -143,37 +197,40 @@ export async function createAdminService(data: SignUpData, superAdmin: AdminData
   try {
     session.startTransaction();
 
-    // Create admin user
     const newUser = await User.create(
       [{ email, password: hashedPassword, role: UserRole.Admin, isActive: true }],
       { session }
-    ).then((res) => res[0]);
+    ).then(res => res[0]);
 
-    // Create profile with reference to user
     const newProfile = await Profile.create(
-      [{
-        userId: newUser._id,
-        firstName,
-        lastName,
-        userName,
-        phoneNumber,
-        address
-      }],
+      [{ userId: newUser._id, firstName, lastName, userName, phoneNumber, address }],
       { session }
-    ).then((res) => res[0]);
+    ).then(res => res[0]);
 
     await session.commitTransaction();
     session.endSession();
 
-    // Notify superadmin (non-blocking)
+    const superAdmin = await User.findOne({ role: UserRole.SuperAdmin }).lean();
+
+    if (!superAdmin) {
+        throw new Error("SuperAdmin not found. Cannot create admin.");
+    }
+    const superAdminProfile = await Profile.findOne({ userId: superAdmin._id }).lean();
+
+   // Notify superadmin only if email exists
+    if (!superAdmin.email) {
+    console.warn(`Cannot send email to superadmin: Email not defined for user ${superAdminProfile?.userName}`);
+    } else {
     emails(
-      superAdmin.email,
-      "New Admin Created",
-      "A new admin has been created",
-      superAdmin.userName,
-      `Admin ${userName} (${email}) was just created.`,
-      FRONTEND_BASE
-    ).catch(console.error);
+        superAdmin.email,
+        "New Admin Created",
+        "A new admin has been created",
+        superAdminProfile?.userName ?? "SuperAdmin",
+        `Admin ${userName} (${email}) was just created.`,
+        FRONTEND_BASE
+    ).catch(err => console.error("Error sending email to superadmin:", err));
+    }
+        
 
     // Create password reset token for admin
     const token = generateRandomToken();
@@ -198,6 +255,59 @@ export async function createAdminService(data: SignUpData, superAdmin: AdminData
     throw err;
   }
 }
+
+export async function createSuperAdminService(data: SignUpData) {
+  const { firstName, lastName, userName, email, password, phoneNumber, address } = data;
+
+  if (!email || !password || !phoneNumber || !firstName || !lastName || !userName) {
+    throw new Error("All fields are required");
+  }
+  if (password.length < 5) throw new Error("Password must be at least 5 characters");
+
+  const existingUser = await User.findOne({ email }).lean();
+  if (existingUser) throw new Error("Email already exists");
+
+  const existingUserName = await Profile.findOne({ userName }).lean();
+  if (existingUserName) throw new Error("Username already exists");
+
+  const hashedPassword = await hashPassword(password);
+
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const newUser = await User.create(
+      [{ email, password: hashedPassword, role: UserRole.SuperAdmin, isActive: true }],
+      { session }
+    ).then(res => res[0]);
+
+    const newProfile = await Profile.create(
+      [{ userId: newUser._id, firstName, lastName, userName, phoneNumber, address }],
+      { session }
+    ).then(res => res[0]);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // Send welcome email (optional)
+    emails(
+      email,
+      "Welcome SuperAdmin",
+      "Welcome SuperAdmin",
+      userName,
+      "Your SuperAdmin account has been created.",
+      FRONTEND_BASE
+    ).catch(console.error);
+
+    return { user: sanitizeUser(newUser), profile: sanitizeProfile(newProfile) };
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    throw err;
+  }
+}
+
+
 export async function deactivateAdminService(email: string, superAdmin: AdminData) {
   if (!email) throw new Error("Email is required");
   if (email === "ampleprinthub@gmail.com") throw new Error("Cannot deactivate the permanent superadmin");
@@ -214,7 +324,6 @@ export async function deactivateAdminService(email: string, superAdmin: AdminDat
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (!profile) throw new Error("Profile not found");
 
-  // Notifications (non-blocking)
   emails(
     superAdmin.email,
     "Admin Deactivated Successfully",
@@ -267,34 +376,7 @@ export async function reactivateAdminService(email: string, superAdmin: AdminDat
   ).catch(console.error);
 }
 
-
-export async function createSuperAdminService(data: SignUpData) {
-  return createAdminService(data, { email: "ampleprinthub@gmail.com", userName: "superadmin" });
-}
-
-export async function signInService(data: SignInData): Promise<AuthResponse> {
-  const { email, password } = data;
-  if (!email || !password) throw new Error("Email and password are required");
-
-  const user = await User.findOne({ email }).exec();
-  if (!user || !user.isActive) throw new Error("Account is inactive or not found");
-
-  const isPasswordValid = await comparePassword(password, user.password);
-  if (!isPasswordValid) throw new Error("Invalid password");
-
-  const profile = await Profile.findOne({ userId: user._id }).exec();
-  if (!profile) throw new Error("Profile not found");
-
-  const payload = { _id: user._id, email: user.email, userName: profile.userName, role: user.role };
-  return {
-    user: sanitizeUser(user)!,
-    profile: sanitizeProfile(profile)!,
-    accessToken: generateToken(payload),
-    refreshToken: generateRefreshToken(payload),
-  };
-}
-
-/* ---------- Password Reset Services ---------- */
+/* ---------- Password Reset ---------- */
 export async function forgotPasswordService(email: string) {
   if (!email) throw new Error("Email is required");
 

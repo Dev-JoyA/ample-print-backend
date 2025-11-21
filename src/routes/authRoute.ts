@@ -1,5 +1,7 @@
 import { Router, Request, Response } from "express";
 import passport from "../middleware/passport.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import { checkSuperAdmin } from "../middleware/authorization.js";
 import { authenticateToken, verifyRefreshToken, verifyToken, generateRefreshToken, generateToken } from "../utils/auth.js";
 import {
   signUpController,
@@ -9,7 +11,9 @@ import {
   deactivateAdminController,
   reactivateAdminController,
   forgotPasswordController,
-  resetPasswordController
+  resetPasswordController,
+  refreshTokenController,
+  logoutController
 } from "../controllers/authControllers.js";
 
 const router = Router();
@@ -19,14 +23,24 @@ const router = Router();
 // ----------------------
 router.post("/sign-up", signUpController);
 router.post("/sign-in", signInController);
-router.post("/admin-sign-up", createAdminController);
+router.post("/admin-sign-up",
+  authMiddleware,      
+  checkSuperAdmin,  
+  createAdminController);
 router.post("/superadmin-sign-up", createSuperAdminController);
+router.post("/deactivate-admin", 
+  authMiddleware,      
+  checkSuperAdmin, 
+  deactivateAdminController);
+router.post("/reactivate-admin", 
+  authMiddleware,      
+  checkSuperAdmin, 
+  reactivateAdminController);
 router.post("/forgot-password", forgotPasswordController);
 router.post("/reset-password", resetPasswordController);
-router.post("/logout", (req: Request, res: Response) => {
-  // optional: implement logout logic if needed
-  res.status(200).json({ message: "Logged out successfully" });
-});
+router.post("/logout", logoutController);
+router.post("/refresh-token", refreshTokenController);
+
 
 // ----------------------
 // Token verification / refresh
