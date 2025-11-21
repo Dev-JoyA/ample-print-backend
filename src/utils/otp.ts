@@ -11,7 +11,7 @@
     time: Math.floor(Date.now() / 1000), 
     window: 1, 
     digits: 6, 
-     });
+}as any);
 
     console.log('Token:', token);
 
@@ -20,7 +20,7 @@ const verifyToken = speakeasy.totp.verify({
     encoding: 'base32',
     token: token,
     window: 6,
-    });
+    }as any);
 console.log('Token verified:', verifyToken);
 
 export { secret, token, verifyToken };
