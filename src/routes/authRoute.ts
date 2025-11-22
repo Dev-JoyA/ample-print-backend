@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import passport from "../middleware/passport.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
-import { checkSuperAdmin } from "../middleware/authorization.js";
+import { checkSuperAdmin, checkOwnership } from "../middleware/authorization.js";
 import { authenticateToken, verifyRefreshToken, verifyToken, generateRefreshToken, generateToken } from "../utils/auth.js";
 import {
   signUpController,
@@ -37,7 +37,10 @@ router.post("/reactivate-admin",
   checkSuperAdmin, 
   reactivateAdminController);
 router.post("/forgot-password", forgotPasswordController);
-router.post("/reset-password", resetPasswordController);
+router.post("/reset-password/:token", 
+  // authMiddleware, 
+  // checkOwnership,
+  resetPasswordController);
 router.post("/logout", logoutController);
 router.post("/refresh-token", refreshTokenController);
 

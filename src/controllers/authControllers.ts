@@ -97,7 +97,7 @@ export const deactivateAdminController = async (req: Request, res: Response) => 
     const { email } = req.body;
     const superAdmin: AdminData = req.user as AdminData;
 
-    await deactivateAdminService(email, superAdmin);
+    await deactivateAdminService(email);
     res.status(200).json({ message: "Admin deactivated successfully" });
   } catch (err: any) {
     const status = err.message.includes("not found") ? 404 : 400;
@@ -112,7 +112,7 @@ export const reactivateAdminController = async (req: Request, res: Response) => 
     const { email } = req.body;
     const superAdmin: AdminData = req.user as AdminData;
 
-    await reactivateAdminService(email, superAdmin);
+    await reactivateAdminService(email);
     res.status(200).json({ message: "Admin reactivated successfully" });
   } catch (err: any) {
     const status = err.message.includes("not found") ? 404 : 400;
@@ -134,7 +134,8 @@ export const forgotPasswordController = async (req: Request, res: Response) => {
 // Reset password
 export const resetPasswordController = async (req: Request, res: Response) => {
   try {
-    const { token, newPassword, confirmPassword } = req.body;
+    const {token} = req.params;
+    const { newPassword, confirmPassword } = req.body;
     const result = await resetPasswordService(token, newPassword, confirmPassword);
     res.status(200).json(result);
   } catch (err: any) {
