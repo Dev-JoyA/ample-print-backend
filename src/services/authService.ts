@@ -10,7 +10,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const FRONTEND_BASE = process.env.FRONTEND_BASE_URL ?? "http://localhost:3000";
+const FRONTEND_BASE = process.env.FRONTEND_BASE_URL ?? "http://localhost:4001";
 const RESET_PATH = process.env.PASSWORD_RESET_PATH ?? "/auth/reset-password";
 const RESET_TOKEN_TTL_MS = Number(process.env.RESET_TOKEN_TTL_MS) || 60 * 60 * 1000; // 1 hour
 
@@ -308,9 +308,20 @@ export async function createSuperAdminService(data: SignUpData) {
 }
 
 
-export async function deactivateAdminService(email: string, superAdmin: AdminData) {
+export async function deactivateAdminService(email: string) {
   if (!email) throw new Error("Email is required");
   if (email === "ampleprinthub@gmail.com") throw new Error("Cannot deactivate the permanent superadmin");
+
+    const superAdmin = await User.findOne({ role: UserRole.SuperAdmin }).lean();
+
+    if (!superAdmin) {
+        throw new Error("SuperAdmin not found. Cannot create admin.");
+    }
+    const superAdminProfile = await Profile.findOne({ userId: superAdmin._id }).lean();
+
+    if (!superAdminProfile) {
+        throw new Error("SuperAdmin profile not found");
+    }
 
   const user = await User.findOne({ email }).exec();
   if (!user) throw new Error("Admin not found");
@@ -324,11 +335,13 @@ export async function deactivateAdminService(email: string, superAdmin: AdminDat
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (!profile) throw new Error("Profile not found");
 
+  
+
   emails(
     superAdmin.email,
     "Admin Deactivated Successfully",
     "Admin Deactivated Successfully",
-    superAdmin.userName,
+    superAdminProfile.userName,
     `Admin ${profile.userName} with email ${email} has been deactivated.`,
     FRONTEND_BASE
   ).catch(console.error);
@@ -343,8 +356,19 @@ export async function deactivateAdminService(email: string, superAdmin: AdminDat
   ).catch(console.error);
 }
 
-export async function reactivateAdminService(email: string, superAdmin: AdminData) {
+export async function reactivateAdminService(email: string) {
   if (!email) throw new Error("Email is required");
+
+    const superAdmin = await User.findOne({ role: UserRole.SuperAdmin }).lean();
+
+    if (!superAdmin) {
+        throw new Error("SuperAdmin not found. Cannot create admin.");
+    }
+    const superAdminProfile = await Profile.findOne({ userId: superAdmin._id }).lean();
+
+    if (!superAdminProfile) {
+        throw new Error("SuperAdmin profile not found");
+    }
 
   const user = await User.findOne({ email }).exec();
   if (!user) throw new Error("Admin not found");
@@ -357,11 +381,12 @@ export async function reactivateAdminService(email: string, superAdmin: AdminDat
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (!profile) throw new Error("Profile not found");
 
+
   emails(
     superAdmin.email,
     "Admin Reactivation Successful",
     "Admin Reactivation Successful",
-    superAdmin.userName,
+    superAdminProfile.userName,
     `Admin ${profile.userName} with email ${email} has been reactivated.`,
     FRONTEND_BASE
   ).catch(console.error);
