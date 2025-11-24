@@ -5,7 +5,7 @@ info:
   version: 1.0.0
 
 servers:
-  - url: http://localhost:5000
+  - url: http://localhost:4001
     description: Local server
 
 components:
@@ -133,7 +133,7 @@ components:
           type: string
 
 paths:
-  /auth/sign-up:
+  /api/v1/auth/sign-up:
     post:
       summary: Register a new customer
       requestBody:
@@ -148,11 +148,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                $ref: '#/components/schemasauthResponse'
         '400':
           description: Validation error or email/username exists
 
-  /auth/sign-in:
+  /api/v1/auth/sign-in:
     post:
       summary: Log in
       requestBody:
@@ -167,11 +167,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                $ref: '#/components/schemasauthResponse'
         '400':
           description: Invalid credentials
 
-  /auth/admin-sign-up:
+  /api/v1/auth/admin-sign-up:
     post:
       summary: Create a new admin (requires superadmin)
       security:
@@ -188,11 +188,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                $ref: '#/components/schemasauthResponse'
         '400':
           description: Validation error
 
-  /auth/superadmin-sign-up:
+  /api/v1/auth/superadmin-sign-up:
     post:
       summary: Create superadmin (only once)
       requestBody:
@@ -207,9 +207,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                $ref: '#/components/schemasauthResponse'
 
-  /auth/deactivate-admin:
+  /api/v1/auth/deactivate-admin:
     post:
       summary: Deactivate an admin
       security:
@@ -234,7 +234,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
 
-  /auth/reactivate-admin:
+  /api/v1/auth/reactivate-admin:
     post:
       summary: Reactivate an admin
       security:
@@ -259,7 +259,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
 
-  /auth/forgot-password:
+  /api/v1/auth/forgot-password:
     post:
       summary: Request password reset
       requestBody:
@@ -282,7 +282,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
 
-  /auth/effect-forgot-password:
+  /api/v1/api/v1/auth/effect-forgot-password:
     post:
       summary: Effect password reset using token
       requestBody:
@@ -299,7 +299,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
 
-  /auth/reset-password/{userId}:
+  /api/v1/api/v1/auth/reset-password/{userId}:
     post:
       summary: Reset password by logged-in user
       security:
@@ -332,7 +332,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
 
-  /auth/logout:
+  /api/v1/api/v1/auth/logout:
     post:
       summary: Logout user
       requestBody:
@@ -349,7 +349,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
 
-  /auth/refresh-token:
+  /api/v1/api/v1/auth/refresh-token:
     post:
       summary: Refresh access token
       requestBody:
@@ -370,7 +370,7 @@ paths:
                 refreshToken:
                   type: string
 
-  /auth/verify-token:
+  /api/v1auth/verify-token:
     get:
       summary: Verify access token validity
       security:
@@ -388,7 +388,7 @@ paths:
                   user:
                     type: object
 
-  /auth/verify-refresh-token:
+  /api/v1auth/verify-refresh-token:
     get:
       summary: Verify refresh token and rotate
       security:
@@ -405,7 +405,7 @@ paths:
                     type: string
                   refreshToken:
                     type: string
-    /auth/google:
+    /api/v1auth/google:
     get:
       summary: Initiate Google OAuth login
       description: Redirects user to Google for authentication
@@ -413,7 +413,7 @@ paths:
         '302':
           description: Redirect to Google login page
 
-  /auth/google/callback:
+  auth/google/callback:
     get:
       summary: Google OAuth callback
       description: Callback URL that Google redirects to after login
@@ -421,7 +421,7 @@ paths:
         '302':
           description: Redirects to success or failure URL
 
-  /auth/google/success:
+  /api/v1/auth/google/success:
     get:
       summary: Google OAuth successful
       description: Returns the authenticated user information
@@ -439,7 +439,7 @@ paths:
                     type: object
                     description: Authenticated user profile
 
-  /auth/google/failure:
+  /api/v1/auth/google/failure:
     get:
       summary: Google OAuth failed
       description: Returns failure message if Google login failed
@@ -453,3 +453,166 @@ paths:
                 properties:
                   message:
                     type: string
+                    example: "Google login failed"
+
+  /api/v1/users:
+    get:
+      summary: Get all users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+  /api/v1/users/{userId}:
+    get:
+      summary: Get user by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+
+    put:
+      summary: Update user profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  profile:
+                    $ref: '#/components/schemas/Profile'
+        '404':
+          description: User or profile not found
+
+    delete:
+      summary: Delete a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+
+  /api/v1/users/{userId}/role:
+    patch:
+      summary: Change user role
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - newRole
+              properties:
+                newRole:
+                  type: string
+                  enum: [Customer, Admin, SuperAdmin]
+      responses:
+        '200':
+          description: User role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+
+  /api/v1/users/{userId}/activeness:
+    patch:
+      summary: Toggle user activeness
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User activeness toggled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+
+  /api/v1/users/{userId}/address:
+    get:
+      summary: Get user address
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Address fetched successfully
+          content:
+            application/json:
+              schema:
+                type: string
+        '404':
+          description: Profile not found                   
