@@ -3,6 +3,7 @@ import passport from "passport";
 import dotenv from "dotenv";
 import { Strategy as GoogleStrategy  } from "passport-google-oauth2";
 import { User, IUser, UserRole } from "../models/userModel.js";
+import {Profile } from "../models/profileModel.js"
 
 dotenv.config();
 
@@ -25,12 +26,20 @@ passport.use(
         if (!user) {
           // Create new user if not exists
           user = await User.create({
-            email: profile.email,
+            email: profile.emails[0].value,
             password: "", // OAuth user
             role: UserRole.Customer,
             isActive: true,
             googleId: profile.id,
           } as Partial<IUser>);
+
+          await Profile.create({
+              userId: user._id,
+              firstName: profile.name?.givenName || "",
+              lastName: profile.name?.familyName || "",
+              userName: "",          
+              phoneNumber: "",       
+          });
         }
         return done(null, user);
       } catch (error) {
