@@ -11,9 +11,9 @@ import {
   resetPasswordService,
   logoutService,
   refreshTokenService,
-} from "../services/authService.js";
+} from "../service/authService.js";
 
-import { SignUpData, SignInData, AdminData } from "../services/authService.js";
+import { SignUpData, SignInData, AdminData } from "../service/authService.js";
 
 export const signUpController = async (req: Request, res: Response) => {
   try {

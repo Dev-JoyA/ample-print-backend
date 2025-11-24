@@ -478,10 +478,4 @@ export async function resetPasswordService(userId: string, newPassword: string, 
   return { message: "Password reset successful" };
 }
 
-// export async function getUserByEmailService(email: string) {
-//   return User.findOne({ email }).exec();
-// }
 
-// export async function getProfileByUserIdService(userId: string) {
-//   return Profile.findOne({ userId }).exec();
-// }

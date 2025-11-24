@@ -2,6 +2,7 @@ import express, {Request, Response} from "express";
 import dotenv from "dotenv";
 import {startServer} from "./src/config/db.js"
 import authRoute from "./src/routes/authRoute.js";
+import userRoute from "./src/routes/userRoute.js";
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -64,6 +65,7 @@ app.get("/home", (req, res) => {
 })
 
 app.use("/api/v1/auth", authRoute)
+app.use("/api/v1/users", userRoute)
 // app.use("/upload", uploadRoute)
 // app.use("/content", contentRoute)
 
