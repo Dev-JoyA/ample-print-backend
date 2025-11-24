@@ -7,6 +7,7 @@ import {
   deactivateAdminService,
   reactivateAdminService,
   forgotPasswordService,
+  effectForgotPassword,
   resetPasswordService,
   logoutService,
   refreshTokenService,
@@ -14,9 +15,6 @@ import {
 
 import { SignUpData, SignInData, AdminData } from "../services/authService.js";
 
-// ------------------- CONTROLLERS -------------------
-
-// Sign up a new user
 export const signUpController = async (req: Request, res: Response) => {
   try {
     const data: SignUpData = req.body;
@@ -132,14 +130,25 @@ export const forgotPasswordController = async (req: Request, res: Response) => {
 };
 
 // Reset password
-export const resetPasswordController = async (req: Request, res: Response) => {
+export const effectForgotPasswordController = async (req: Request, res: Response) => {
   try {
-    const {token} = req.params;
-    const { newPassword, confirmPassword } = req.body;
-    const result = await resetPasswordService(token, newPassword, confirmPassword);
+    const token = req.query.token as string;
+    const {newPassword, confirmPassword} = req.body;
+    const result = await effectForgotPassword(token, newPassword, confirmPassword);
     res.status(200).json(result);
   } catch (err: any) {
     const status = err.message.includes("expired") || err.message.includes("Invalid") ? 400 : 400;
-    res.status(status).json({ error: err.message || "Failed to reset password" });
+    res.status(status).json({ error: err.message || "Failed to effect password change" });
   }
 };
+
+export const resetPasswordController = async (req: Request, res: Response) => {
+  try {
+    const {userId} = req.params;
+    const {newPassword, confirmPassword} = req.body;
+    const result = await resetPasswordService(userId, newPassword, confirmPassword);
+    res.status(200).json(result)
+  }catch(err: any) {
+    res.status(400).json({error : err.message || "failed to reset password"});
+  }
+}

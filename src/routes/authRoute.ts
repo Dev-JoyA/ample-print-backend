@@ -11,6 +11,7 @@ import {
   deactivateAdminController,
   reactivateAdminController,
   forgotPasswordController,
+  effectForgotPasswordController,
   resetPasswordController,
   refreshTokenController,
   logoutController
@@ -18,9 +19,7 @@ import {
 
 const router = Router();
 
-// ----------------------
-// Public routes
-// ----------------------
+
 router.post("/sign-up", signUpController);
 router.post("/sign-in", signInController);
 router.post("/admin-sign-up",
@@ -37,17 +36,16 @@ router.post("/reactivate-admin",
   checkSuperAdmin, 
   reactivateAdminController);
 router.post("/forgot-password", forgotPasswordController);
-router.post("/reset-password/:token", 
-  // authMiddleware, 
-  // checkOwnership,
-  resetPasswordController);
+router.post("/effect-forgot-password", effectForgotPasswordController);
 router.post("/logout", logoutController);
 router.post("/refresh-token", refreshTokenController);
+router.post("/reset-password/:userId", 
+  authMiddleware,
+  checkOwnership,
+  resetPasswordController
+)
 
 
-// ----------------------
-// Token verification / refresh
-// ----------------------
 router.get("/verify-token", verifyToken, (req: Request, res: Response) => {
   res.json({ valid: true, user: req.user });
 });
@@ -63,11 +61,6 @@ router.post("/generate-refresh-token", authenticateToken, (req: Request, res: Re
   res.json({ refreshToken });
 });
 
-// ----------------------
-// Admin management (requires superadmin middleware)
-// ----------------------
-router.post("/deactivate-admin", deactivateAdminController);
-router.post("/reactivate-admin", reactivateAdminController);
 
 // ----------------------
 // Google OAuth
@@ -77,8 +70,8 @@ router.get("/google", passport.authenticate("google", { scope: ["email", "profil
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    successRedirect: "/auth/google/success",
-    failureRedirect: "/auth/google/failure"
+    successRedirect: "/api/v1/auth/google/success",
+    failureRedirect: "/api/v1/auth/google/failure"
   })
 );
 
@@ -90,7 +83,5 @@ router.get("/google/failure", (req: Request, res: Response) => {
   res.status(401).json({ message: "Google OAuth failed" });
 });
 
-// ----------------------
-// Export the router
-// ----------------------
+
 export default router;
