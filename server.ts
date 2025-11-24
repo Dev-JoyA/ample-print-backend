@@ -9,9 +9,8 @@ import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 // import uploadRoute from "./src/routes/uploadRoute.js";
 // import contentRoute from "./src/routes/contentRoute.js";
-// import passport from "./src/config/passport.js";
+import passport from "./src/config/passport.js";
 import cors from "cors";
-// import { setupAssociations } from "./src/models/associations.js"
 
 
 
@@ -30,7 +29,7 @@ const PORT = process.env.PORT || 8000;
 
 app.use(express.json());
 app.use(express.urlencoded({extended : true}));
-//app.use(passport.initialize());
+app.use(passport.initialize());
 
 
 // Swagger setup BEFORE other routes
@@ -64,7 +63,7 @@ app.get("/home", (req, res) => {
     res.send("Welcome to the server");
 })
 
-app.use("/auth", authRoute)
+app.use("/api/v1/auth", authRoute)
 // app.use("/upload", uploadRoute)
 // app.use("/content", contentRoute)
 
