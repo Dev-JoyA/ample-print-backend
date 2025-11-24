@@ -15,13 +15,13 @@ passport.use(
     {
       clientID: process.env.CLIENT_ID,
       clientSecret: process.env.CLIENT_SECRET,
-      callbackURL: "http://localhost:4001/auth/google/signIn",
+      callbackURL: "http://localhost:4001/api/v1/auth/google/callback",
       passReqToCallback: true,
     },
     async (request: Express.Request, accessToken: string, refreshToken: string, profile: any, done: (error: any, user?: any) => void) => {
       try {
         // Check if user already exists
-        let user = await User.findOne({ googleId: profile._id }).exec();
+        let user = await User.findOne({ googleId: profile.id }).exec();
         if (!user) {
           // Create new user if not exists
           user = await User.create({
@@ -29,7 +29,7 @@ passport.use(
             password: "", // OAuth user
             role: UserRole.Customer,
             isActive: true,
-            googleId: profile._id,
+            googleId: profile.id,
           } as Partial<IUser>);
         }
         return done(null, user);

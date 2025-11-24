@@ -11,12 +11,11 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const FRONTEND_BASE = process.env.FRONTEND_BASE_URL ?? "http://localhost:4001";
-const RESET_PATH = process.env.PASSWORD_RESET_PATH ?? "/auth/reset-password";
-const RESET_TOKEN_TTL_MS = Number(process.env.RESET_TOKEN_TTL_MS) || 60 * 60 * 1000; // 1 hour
+const RESET_PATH = process.env.PASSWORD_RESET_PATH ?? "api/v1/auth/effect-forgot-password";
+const RESET_TOKEN_TTL_MS = Number(process.env.RESET_TOKEN_TTL_MS) || 60 * 60 * 1000;
 
 const generateRandomToken = (): string => crypto.randomBytes(32).toString("hex");
 
-/* ---------- Data Interfaces ---------- */
 export interface SignUpData {
   firstName: string;
   lastName: string;
@@ -44,7 +43,7 @@ export interface AuthResponse {
   refreshToken: string;
 }
 
-/* ---------- Helpers ---------- */
+
 function sanitizeUser(user: IUser | null): Partial<IUser> | null {
   if (!user) return null;
   const obj = user.toObject?.() ?? user;
@@ -62,7 +61,7 @@ function sanitizeProfile(profile: IProfile | null): Partial<IProfile> | null {
   return anyObj;
 }
 
-/* ---------- Core Services ---------- */
+
 export async function signUpService(data: SignUpData) {
   const { firstName, lastName, userName, email, password, phoneNumber, address } = data;
 
@@ -97,7 +96,6 @@ export async function signUpService(data: SignUpData) {
     await session.commitTransaction();
     session.endSession();
 
-    // Send welcome email (non-blocking)
     emails(
       email,
       "Welcome to AMPLE PRINTHUB",
@@ -131,7 +129,6 @@ export async function signInService(data: SignInData): Promise<AuthResponse> {
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (!profile) throw new Error("Profile not found");
 
-  // Rotate refresh token
   await RefreshToken.deleteMany({ userId: user._id });
   const refreshToken = generateRefreshToken({ userId: user._id, role: user.role });
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -147,7 +144,6 @@ export async function signInService(data: SignInData): Promise<AuthResponse> {
   };
 }
 
-/* ---------- Refresh Token ---------- */
 export async function refreshTokenService(refreshToken: string) {
   if (!refreshToken) throw new Error("Refresh token is required");
 
@@ -161,7 +157,6 @@ export async function refreshTokenService(refreshToken: string) {
   const user = await User.findById(existing.userId);
   if (!user || !user.isActive) throw new Error("User no longer exists or is deactivated");
 
-  // Rotate refresh token
   await RefreshToken.deleteMany({ userId: user._id });
   const newRefreshToken = generateRefreshToken({ userId: user._id, role: user.role });
   const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -171,12 +166,10 @@ export async function refreshTokenService(refreshToken: string) {
   return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 }
 
-/* ---------- Logout ---------- */
 export async function logoutService(refreshToken: string) {
   await RefreshToken.deleteOne({ token: refreshToken });
 }
 
-/* ---------- Admin Services ---------- */
 export async function createAdminService(data: SignUpData, superAdmin: AdminData) {
   const { firstName, lastName, userName, email, password, phoneNumber, address } = data;
 
@@ -217,7 +210,6 @@ export async function createAdminService(data: SignUpData, superAdmin: AdminData
     }
     const superAdminProfile = await Profile.findOne({ userId: superAdmin._id }).lean();
 
-   // Notify superadmin only if email exists
     if (!superAdmin.email) {
     console.warn(`Cannot send email to superadmin: Email not defined for user ${superAdminProfile?.userName}`);
     } else {
@@ -230,9 +222,7 @@ export async function createAdminService(data: SignUpData, superAdmin: AdminData
         FRONTEND_BASE
     ).catch(err => console.error("Error sending email to superadmin:", err));
     }
-        
-
-    // Create password reset token for admin
+  
     const token = generateRandomToken();
     const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
     await PasswordResetToken.deleteMany({ userId: newUser._id }).catch(() => {});
@@ -289,7 +279,6 @@ export async function createSuperAdminService(data: SignUpData) {
     await session.commitTransaction();
     session.endSession();
 
-    // Send welcome email (optional)
     emails(
       email,
       "Welcome SuperAdmin",
@@ -334,8 +323,6 @@ export async function deactivateAdminService(email: string) {
 
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (!profile) throw new Error("Profile not found");
-
-  
 
   emails(
     superAdmin.email,
@@ -401,7 +388,6 @@ export async function reactivateAdminService(email: string) {
   ).catch(console.error);
 }
 
-/* ---------- Password Reset ---------- */
 export async function forgotPasswordService(email: string) {
   if (!email) throw new Error("Email is required");
 
@@ -430,7 +416,7 @@ export async function forgotPasswordService(email: string) {
   return { message: "Password reset email sent" };
 }
 
-export async function resetPasswordService(token: string, newPassword: string, confirmPassword: string) {
+export async function effectForgotPassword(token: string, newPassword: string, confirmPassword: string) {
   if (!token) throw new Error("Token is required");
   if (!newPassword || !confirmPassword) throw new Error("Passwords are required");
   if (newPassword !== confirmPassword) throw new Error("Passwords do not match");
@@ -465,11 +451,37 @@ export async function resetPasswordService(token: string, newPassword: string, c
   return { message: "Password reset successful" };
 }
 
-/* ---------- Simple Getters ---------- */
-export async function getUserByEmailService(email: string) {
-  return User.findOne({ email }).exec();
+export async function resetPasswordService(userId: string, newPassword: string, confirmPassword: string){
+  if (!newPassword || !confirmPassword) throw new Error("Passwords are required");
+  if (newPassword !== confirmPassword) throw new Error("Passwords do not match");
+  if (newPassword.length < 5) throw new Error("Password must be at least 5 characters");
+
+  const user = await User.findById(userId);
+
+  if(!user) throw new Error("User not found");
+
+  user.password = await hashPassword(newPassword);
+  await user.save();
+
+  const profile = await Profile.findOne({ userId: user._id }).exec();
+  if (profile) {
+    emails(
+      user.email,
+      "Password Reset Successful",
+      "Password Reset Successful",
+      profile.userName,
+      `Your password has been reset successfully.`,
+      FRONTEND_BASE
+    ).catch(console.error);
+  }
+
+  return { message: "Password reset successful" };
 }
 
-export async function getProfileByUserIdService(userId: string) {
-  return Profile.findOne({ userId }).exec();
-}
+// export async function getUserByEmailService(email: string) {
+//   return User.findOne({ email }).exec();
+// }
+
+// export async function getProfileByUserIdService(userId: string) {
+//   return Profile.findOne({ userId }).exec();
+// }
