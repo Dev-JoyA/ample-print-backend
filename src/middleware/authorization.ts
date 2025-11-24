@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import { User, UserRole } from "../models/userModel.js";
+import mongoose from "mongoose";
 
 
 export const checkRole = (roles: UserRole[]) => async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // req.user is typed via Express augmentation
     const userRole = (req.user as unknown as { role?: UserRole })?.role;
     if (!req.user || !userRole || !roles.includes(userRole)) {
       return res.status(403).json({
@@ -22,17 +22,13 @@ export const checkRole = (roles: UserRole[]) => async (req: Request, res: Respon
   }
 };
 
-// ----------------------
-// Superadmin-only access
-// ----------------------
+
 export const checkSuperAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const currentUser = req.user as unknown as { role?: UserRole; _id?: string };
     if (!currentUser || currentUser.role !== UserRole.SuperAdmin) {
       return res.status(403).json({ message: "Unauthorized: Superadmin access required" });
     }
-
-    // Verify active superadmin account in DB
     const user = await User.findOne({ _id: currentUser._id, isActive: true }).exec();
     if (!user) {
       return res.status(403).json({ message: "Unauthorized: Inactive superadmin account" });
@@ -54,8 +50,6 @@ export const checkAdmin = async (req: Request, res: Response, next: NextFunction
     if (!currentUser || (currentUser.role !== UserRole.Admin && currentUser.role !== UserRole.SuperAdmin)) {
       return res.status(403).json({ message: "Unauthorized: Admin or Superadmin access required" });
     }
-
-    // Verify active admin account in DB
     const user = await User.findOne({ _id: currentUser._id, isActive: true }).exec();
     if (!user) {
       return res.status(403).json({ message: "Unauthorized: Inactive admin account" });
@@ -71,27 +65,26 @@ export const checkAdmin = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-// Check if the logged-in user owns the resource they want to modify
 export const checkOwnership = (req: Request, res: Response, next: NextFunction) => {
   try {
-    const loggedInUser = req.user as { _id: string; role: string };
+    const loggedInUser = req.user as { _id: string; role: string } | undefined;
 
-    if (!loggedInUser) {
-      return res.status(401).json({ message: "Unauthorized: No user found in token" });
+    const targetUserId = req.params.userId; 
+
+    if (!loggedInUser || !loggedInUser._id) {
+      return res.status(403).json({ message: "Unauthorized: You do not have permission to modify this account" });
     }
 
-    const targetUserId = req.params.userId; // or req.body.userId depending on your route
-
-    // SuperAdmin bypasses ownership (optional)
+    // SuperAdmin bypass
     if (loggedInUser.role === UserRole.SuperAdmin) {
       return next();
     }
 
-    // Check if the logged in user is trying to modify their own account
-    if (loggedInUser._id !== targetUserId) {
-      return res.status(403).json({
-        message: "Unauthorized: You do not have permission to modify this account"
-      });
+    // create an ObjectId instance with `new` before calling equals
+    const loggedId = new mongoose.Types.ObjectId(loggedInUser._id);
+    const targetId = new mongoose.Types.ObjectId(targetUserId);
+    if (!loggedId.equals(targetId)) {
+      return res.status(403).json({ message: "Unauthorized: You do not have permission to modify this account" });
     }
 
     next();
@@ -102,9 +95,6 @@ export const checkOwnership = (req: Request, res: Response, next: NextFunction) 
 };
 
 
-// ----------------------
-// Global error handler
-// ----------------------
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
   console.error(err); 
   const status = err.status || 500;

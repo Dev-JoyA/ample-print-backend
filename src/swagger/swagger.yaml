@@ -55,6 +55,28 @@ components:
         password:
           type: string
 
+    PasswordResetData:
+      type: object
+      required:
+        - newPassword
+        - confirmPassword
+      properties:
+        newPassword:
+          type: string
+        confirmPassword:
+          type: string
+        token:
+          type: string
+          nullable: true
+
+    RefreshTokenData:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+
     User:
       type: object
       properties:
@@ -126,12 +148,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  user:
-                    $ref: '#/components/schemas/User'
-                  profile:
-                    $ref: '#/components/schemas/Profile'
+                $ref: '#/components/schemas/AuthResponse'
         '400':
           description: Validation error or email/username exists
 
@@ -154,7 +171,7 @@ paths:
         '400':
           description: Invalid credentials
 
-  /auth/create-admin:
+  /auth/admin-sign-up:
     post:
       summary: Create a new admin (requires superadmin)
       security:
@@ -171,16 +188,11 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  user:
-                    $ref: '#/components/schemas/User'
-                  profile:
-                    $ref: '#/components/schemas/Profile'
+                $ref: '#/components/schemas/AuthResponse'
         '400':
           description: Validation error
 
-  /auth/create-super-admin:
+  /auth/superadmin-sign-up:
     post:
       summary: Create superadmin (only once)
       requestBody:
@@ -195,12 +207,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  user:
-                    $ref: '#/components/schemas/User'
-                  profile:
-                    $ref: '#/components/schemas/Profile'
+                $ref: '#/components/schemas/AuthResponse'
 
   /auth/deactivate-admin:
     post:
@@ -226,8 +233,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
-        '400':
-          description: Validation error
 
   /auth/reactivate-admin:
     post:
@@ -253,8 +258,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
-        '400':
-          description: Validation error
 
   /auth/forgot-password:
     post:
@@ -279,9 +282,34 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
 
-  /auth/reset-password:
+  /auth/effect-forgot-password:
     post:
-      summary: Reset password using token
+      summary: Effect password reset using token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetData'
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /auth/reset-password/{userId}:
+    post:
+      summary: Reset password by logged-in user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -289,12 +317,9 @@ paths:
             schema:
               type: object
               required:
-                - token
                 - newPassword
                 - confirmPassword
               properties:
-                token:
-                  type: string
                 newPassword:
                   type: string
                 confirmPassword:
@@ -315,12 +340,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - refreshToken
-              properties:
-                refreshToken:
-                  type: string
+              $ref: '#/components/schemas/RefreshTokenData'
       responses:
         '200':
           description: Logged out successfully
@@ -337,24 +357,18 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - refreshToken
-              properties:
-                refreshToken:
-                  type: string
+              $ref: '#/components/schemas/RefreshTokenData'
       responses:
         '200':
           description: New access and refresh token generated
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  accessToken:
-                    type: string
-                  refreshToken:
-                    type: string
+              type: object
+              properties:
+                accessToken:
+                  type: string
+                refreshToken:
+                  type: string
 
   /auth/verify-token:
     get:
@@ -390,4 +404,52 @@ paths:
                   accessToken:
                     type: string
                   refreshToken:
+                    type: string
+    /auth/google:
+    get:
+      summary: Initiate Google OAuth login
+      description: Redirects user to Google for authentication
+      responses:
+        '302':
+          description: Redirect to Google login page
+
+  /auth/google/callback:
+    get:
+      summary: Google OAuth callback
+      description: Callback URL that Google redirects to after login
+      responses:
+        '302':
+          description: Redirects to success or failure URL
+
+  /auth/google/success:
+    get:
+      summary: Google OAuth successful
+      description: Returns the authenticated user information
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user:
+                    type: object
+                    description: Authenticated user profile
+
+  /auth/google/failure:
+    get:
+      summary: Google OAuth failed
+      description: Returns failure message if Google login failed
+      responses:
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
                     type: string
