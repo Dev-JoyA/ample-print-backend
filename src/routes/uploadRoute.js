@@ -1,6 +1,6 @@
 import express from "express";
 import passport from "../../middleware/passport.js";
-import { createDesign, updateDesign, getDesigns, getOne, deleteDesign } from "../controllers/uploadController.js";
+import { createDesign, updateDesign, getDesigns, getOne, deleteDesign } from "../controller/uploadController.js";
 
 
 const router = express.Router();

@@ -15,7 +15,7 @@ import {
   resetPasswordController,
   refreshTokenController,
   logoutController
-} from "../controllers/authControllers.js";
+} from "../controller/authController.js";
 
 const router = Router();
 
@@ -76,7 +76,11 @@ router.get(
 );
 
 router.get("/google/success", (req: Request, res: Response) => {
-  res.status(200).json({ message: "Google OAuth successful", user: req.user });
+    const user = req.user;
+    const token = generateToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    res.status(200).json({ message: "Google OAuth successful", token, refreshToken, user });
 });
 
 router.get("/google/failure", (req: Request, res: Response) => {
