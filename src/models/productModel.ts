@@ -1,0 +1,63 @@
+import { Document, Schema , model, Types } from "mongoose";
+import { IProduct, ProductStatus } from "./productInterface.js";
+
+
+const ProductSchema = new Schema<IProduct>(
+    {
+        collectionId : {
+            type : Schema.Types.ObjectId,
+            ref : 'Collection',
+            index : true,
+            required : true
+        },
+        name : {
+            type : String,
+            unique : true,
+            index : true,
+            required : true
+        },
+        description : {
+            type : String,
+            index : true,
+            required : true
+        },
+        price : {
+            type : Number,
+            required : true
+        },
+        dimension : {
+            type : String,
+            required : true
+        },
+        minOrder : {
+            type : Number,
+            required : true
+        },
+        image : {
+            type : String,
+            required : true 
+        },
+        images: {
+            type: [String],
+            default: []
+        },
+        material: {
+            type: String
+        },
+        status: {
+            type: String,
+            enum: Object.values(ProductStatus),
+            index: true,
+            default: ProductStatus.Active
+        },
+        deliveryDay : {
+            type : String,
+            required : true
+        }
+    },
+    {
+        timestamps : true
+    }
+)
+
+export const Product = model("Product", ProductSchema)
