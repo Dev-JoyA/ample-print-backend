@@ -9,8 +9,9 @@ import { dirname } from 'path';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 // import uploadRoute from "./src/routes/uploadRoute.js";
-// import contentRoute from "./src/routes/contentRoute.js";
+import productRoute from "./src/routes/productRoute.js";
 import passport from "./src/config/passport.js";
+import attachmentRoute from "./src/routes/attachmentRoute.js"
 import cors from "cors";
 
 
@@ -66,8 +67,9 @@ app.get("/home", (req, res) => {
 
 app.use("/api/v1/auth", authRoute)
 app.use("/api/v1/users", userRoute)
-// app.use("/upload", uploadRoute)
-// app.use("/content", contentRoute)
+//app.use("/upload", uploadRoute)
+app.use("/api/v1", productRoute)
+app.use("/api/v1/attachments", attachmentRoute)
 
 
 app.listen(PORT, () => {
