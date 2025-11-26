@@ -617,326 +617,332 @@ paths:
         '404':
           description: Profile not found  
     # ---------------- COLLECTIONS ----------------
-/collections:
-  post:
-    tags:
-      - Collections
-    summary: Create a new collection
-    security:
-      - bearerAuth: []
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              name:
-                type: string
-                example: "Posters"
-    responses:
-      201:
-        description: Collection created successfully
-      400:
-        description: Bad request / Collection already exists
-  get:
-    tags:
-      - Collections
-    summary: Get paginated list of collections
-    parameters:
-      - in: query
-        name: page
-        schema:
-          type: integer
-        example: 1
-      - in: query
-        name: limit
-        schema:
-          type: integer
-        example: 10
-    responses:
-      200:
-        description: Paginated collections list
-
-/collections/{id}:
-  put:
-    tags:
-      - Collections
-    summary: Update a collection
-    security:
-      - bearerAuth: []
-    parameters:
-      - in: path
-        name: id
+  /collections:
+    post:
+      tags:
+        - Collections
+      summary: Create a new collection
+      security:
+        - bearerAuth: []
+      requestBody:
         required: true
-        schema:
-          type: string
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              name:
-                type: string
-                example: "Updated Collection Name"
-    responses:
-      200:
-        description: Collection updated
-      400:
-        description: Bad request
-  delete:
-    tags:
-      - Collections
-    summary: Delete a collection
-    security:
-      - bearerAuth: []
-    parameters:
-      - in: path
-        name: id
-        required: true
-        schema:
-          type: string
-    responses:
-      200:
-        description: Collection deleted successfully
-      404:
-        description: Collection not found
-
-/collections/{id}/products:
-  get:
-    tags:
-      - Collections
-    summary: Get a collection with all its products
-    parameters:
-      - in: path
-        name: id
-        required: true
-        schema:
-          type: string
-    responses:
-      200:
-        description: Collection with products
-
-/collections/{collectionId}/all-products:
-  get:
-    tags:
-      - Products
-    summary: Get all products of a specific collection
-    parameters:
-      - in: path
-        name: collectionId
-        required: true
-        schema:
-          type: string
-    responses:
-      200:
-        description: List of products
-
-# ---------------- PRODUCTS ----------------
-/collections/{collectionId}/products:
-  post:
-    tags:
-      - Products
-    summary: Create a new product
-    security:
-      - bearerAuth: []
-    parameters:
-      - in: path
-        name: collectionId
-        required: true
-        schema:
-          type: string
-    requestBody:
-      required: true
-      content:
-        multipart/form-data:
-          schema:
-            type: object
-            properties:
-              name:
-                type: string
-              description:
-                type: string
-              price:
-                type: number
-              dimension:
-                type: string
-              minOrder:
-                type: number
-              material:
-                type: string
-              deliveryDay:
-                type: string
-              images:
-                type: array
-                items:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
                   type: string
-                  format: binary
-    responses:
-      201:
-        description: Product created successfully
-      400:
-        description: Bad request
-
-/products/{id}:
-  get:
-    tags:
-      - Products
-    summary: Get a single product by ID
-    parameters:
-      - in: path
-        name: id
-        required: true
-        schema:
-          type: string
-    responses:
-      200:
-        description: Product details
-      404:
-        description: Product not found
-  put:
-    tags:
-      - Products
-    summary: Update a product
-    security:
-      - bearerAuth: []
-    parameters:
-      - in: path
-        name: id
-        required: true
-        schema:
-          type: string
-    requestBody:
-      required: true
-      content:
-        multipart/form-data:
+                  example: "Posters"
+      responses:
+        201:
+          description: Collection created successfully
+        400:
+          description: Bad request / Collection already exists
+    get:
+      tags:
+        - Collections
+      summary: Get paginated list of collections
+      parameters:
+        - in: query
+          name: page
           schema:
-            type: object
-            properties:
-              name:
-                type: string
-              description:
-                type: string
-              price:
-                type: number
-              dimension:
-                type: string
-              minOrder:
-                type: number
-              material:
-                type: string
-              deliveryDay:
-                type: string
-              images:
-                type: array
-                items:
-                  type: string
-                  format: binary
-    responses:
-      200:
-        description: Product updated successfully
-      400:
-        description: Bad request
-  delete:
-    tags:
-      - Products
-    summary: Delete a product
-    security:
-      - bearerAuth: []
-    parameters:
-      - in: path
-        name: id
+            type: integer
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          example: 10
+      responses:
+        200:
+          description: Paginated collections list
+
+  /collections/{id}:
+    put:
+      tags:
+        - Collections
+      summary: Update a collection
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
         required: true
-        schema:
-          type: string
-    responses:
-      200:
-        description: Product deleted successfully
-      404:
-        description: Product not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Updated Collection Name"
+      responses:
+        200:
+          description: Collection updated
+        400:
+          description: Bad request
+    delete:
+      tags:
+        - Collections
+      summary: Delete a collection
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Collection deleted successfully
+        404:
+          description: Collection not found
 
-/products:
-  get:
-    tags:
-      - Products
-    summary: Get paginated list of products
-    parameters:
-      - in: query
-        name: page
-        schema:
-          type: integer
-        example: 1
-      - in: query
-        name: limit
-        schema:
-          type: integer
-        example: 10
-    responses:
-      200:
-        description: Paginated products list
+  /collections/{id}/products:
+    get:
+      tags:
+        - Collections
+      summary: Get a collection with all its products
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Collection with products
 
-/products/filter:
-  get:
-    tags:
-      - Products
-    summary: Filter products by price, status, delivery day, or collection
-    parameters:
-      - in: query
-        name: priceMin
-        schema:
-          type: number
-      - in: query
-        name: priceMax
-        schema:
-          type: number
-      - in: query
-        name: status
-        schema:
-          type: string
-          enum: [active, inactive, archived]
-      - in: query
-        name: deliveryDay
-        schema:
-          type: string
-      - in: query
-        name: collectionId
-        schema:
-          type: string
-      - in: query
-        name: page
-        schema:
-          type: integer
-      - in: query
-        name: limit
-        schema:
-          type: integer
-    responses:
-      200:
-        description: Filtered products
+  /collections/{collectionId}/all-products:
+    get:
+      tags:
+        - Products
+      summary: Get all products of a specific collection
+      parameters:
+        - in: path
+          name: collectionId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: List of products
 
-/products/search:
-  get:
-    tags:
-      - Products
-    summary: Search products by name
-    parameters:
-      - in: query
-        name: search
-        schema:
-          type: string
-      - in: query
-        name: page
-        schema:
-          type: integer
-      - in: query
-        name: limit
-        schema:
-          type: integer
-    responses:
-      200:
-        description: Search results
+  # ---------------- PRODUCTS ----------------
+  /collections/{collectionId}/products:
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: collectionId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                dimension:
+                  type: object
+                  properties:
+                    width:
+                      type: string
+                    height:
+                      type: string
+                minOrder:
+                  type: number
+                material:
+                  type: string
+                deliveryDay:
+                  type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        201:
+          description: Product created successfully
+        400:
+          description: Bad request
+
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get a single product by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Product details
+        404:
+          description: Product not found
+    put:
+      tags:
+        - Products
+      summary: Update a product
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                dimension:
+                  type: string
+                minOrder:
+                  type: number
+                material:
+                  type: string
+                deliveryDay:
+                  type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        200:
+          description: Product updated successfully
+        400:
+          description: Bad request
+    delete:
+      tags:
+        - Products
+      summary: Delete a product
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Product deleted successfully
+        404:
+          description: Product not found
+
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get paginated list of products
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          example: 10
+      responses:
+        200:
+          description: Paginated products list
+
+  /products/filter:
+    get:
+      tags:
+        - Products
+      summary: Filter products by price, status, delivery day, or collection
+      parameters:
+        - in: query
+          name: priceMin
+          schema:
+            type: number
+        - in: query
+          name: priceMax
+          schema:
+            type: number
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, inactive, archived]
+        - in: query
+          name: deliveryDay
+          schema:
+            type: string
+        - in: query
+          name: collectionId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Filtered products
+
+  /products/search:
+    get:
+      tags:
+        - Products
+      summary: Search products by name
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Search results
+
   /attachments/download/{filename}:
     get:
       tags:
@@ -956,9 +962,9 @@ paths:
             application/octet-stream:
               schema:
                 type: string
-                format: binary
-        404:
-          description: File not found
-        500:
-          description: Failed to download file
-                  
+                  format: binary
+          404:
+            description: File not found
+          500:
+            description: Failed to download file
+                    

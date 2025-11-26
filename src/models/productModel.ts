@@ -26,8 +26,14 @@ const ProductSchema = new Schema<IProduct>(
             required : true
         },
         dimension : {
-            type : String,
-            required : true
+            width : {
+                type : String,
+                required : true
+            },
+            height : {
+                type : String,
+                required : true
+            }
         },
         minOrder : {
             type : Number,

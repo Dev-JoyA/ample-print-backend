@@ -85,7 +85,10 @@ export async function createProduct(collectionId: string, data: ProductData): Pr
     name: data.name,
     description: data.description,
     price: data.price,
-    dimension: data.dimension,
+    dimension: {
+        width: data.dimension.width,
+        height: data.dimension.height
+    },
     minOrder: data.minOrder,
     image: data.image,
     images: data.images || [],
@@ -148,7 +151,10 @@ export async function getCollectionWithProducts(id: string): Promise<CollectionW
       name: p.name,
       description: p.description,
       price: p.price,
-      dimension: p.dimension,
+      dimension: {
+        width: p.dimension.width,
+        height: p.dimension.height
+      },
       minOrder: p.minOrder,
       image: p.image,
       images: p.images || [],

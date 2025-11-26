@@ -17,7 +17,10 @@ export interface IProduct extends Document {
     name : string;
     description : string;
     price : number;
-    dimension : string;
+    dimension : {
+        width : string;
+        height : string;
+    };
     minOrder : number;
     image : string;
     images : string[];
@@ -32,7 +35,10 @@ export interface ProductData {
   name: string;
   description: string;
   price: number;
-  dimension: string;
+  dimension: {
+    width: string;
+    height: string;
+  };
   minOrder: number;
   image: string;
   images?: string[];
@@ -50,7 +56,10 @@ export interface CollectionWithProducts {
     name: string;
     description: string;
     price: number;
-    dimension: string;
+    dimension: {
+      width: string;
+      height: string;
+    };
     minOrder: number;
     image: string;
     images: string[];
