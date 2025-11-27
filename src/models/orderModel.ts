@@ -1,4 +1,5 @@
 import { Types, Document, model, Schema } from "mongoose";
+import { v4 as uuid } from 'uuid'
 
 export enum PaymentStatus {
     Pending = "Pending",
@@ -20,6 +21,7 @@ export enum OrderStatus {
 
 export interface IOrderModel extends Document {
     userId: Types.ObjectId;
+    orderNumber: string;
     items: {
         productId: Types.ObjectId;
         quantity: number;
@@ -27,6 +29,7 @@ export interface IOrderModel extends Document {
     }[];
     deposit: number;
     totalAmount: number;
+    isDepositPaid: boolean;
     status: OrderStatus;
     paymentStatus: PaymentStatus;
     createdAt: Date;
@@ -41,6 +44,13 @@ const OrderSchema = new Schema<IOrderModel>(
             ref: "User",
             required: true,
             index: true
+        },
+        orderNumber: {
+            type: String,
+            required: true,
+            unique: true,
+            index: true,
+            default: () => uuid()
         },
         items: [
             {
@@ -62,20 +72,24 @@ const OrderSchema = new Schema<IOrderModel>(
 
         deposit: { type: Number, default: 0 },
         totalAmount: { type: Number, required: true },
-
+        isDepositPaid: {
+            type: Boolean,
+            default: false
+        },  
         status: {
             type: String,
             enum: Object.values(OrderStatus),
             default: OrderStatus.Pending
         },
-
         paymentStatus: {
             type: String,
             enum: Object.values(PaymentStatus),
             default: PaymentStatus.Pending
         }
     },
-    { timestamps: true }
+    { 
+        timestamps: true 
+    }
 );
 
 
