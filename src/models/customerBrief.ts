@@ -1,6 +1,6 @@
 import {Document, Types, Schema, model} from 'mongoose';
 
-export interface IOrderFile extends Document {
+export interface ICustomerBrief extends Document {
     orderId : Types.ObjectId;
     designId : Types.ObjectId;
     image? : string;
@@ -10,7 +10,7 @@ export interface IOrderFile extends Document {
     updatedAt : Date;
 }
 
-const OrderFileSchema = new Schema<IOrderFile>(
+const CustomerBriefSchema = new Schema<ICustomerBrief>(
     {
         orderId: {
             type: Schema.Types.ObjectId,
@@ -32,4 +32,4 @@ const OrderFileSchema = new Schema<IOrderFile>(
 );
 
 
-export const OrderFile = model<IOrderFile>("OrderFile", OrderFileSchema);
+export const CustomerBrief = model<ICustomerBrief>("CustomerBrief", CustomerBriefSchema);
