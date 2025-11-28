@@ -3,6 +3,7 @@ import { Document, Schema, Types, model  } from "mongoose";
 export interface IDesign extends Document {
     userId : Types.ObjectId;
     orderId : Types.ObjectId;
+    productId: Types.ObjectId;
     uploadedBy: Types.ObjectId;
     version : number;
     isApproved : boolean;
@@ -26,6 +27,11 @@ const DesignSchema = new Schema<IDesign>(
         orderId: {
             type: Schema.Types.ObjectId,
             ref: "Order",
+            required: true
+        },
+        productId:  {
+            type: Schema.Types.ObjectId,
+            ref: "Product",
             required: true
         },
         uploadedBy: {
