@@ -3,12 +3,16 @@ import { v4 as uuid } from 'uuid'
 
 export enum PaymentStatus {
     Pending = "Pending",
+    DepositPaid = "DepositPaid", 
     Completed = "Completed",
-    Failed = "Failed"
+    Failed = "Failed",
+    Refunded = "Refunded"
 }
 
 export enum OrderStatus {
     Pending = "Pending",
+    FilesUploaded = "FilesUploaded", 
+    WaitingDeposit = "WaitingDeposit",
     DepositPaid = "DepositPaid",
     DesignUploaded = "DesignUploaded",
     UnderReview = "UnderReview",
@@ -24,11 +28,14 @@ export interface IOrderModel extends Document {
     orderNumber: string;
     items: {
         productId: Types.ObjectId;
+        productName: string;        
         quantity: number;
         price: number;
     }[];
     deposit: number;
     totalAmount: number;
+    amountPaid: number;
+    remainingBalance: number;
     isDepositPaid: boolean;
     status: OrderStatus;
     paymentStatus: PaymentStatus;
@@ -59,6 +66,10 @@ const OrderSchema = new Schema<IOrderModel>(
                     ref: "Product",
                     required: true
                 },
+                productName: {
+                    type: String,
+                    required: true
+                },
                 quantity: {
                     type: Number,
                     required: true
@@ -72,6 +83,8 @@ const OrderSchema = new Schema<IOrderModel>(
 
         deposit: { type: Number, default: 0 },
         totalAmount: { type: Number, required: true },
+        amountPaid: { type: Number, required: true },
+        remainingBalance: { type: Number, required: true },
         isDepositPaid: {
             type: Boolean,
             default: false
