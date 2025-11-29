@@ -60,7 +60,6 @@ app.get('/', (req: Request, res: Response) => {
   });
 });
 
-// app.use(passport.initialize());
 app.get("/home", (req, res) => {
     res.send("Welcome to the server");
 })
