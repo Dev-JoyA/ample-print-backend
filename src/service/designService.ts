@@ -1,4 +1,4 @@
-export const createDesign = async () => {};
+export const uploadDesign = async () => {};
 export const updateDesign = async () => {};
 export const deleteDesign = async() => {};
 export const approveDesign = async() => {};
