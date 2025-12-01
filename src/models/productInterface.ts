@@ -23,7 +23,9 @@ export interface IProduct extends Document {
     };
     minOrder : number;
     image : string;
+    filename : string,
     images : string[];
+    filenames : string[];
     material : string;
     status : ProductStatus;
     deliveryDay : string;
@@ -62,7 +64,9 @@ export interface CollectionWithProducts {
     };
     minOrder: number;
     image: string;
+    filename: string;
     images: string[];
+    filenames: string[];
     material?: string;
     status: ProductStatus;
     deliveryDay: string;

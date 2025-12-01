@@ -8,9 +8,7 @@ export interface IDesign extends Document {
     version : number;
     isApproved : boolean;
     approvedAt? : Date;
-    logoUrl? : string;
-    voiceNoteUrl? : string;
-    description? : string;
+    designUrl? : string;
     otherImage? : string[];
     createdAt : Date;
     updatedAt : Date;
@@ -48,9 +46,7 @@ const DesignSchema = new Schema<IDesign>(
             default: false
         },
         approvedAt: Date,
-        logoUrl : String,
-        voiceNoteUrl : String,
-        description : String,
+        designUrl : String,
         otherImage : [ String]
     },
     {
