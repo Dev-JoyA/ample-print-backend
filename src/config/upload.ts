@@ -6,9 +6,8 @@ const storage: StorageEngine = multer.diskStorage({
     cb(null, "uploads/");
   },
   filename: function (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) {
-    const ext = file.originalname.split(".").pop();
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
-    cb(null, `${Date.now()}-${safeName}.${ext}`);
+    const original = file.originalname.replace(/[^a-zA-Z0-9.]/g, "_");
+    cb(null, `${Date.now()}-${original}`);
   },
 });
 

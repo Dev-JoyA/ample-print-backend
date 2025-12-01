@@ -1,6 +1,5 @@
 import  { Product } from "../models/productModel.js";
 import  { Collection }  from "../models/collectionModel.js";
-import { Types } from "mongoose";
 import {ICollection, 
     IProduct,
     ProductStatus ,
@@ -157,7 +156,9 @@ export async function getCollectionWithProducts(id: string): Promise<CollectionW
       },
       minOrder: p.minOrder,
       image: p.image,
+      filename: p.filename,
       images: p.images || [],
+      filenames: p.filenames || [],
       material: p.material,
       status: p.status,
       deliveryDay: p.deliveryDay,

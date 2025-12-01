@@ -65,7 +65,7 @@ function sanitizeProfile(profile: IProfile | null): Partial<IProfile> | null {
 export async function signUpService(data: SignUpData) {
   const { firstName, lastName, userName, email, password, phoneNumber, address } = data;
 
-  if (!email || !password || !phoneNumber || !firstName || !lastName || !userName) {
+  if (!email || !password || !phoneNumber || !firstName || !userName) {
     throw new Error("All fields are required");
   }
   if (password.length < 5) throw new Error("Password must be at least 5 characters");
