@@ -66,7 +66,9 @@ export const createProduct = async (req: Request, res: Response) => {
     const productData = {
       ...req.body,
       image: `/uploads/${files[0].filename}`,
-      images: files.map(file => `/uploads/${file.filename}`)
+      filename: `${files[0].filename}`,
+      images: files.map(file => `/uploads/${file.filename}`),
+      filenames: files.map(file => file.filename)
     };
 
     const product = await productService.createProduct(collectionId, productData);
@@ -86,7 +88,9 @@ export const updateProduct = async (req: Request, res: Response) => {
     const updatedData: any = { ...req.body };
     if (files && files.length > 0) {
       updatedData.image = `/uploads/${files[0].filename}`;
+      updatedData.filename = `${files[0].filename}`;
       updatedData.images = files.map(file => `/uploads/${file.filename}`);
+      updatedData.filenames = files.map(file => file.filename)
     }
 
     const updatedProduct = await productService.updateProduct(id, updatedData);
