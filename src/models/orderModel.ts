@@ -34,6 +34,7 @@ export interface IOrderModel extends Document {
     }[];
     deposit: number;
     totalAmount: number;
+    filename: string;
     amountPaid: number;
     remainingBalance: number;
     isDepositPaid: boolean;
@@ -83,6 +84,7 @@ const OrderSchema = new Schema<IOrderModel>(
 
         deposit: { type: Number, default: 0 },
         totalAmount: { type: Number, required: true },
+        filename: {type: String, required: true},
         amountPaid: { type: Number, required: true },
         remainingBalance: { type: Number, required: true },
         isDepositPaid: {
