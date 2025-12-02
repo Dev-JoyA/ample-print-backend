@@ -8,12 +8,13 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
-// import uploadRoute from "./src/routes/uploadRoute.js";
 import productRoute from "./src/routes/productRoute.js";
 import passport from "./src/config/passport.js";
 import attachmentRoute from "./src/routes/attachmentRoute.js"
 import cors from "cors";
-
+import { Server } from "socket.io";
+import {User, UserRole} from "./src/models/userModel.js"
+import http from "http";
 
 
 dotenv.config();
@@ -26,8 +27,11 @@ startServer().catch((err:any) => console.log(err));
 
 
 const app = express();
+const server = http.createServer(app);
 app.use(cors())
+
 const PORT = process.env.PORT || 8000;
+const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.json());
 app.use(express.urlencoded({extended : true}));
@@ -66,11 +70,22 @@ app.get("/home", (req, res) => {
 
 app.use("/api/v1/auth", authRoute)
 app.use("/api/v1/users", userRoute)
-//app.use("/upload", uploadRoute)
 app.use("/api/v1", productRoute)
 app.use("/api/v1/attachments", attachmentRoute)
 
 
-app.listen(PORT, () => {
+io.on("connection", (socket) => {
+  console.log("Admin or user connected:", socket.id);
+
+  socket.on("designUploaded", (user) => {
+    if (user.role === UserRole.SuperAdmin) {
+        socket.join("superadmin-room");
+    }
+  });
+});
+
+io.to("superadmin-room").emit("designUploaded");
+
+server.listen(PORT, () => {
     console.log(`Server started on port ${PORT}`)
 })

@@ -19,7 +19,8 @@ export enum OrderStatus {
     Approved = "Approved",
     InvoiceSent = "InvoiceSent",
     FinalPaid = "FinalPaid",
-    Ready = "Ready",
+    Completed = "Completed",
+    Cancelled = "Cancelled",
     Delivered = "Delivered"
 }
 
