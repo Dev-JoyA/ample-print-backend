@@ -43,6 +43,8 @@ export interface ProductData {
   };
   minOrder: number;
   image: string;
+  filename: string;
+  filenames: string[];
   images?: string[];
   material?: string;
   deliveryDay: string;
