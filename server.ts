@@ -1,6 +1,7 @@
 import express, {Request, Response} from "express";
 import dotenv from "dotenv";
 import {startServer} from "./src/config/db.js"
+import designRoute from "./src/routes/designRoute.js";
 import authRoute from "./src/routes/authRoute.js";
 import userRoute from "./src/routes/userRoute.js";
 import path from 'path';
@@ -72,19 +73,35 @@ app.use("/api/v1/auth", authRoute)
 app.use("/api/v1/users", userRoute)
 app.use("/api/v1", productRoute)
 app.use("/api/v1/attachments", attachmentRoute)
+app.use("/api/v1/design", designRoute)
 
 
 io.on("connection", (socket) => {
-  console.log("Admin or user connected:", socket.id);
+  console.log("Client connected:", socket.id);
 
-  socket.on("designUploaded", (user) => {
-    if (user.role === UserRole.SuperAdmin) {
-        socket.join("superadmin-room");
+  socket.on("joinRoom", (role: string) => {
+    if (role === UserRole.SuperAdmin) {
+      socket.join("superadmin-room");
+      console.log(`${socket.id} joined superadmin-room`);
     }
+    if (role === UserRole.Admin) {
+      socket.join("admin-room");
+      console.log(`${socket.id} joined admin-room`);
+    }
+    if (role === UserRole.Customer) {
+      socket.join("customer-room");
+      console.log(`${socket.id} joined customer-room`);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
   });
 });
 
-io.to("superadmin-room").emit("designUploaded");
+
+
+app.set("io", io);
 
 server.listen(PORT, () => {
     console.log(`Server started on port ${PORT}`)

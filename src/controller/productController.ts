@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as productService from "../service/productService.js";
+import {ProductData} from "../models/productInterface.js"
 
 
 export const createCollection = async (req: Request, res: Response) => {
@@ -63,7 +64,7 @@ export const createProduct = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "At least one image is required." });
     }
 
-    const productData = {
+    const productData : ProductData  = {
       ...req.body,
       image: `/uploads/${files[0].filename}`,
       filename: `${files[0].filename}`,
@@ -85,7 +86,7 @@ export const updateProduct = async (req: Request, res: Response) => {
     const { id } = req.params;
     const files = req.files as Express.Multer.File[];
 
-    const updatedData: any = { ...req.body };
+    const updatedData: Partial<ProductData> = { ...req.body };
     if (files && files.length > 0) {
       updatedData.image = `/uploads/${files[0].filename}`;
       updatedData.filename = `${files[0].filename}`;
