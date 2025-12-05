@@ -967,4 +967,236 @@ paths:
             description: File not found
           500:
             description: Failed to download file
-                    
+  # ---------------- DESIGNS ---------------- #
+  
+  /api/v1/design/orders/{productId}:
+    post:
+      tags:
+        - Designs
+      summary: Upload a new design for an order
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                designUrl:
+                  type: string
+                  format: binary
+                otherImage:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                productId:
+                  type: string
+      responses:
+        201:
+          description: Design uploaded successfully
+        400:
+          description: Bad request
+
+  /api/v1/design/update/{designId}:
+    put:
+      tags:
+        - Designs
+      summary: Update an existing design
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: designId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                designUrl:
+                  type: string
+                  format: binary
+                otherImage:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                productId:
+                  type: string
+      responses:
+        200:
+          description: Design updated successfully
+        400:
+          description: Bad request
+
+  /api/v1/design/delete/{designId}:
+    delete:
+      tags:
+        - Designs
+      summary: Delete a design
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: designId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Design deleted successfully
+        400:
+          description: Bad request
+
+  /api/v1/design/{designId}/approve:
+    put:
+      tags:
+        - Designs
+      summary: Approve a design
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: designId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Design approved successfully
+        400:
+          description: Bad request
+
+  /api/v1/design/{designId}:
+    get:
+      tags:
+        - Designs
+      summary: Get a design by ID
+      parameters:
+        - in: path
+          name: designId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Design retrieved successfully
+        400:
+          description: Bad request
+
+  /api/v1/design/users/{userId}:
+    get:
+      tags:
+        - Designs
+      summary: Get all designs of a user
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Designs retrieved successfully
+        400:
+          description: Bad request
+
+  /api/v1/design/orders/{orderId}:
+    get:
+      tags:
+        - Designs
+      summary: Get designs by order ID
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Designs retrieved successfully
+        400:
+          description: Bad request
+
+  /api/v1/design/products/{productId}:
+    get:
+      tags:
+        - Designs
+      summary: Get designs by product ID
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Designs retrieved successfully
+        400:
+          description: Bad request
+
+  /api/v1/design/all:
+    get:
+      tags:
+        - Designs
+      summary: Get all designs
+      responses:
+        200:
+          description: Designs retrieved successfully
+        400:
+          description: Bad request
+
+  /api/v1/design/filter:
+    post:
+      tags:
+        - Designs
+      summary: Filter designs based on criteria
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                orderId:
+                  type: string
+                productId:
+                  type: string
+                uploadedBy:
+                  type: string
+                isApproved:
+                  type: boolean
+                minVersion:
+                  type: number
+                maxVersion:
+                  type: number
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+      responses:
+        200:
+          description: Designs filtered successfully
+        400:
+          description: Bad request
+                  
