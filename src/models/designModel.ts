@@ -9,7 +9,9 @@ export interface IDesign extends Document {
     isApproved : boolean;
     approvedAt? : Date;
     designUrl? : string;
+    filename: string;
     otherImage? : string[];
+    filenames: string[];
     createdAt : Date;
     updatedAt : Date;
 }
@@ -47,7 +49,9 @@ const DesignSchema = new Schema<IDesign>(
         },
         approvedAt: Date,
         designUrl : String,
-        otherImage : [ String]
+        filename: String,
+        otherImage : [ String],
+        filenames : [String]
     },
     {
         timestamps : true
