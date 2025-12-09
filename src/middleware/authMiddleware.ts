@@ -11,6 +11,6 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     req.user = { _id: decoded.userId, role: decoded.role };
     next();
   } catch {
-    return res.status(401).json({ message: "Invalid token" });
+    return res.status(401).json({ message: "Invalid token or expired token" });
   }
 };
