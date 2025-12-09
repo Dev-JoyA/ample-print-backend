@@ -4,6 +4,7 @@ import { v4 as uuid } from 'uuid'
 export enum PaymentStatus {
     Pending = "Pending",
     DepositPaid = "DepositPaid", 
+    PartPayment = "PartPayment",
     Completed = "Completed",
     Failed = "Failed",
     Refunded = "Refunded"
@@ -11,15 +12,21 @@ export enum PaymentStatus {
 
 export enum OrderStatus {
     Pending = "Pending",
-    FilesUploaded = "FilesUploaded", 
-    WaitingDeposit = "WaitingDeposit",
+    OrderReceived = "OrderReceived",
+    FilesUploaded = "FilesUploaded",
+    AwaitingDeposit = "AwaitingDeposit",
     DepositPaid = "DepositPaid",
     DesignUploaded = "DesignUploaded",
     UnderReview = "UnderReview",
     Approved = "Approved",
     InvoiceSent = "InvoiceSent",
-    FinalPaid = "FinalPaid",
+    AwaitingPartPayment = "AwaitingPartPayment",
+    PartPaymentMade = "PartPaymentMade",
+    InProduction = "InProduction",
     Completed = "Completed",
+    AwaitingFinalPayment = "AwaitingFinalPayment",
+    FinalPaid = "FinalPaid",
+    Shipped = "Shipped",
     Cancelled = "Cancelled",
     Delivered = "Delivered"
 }

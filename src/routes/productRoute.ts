@@ -23,11 +23,9 @@ router.delete("/collections/:id",
     checkAdmin,
     productController.deleteCollection);
 
-router.get("/collections/:id/products", productController.getCollectionWithProducts);
-
-
 router.get("/collections", productController.getCollectionsPaginated);
 
+router.get("/products/filter", productController.filterProducts);
 // -------------------- PRODUCT ROUTES --------------------
 
 router.post(
@@ -53,16 +51,10 @@ router.delete("/products/:id",
 
 router.get("/products/:id", productController.getProductById);
 
-
 router.get("/products", productController.getProductsPaginated);
-
-
-router.get("/products/filter", productController.filterProducts);
-
 
 router.get("/collections/:collectionId/all-products", productController.getProductsByCollectionId);
 
-
-router.get("/products/search", productController.searchProductsByName);
+router.get("/products/search/by-name", productController.searchProductsByName);
 
 export default router;

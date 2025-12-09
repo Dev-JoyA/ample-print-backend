@@ -18,7 +18,8 @@ export interface IInvoice extends Document {
         total: number;
     }[];
     totalAmount: number;
-    depositAmount: number; 
+    depositAmount?: number; 
+    partPaymentAmount?: number;
     remainingAmount: number;
     dueDate: Date;
     status: InvoiceStatus;
@@ -48,6 +49,7 @@ const InvoiceSchema = new Schema<IInvoice>(
         }],
         totalAmount: { type: Number, required: true },
         depositAmount: { type: Number, required: true },
+        partPaymentAmount: { type: Number },
         remainingAmount: { type: Number, required: true },
         dueDate: { type: Date, required: true },
         status: {

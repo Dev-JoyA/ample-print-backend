@@ -17,13 +17,17 @@ export async function createCollection(name: string): Promise<ICollection> {
   return await Collection.create({ name });
 }
 
-export async function updateCollection(data: ICollection): Promise<ICollection> {
-  const updated = await Collection.findByIdAndUpdate(
-    data._id,
-    { name: data.name },
-    { new: true, runValidators: true }
-  );
+export async function updateCollection(id: string, name: string): Promise<ICollection> {
+  const updated = await Collection.findById(id);
+  
   if (!updated) throw new Error("Collection does not exist");
+
+  const nameExists = await Collection.findOne({ name });
+
+  if (nameExists) throw new Error("Collection name already exist");
+
+  updated.name = name;
+  await updated.save();
 
   return updated;
 }
@@ -90,7 +94,9 @@ export async function createProduct(collectionId: string, data: ProductData): Pr
     },
     minOrder: data.minOrder,
     image: data.image,
+    filename: data.filename,
     images: data.images || [],
+    filenames: data.filenames || [],
     material: data.material,
     deliveryDay: data.deliveryDay,
     status: ProductStatus.Active,
@@ -136,38 +142,6 @@ export async function searchProducts(search: string): Promise<IProduct[]> {
 }
 
 
-
-export async function getCollectionWithProducts(id: string): Promise<CollectionWithProducts> {
-  const collection = await Collection.findById(id).lean();
-  if (!collection) throw new Error("Collection not found");
-
-  const products = await Product.find({ collectionId: id }).lean();
-
-  return {
-    ...collection,
-    products: products.map(p => ({
-      _id: p._id,
-      name: p.name,
-      description: p.description,
-      price: p.price,
-      dimension: {
-        width: p.dimension.width,
-        height: p.dimension.height
-      },
-      minOrder: p.minOrder,
-      image: p.image,
-      filename: p.filename,
-      images: p.images || [],
-      filenames: p.filenames || [],
-      material: p.material,
-      status: p.status,
-      deliveryDay: p.deliveryDay,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
-    })),
-  };
-}
-
 export async function getProductsPaginated(page: number = 1, limit: number = 10): Promise<PaginatedProducts> {
   const skip = (page - 1) * limit;
   const [products, total] = await Promise.all([
@@ -184,7 +158,6 @@ export async function filterProducts(filter: ProductFilter, page: number = 1, li
   if (filter.priceMin !== undefined) query.price = { ...query.price, $gte: filter.priceMin };
   if (filter.priceMax !== undefined) query.price = { ...query.price, $lte: filter.priceMax };
   if (filter.status) query.status = filter.status;
-  if (filter.deliveryDay) query.deliveryDay = filter.deliveryDay;
   if (filter.collectionId) query.collectionId = filter.collectionId;
 
   const skip = (page - 1) * limit;

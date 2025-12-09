@@ -133,6 +133,7 @@ components:
           type: string
 
 paths:
+  # ---------------- AUTH ----------------
   /api/v1/auth/sign-up:
     post:
       summary: Register a new customer
@@ -148,7 +149,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemasauthResponse'
+                $ref: '#/components/schemas/AuthResponse'
         '400':
           description: Validation error or email/username exists
 
@@ -167,7 +168,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemasauthResponse'
+                $ref: '#/components/schemas/AuthResponse'
         '400':
           description: Invalid credentials
 
@@ -188,7 +189,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemasauthResponse'
+                $ref: '#/components/schemas/AuthResponse'
         '400':
           description: Validation error
 
@@ -207,7 +208,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemasauthResponse'
+                $ref: '#/components/schemas/AuthResponse'
 
   /api/v1/auth/deactivate-admin:
     post:
@@ -282,7 +283,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
 
-  /api/v1/api/v1/auth/effect-forgot-password:
+  /api/v1/auth/effect-forgot-password:
     post:
       summary: Effect password reset using token
       requestBody:
@@ -299,7 +300,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
 
-  /api/v1/api/v1/auth/reset-password/{userId}:
+  /api/v1/auth/reset-password/{userId}:
     post:
       summary: Reset password by logged-in user
       security:
@@ -332,7 +333,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
 
-  /api/v1/api/v1/auth/logout:
+  /api/v1/auth/logout:
     post:
       summary: Logout user
       requestBody:
@@ -349,7 +350,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
 
-  /api/v1/api/v1/auth/refresh-token:
+  /api/v1/auth/refresh-token:
     post:
       summary: Refresh access token
       requestBody:
@@ -370,7 +371,7 @@ paths:
                 refreshToken:
                   type: string
 
-  /api/v1auth/verify-token:
+  /api/v1/auth/verify-token:
     get:
       summary: Verify access token validity
       security:
@@ -388,7 +389,7 @@ paths:
                   user:
                     type: object
 
-  /api/v1auth/verify-refresh-token:
+  /api/v1/auth/verify-refresh-token:
     get:
       summary: Verify refresh token and rotate
       security:
@@ -405,7 +406,8 @@ paths:
                     type: string
                   refreshToken:
                     type: string
-    /api/v1auth/google:
+
+  /api/v1/auth/google:
     get:
       summary: Initiate Google OAuth login
       description: Redirects user to Google for authentication
@@ -413,7 +415,7 @@ paths:
         '302':
           description: Redirect to Google login page
 
-  auth/google/callback:
+  /api/v1/auth/google/callback:
     get:
       summary: Google OAuth callback
       description: Callback URL that Google redirects to after login
@@ -437,7 +439,6 @@ paths:
                     type: string
                   user:
                     type: object
-                    description: Authenticated user profile
 
   /api/v1/auth/google/failure:
     get:
@@ -454,7 +455,7 @@ paths:
                   message:
                     type: string
                     example: "Google login failed"
-
+    # ---------------- USERS ----------------
   /api/v1/users:
     get:
       summary: Get all users
@@ -490,7 +491,6 @@ paths:
                 $ref: '#/components/schemas/User'
         '404':
           description: User not found
-
     put:
       summary: Update user profile
       security:
@@ -521,7 +521,6 @@ paths:
                     $ref: '#/components/schemas/Profile'
         '404':
           description: User or profile not found
-
     delete:
       summary: Delete a user
       security:
@@ -615,9 +614,10 @@ paths:
               schema:
                 type: string
         '404':
-          description: Profile not found  
-    # ---------------- COLLECTIONS ----------------
-  /collections:
+          description: Profile not found
+
+  # ---------------- COLLECTIONS ----------------
+  /api/v1/collections:
     post:
       tags:
         - Collections
@@ -635,9 +635,9 @@ paths:
                   type: string
                   example: "Posters"
       responses:
-        201:
+        '201':
           description: Collection created successfully
-        400:
+        '400':
           description: Bad request / Collection already exists
     get:
       tags:
@@ -655,10 +655,10 @@ paths:
             type: integer
           example: 10
       responses:
-        200:
+        '200':
           description: Paginated collections list
 
-  /collections/{id}:
+  /api/v1/collections/{id}:
     put:
       tags:
         - Collections
@@ -682,9 +682,9 @@ paths:
                   type: string
                   example: "Updated Collection Name"
       responses:
-        200:
+        '200':
           description: Collection updated
-        400:
+        '400':
           description: Bad request
     delete:
       tags:
@@ -699,27 +699,12 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: Collection deleted successfully
-        404:
+        '404':
           description: Collection not found
 
-  /collections/{id}/products:
-    get:
-      tags:
-        - Collections
-      summary: Get a collection with all its products
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: Collection with products
-
-  /collections/{collectionId}/all-products:
+  /api/v1/collections/{collectionId}/all-products:
     get:
       tags:
         - Products
@@ -731,11 +716,10 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: List of products
-
-  # ---------------- PRODUCTS ----------------
-  /collections/{collectionId}/products:
+   # ---------------- PRODUCTS ----------------
+  /api/v1/collections/{collectionId}/products:
     post:
       tags:
         - Products
@@ -780,12 +764,12 @@ paths:
                     type: string
                     format: binary
       responses:
-        201:
+        '201':
           description: Product created successfully
-        400:
+        '400':
           description: Bad request
 
-  /products/{id}:
+  /api/v1/products/{id}:
     get:
       tags:
         - Products
@@ -797,9 +781,9 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: Product details
-        404:
+        '404':
           description: Product not found
     put:
       tags:
@@ -840,9 +824,9 @@ paths:
                     type: string
                     format: binary
       responses:
-        200:
+        '200':
           description: Product updated successfully
-        400:
+        '400':
           description: Bad request
     delete:
       tags:
@@ -857,12 +841,12 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: Product deleted successfully
-        404:
+        '404':
           description: Product not found
 
-  /products:
+  /api/v1/products:
     get:
       tags:
         - Products
@@ -879,10 +863,10 @@ paths:
             type: integer
           example: 10
       responses:
-        200:
+        '200':
           description: Paginated products list
 
-  /products/filter:
+  /api/v1/products/filter:
     get:
       tags:
         - Products
@@ -918,10 +902,10 @@ paths:
           schema:
             type: integer
       responses:
-        200:
+        '200':
           description: Filtered products
 
-  /products/search:
+  /api/v1/products/search:
     get:
       tags:
         - Products
@@ -940,9 +924,10 @@ paths:
           schema:
             type: integer
       responses:
-        200:
+        '200':
           description: Search results
 
+  # ---------------- ATTACHMENTS ----------------
   /attachments/download/{filename}:
     get:
       tags:
@@ -956,19 +941,19 @@ paths:
             type: string
           description: The name of the file to download
       responses:
-        200:
+        '200':
           description: File downloaded successfully
           content:
             application/octet-stream:
               schema:
                 type: string
-                  format: binary
-          404:
-            description: File not found
-          500:
-            description: Failed to download file
-  # ---------------- DESIGNS ---------------- #
-  
+                format: binary
+        '404':
+          description: File not found
+        '500':
+          description: Failed to download file
+
+  # ---------------- DESIGNS ----------------
   /api/v1/design/orders/{productId}:
     post:
       tags:
@@ -1000,9 +985,9 @@ paths:
                 productId:
                   type: string
       responses:
-        201:
+        '201':
           description: Design uploaded successfully
-        400:
+        '400':
           description: Bad request
 
   /api/v1/design/update/{designId}:
@@ -1036,9 +1021,9 @@ paths:
                 productId:
                   type: string
       responses:
-        200:
+        '200':
           description: Design updated successfully
-        400:
+        '400':
           description: Bad request
 
   /api/v1/design/delete/{designId}:
@@ -1055,9 +1040,9 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: Design deleted successfully
-        400:
+        '400':
           description: Bad request
 
   /api/v1/design/{designId}/approve:
@@ -1074,9 +1059,9 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: Design approved successfully
-        400:
+        '400':
           description: Bad request
 
   /api/v1/design/{designId}:
@@ -1091,9 +1076,9 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: Design retrieved successfully
-        400:
+        '400':
           description: Bad request
 
   /api/v1/design/users/{userId}:
@@ -1110,9 +1095,9 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        200:
+        '200':
           description: Designs retrieved successfully
-        400:
+        '400':
           description: Bad request
 
   /api/v1/design/orders/{orderId}:
@@ -1127,9 +1112,9 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: Designs retrieved successfully
-        400:
+        '400':
           description: Bad request
 
   /api/v1/design/products/{productId}:
@@ -1144,9 +1129,9 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: Designs retrieved successfully
-        400:
+        '400':
           description: Bad request
 
   /api/v1/design/all:
@@ -1155,9 +1140,9 @@ paths:
         - Designs
       summary: Get all designs
       responses:
-        200:
+        '200':
           description: Designs retrieved successfully
-        400:
+        '400':
           description: Bad request
 
   /api/v1/design/filter:
@@ -1195,8 +1180,7 @@ paths:
                   type: string
                   format: date-time
       responses:
-        200:
+        '200':
           description: Designs filtered successfully
-        400:
+        '400':
           description: Bad request
-                  
