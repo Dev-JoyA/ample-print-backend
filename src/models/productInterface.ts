@@ -88,6 +88,5 @@ export interface ProductFilter {
   priceMin?: number;
   priceMax?: number;
   status?: ProductStatus;
-  deliveryDay?: string;
   collectionId?: string;
 }

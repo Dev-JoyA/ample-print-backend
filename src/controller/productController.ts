@@ -15,7 +15,9 @@ export const createCollection = async (req: Request, res: Response) => {
 
 export const updateCollection = async (req: Request, res: Response) => {
   try {
-    const collection = await productService.updateCollection(req.body);
+    const { name } = req.body;
+    const {id} = req.params;
+    const collection = await productService.updateCollection(id, name);
     res.status(200).json({ success: true, collection });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -29,16 +31,6 @@ export const deleteCollection = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, message });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
-  }
-};
-
-export const getCollectionWithProducts = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const collection = await productService.getCollectionWithProducts(id);
-    res.status(200).json({ success: true, collection });
-  } catch (error: any) {
-    res.status(404).json({ success: false, message: error.message });
   }
 };
 
@@ -64,12 +56,14 @@ export const createProduct = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "At least one image is required." });
     }
 
-    const productData : ProductData  = {
-      ...req.body,
+   const parsedProductData = JSON.parse(req.body.productData);
+
+    const productData: ProductData = {
+      ...parsedProductData,
       image: `/uploads/${files[0].filename}`,
-      filename: `${files[0].filename}`,
-      images: files.map(file => `/uploads/${file.filename}`),
-      filenames: files.map(file => file.filename)
+      filename: files[0].filename,
+      images: files.map(f => `/uploads/${f.filename}`),
+      filenames: files.map(f => f.filename),
     };
 
     const product = await productService.createProduct(collectionId, productData);
@@ -145,7 +139,6 @@ export const filterProducts = async (req: Request, res: Response) => {
         priceMin: priceMin ? Number(priceMin) : undefined,
         priceMax: priceMax ? Number(priceMax) : undefined,
         status: status as any,
-        deliveryDay: deliveryDay as string,
         collectionId: collectionId as string,
       },
       page,
