@@ -1,35 +1,46 @@
-import {Document, Types, Schema, model} from 'mongoose';
+import { Document, Types, Schema, model } from "mongoose";
 
 export interface ICustomerBrief extends Document {
-    orderId : Types.ObjectId;
-    designId : Types.ObjectId;
-    image? : string;
-    voiceNote? : string;
-    video? : string;
-    createdAt : Date;
-    updatedAt : Date;
+  orderId: Types.ObjectId;
+  productId: Types.ObjectId;
+  designId: Types.ObjectId;
+  image?: string;
+  voiceNote?: string;
+  video?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const CustomerBriefSchema = new Schema<ICustomerBrief>(
-    {
-        orderId: {
-            type: Schema.Types.ObjectId,
-            ref: "Order",
-            required: true,
-            index: true
-        },
-        designId: {
-            type: Schema.Types.ObjectId,
-            ref: "Design",
-            required: false,
-            index: true
-        },
-        image: String,
-        voiceNote: String,
-        video: String
+  {
+    orderId: {
+      type: Schema.Types.ObjectId,
+      ref: "Order",
+      required: true,
+      index: true,
     },
-    { timestamps: true }
+    productId: {
+      type: Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+      index: true,
+    },
+    designId: {
+      type: Schema.Types.ObjectId,
+      ref: "Design",
+      required: false,
+      index: true,
+    },
+    image: String,
+    voiceNote: String,
+    video: String,
+  },
+  { timestamps: true },
 );
 
+CustomerBriefSchema.index({ orderId: 1, productId: 1 }, { unique: true });
 
-export const CustomerBrief = model<ICustomerBrief>("CustomerBrief", CustomerBriefSchema);
+export const CustomerBrief = model<ICustomerBrief>(
+  "CustomerBrief",
+  CustomerBriefSchema,
+);

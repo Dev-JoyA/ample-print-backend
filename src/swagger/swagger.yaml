@@ -118,9 +118,9 @@ components:
       type: object
       properties:
         user:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         profile:
-          $ref: '#/components/schemas/Profile'
+          $ref: "#/components/schemas/Profile"
         accessToken:
           type: string
         refreshToken:
@@ -142,15 +142,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SignUpData'
+              $ref: "#/components/schemas/SignUpData"
       responses:
-        '201':
+        "201":
           description: User and profile created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '400':
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
           description: Validation error or email/username exists
 
   /api/v1/auth/sign-in:
@@ -161,15 +161,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SignInData'
+              $ref: "#/components/schemas/SignInData"
       responses:
-        '200':
+        "200":
           description: Authenticated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '400':
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
           description: Invalid credentials
 
   /api/v1/auth/admin-sign-up:
@@ -182,15 +182,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SignUpData'
+              $ref: "#/components/schemas/SignUpData"
       responses:
-        '201':
+        "201":
           description: Admin created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '400':
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
           description: Validation error
 
   /api/v1/auth/superadmin-sign-up:
@@ -201,14 +201,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SignUpData'
+              $ref: "#/components/schemas/SignUpData"
       responses:
-        '201':
+        "201":
           description: Superadmin created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                $ref: "#/components/schemas/AuthResponse"
 
   /api/v1/auth/deactivate-admin:
     post:
@@ -228,12 +228,12 @@ paths:
                   type: string
                   format: email
       responses:
-        '200':
+        "200":
           description: Admin deactivated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: "#/components/schemas/MessageResponse"
 
   /api/v1/auth/reactivate-admin:
     post:
@@ -253,12 +253,12 @@ paths:
                   type: string
                   format: email
       responses:
-        '200':
+        "200":
           description: Admin reactivated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: "#/components/schemas/MessageResponse"
 
   /api/v1/auth/forgot-password:
     post:
@@ -276,12 +276,12 @@ paths:
                   type: string
                   format: email
       responses:
-        '200':
+        "200":
           description: Password reset email sent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: "#/components/schemas/MessageResponse"
 
   /api/v1/auth/effect-forgot-password:
     post:
@@ -291,14 +291,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PasswordResetData'
+              $ref: "#/components/schemas/PasswordResetData"
       responses:
-        '200':
+        "200":
           description: Password reset successful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: "#/components/schemas/MessageResponse"
 
   /api/v1/auth/reset-password/{userId}:
     post:
@@ -326,12 +326,12 @@ paths:
                 confirmPassword:
                   type: string
       responses:
-        '200':
+        "200":
           description: Password reset successful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: "#/components/schemas/MessageResponse"
 
   /api/v1/auth/logout:
     post:
@@ -341,14 +341,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RefreshTokenData'
+              $ref: "#/components/schemas/RefreshTokenData"
       responses:
-        '200':
+        "200":
           description: Logged out successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: "#/components/schemas/MessageResponse"
 
   /api/v1/auth/refresh-token:
     post:
@@ -358,9 +358,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RefreshTokenData'
+              $ref: "#/components/schemas/RefreshTokenData"
       responses:
-        '200':
+        "200":
           description: New access and refresh token generated
           content:
             application/json:
@@ -377,7 +377,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Token is valid
           content:
             application/json:
@@ -395,7 +395,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Refresh token valid, new tokens generated
           content:
             application/json:
@@ -412,7 +412,7 @@ paths:
       summary: Initiate Google OAuth login
       description: Redirects user to Google for authentication
       responses:
-        '302':
+        "302":
           description: Redirect to Google login page
 
   /api/v1/auth/google/callback:
@@ -420,7 +420,7 @@ paths:
       summary: Google OAuth callback
       description: Callback URL that Google redirects to after login
       responses:
-        '302':
+        "302":
           description: Redirects to success or failure URL
 
   /api/v1/auth/google/success:
@@ -428,7 +428,7 @@ paths:
       summary: Google OAuth successful
       description: Returns the authenticated user information
       responses:
-        '200':
+        "200":
           description: Authentication successful
           content:
             application/json:
@@ -445,7 +445,7 @@ paths:
       summary: Google OAuth failed
       description: Returns failure message if Google login failed
       responses:
-        '401':
+        "401":
           description: Authentication failed
           content:
             application/json:
@@ -462,14 +462,14 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: List of users
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/User'
+                  $ref: "#/components/schemas/User"
 
   /api/v1/users/{userId}:
     get:
@@ -483,13 +483,13 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: User found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '404':
+                $ref: "#/components/schemas/User"
+        "404":
           description: User not found
     put:
       summary: Update user profile
@@ -506,9 +506,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Profile'
+              $ref: "#/components/schemas/Profile"
       responses:
-        '200':
+        "200":
           description: Profile updated successfully
           content:
             application/json:
@@ -516,10 +516,10 @@ paths:
                 type: object
                 properties:
                   user:
-                    $ref: '#/components/schemas/User'
+                    $ref: "#/components/schemas/User"
                   profile:
-                    $ref: '#/components/schemas/Profile'
-        '404':
+                    $ref: "#/components/schemas/Profile"
+        "404":
           description: User or profile not found
     delete:
       summary: Delete a user
@@ -532,13 +532,13 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: User deleted successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '404':
+                $ref: "#/components/schemas/User"
+        "404":
           description: User not found
 
   /api/v1/users/{userId}/role:
@@ -565,13 +565,13 @@ paths:
                   type: string
                   enum: [Customer, Admin, SuperAdmin]
       responses:
-        '200':
+        "200":
           description: User role updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '404':
+                $ref: "#/components/schemas/User"
+        "404":
           description: User not found
 
   /api/v1/users/{userId}/activeness:
@@ -586,13 +586,13 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: User activeness toggled successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '404':
+                $ref: "#/components/schemas/User"
+        "404":
           description: User not found
 
   /api/v1/users/{userId}/address:
@@ -607,13 +607,13 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Address fetched successfully
           content:
             application/json:
               schema:
                 type: string
-        '404':
+        "404":
           description: Profile not found
 
   # ---------------- COLLECTIONS ----------------
@@ -635,9 +635,9 @@ paths:
                   type: string
                   example: "Posters"
       responses:
-        '201':
+        "201":
           description: Collection created successfully
-        '400':
+        "400":
           description: Bad request / Collection already exists
     get:
       tags:
@@ -655,7 +655,7 @@ paths:
             type: integer
           example: 10
       responses:
-        '200':
+        "200":
           description: Paginated collections list
 
   /api/v1/collections/{id}:
@@ -682,9 +682,9 @@ paths:
                   type: string
                   example: "Updated Collection Name"
       responses:
-        '200':
+        "200":
           description: Collection updated
-        '400':
+        "400":
           description: Bad request
     delete:
       tags:
@@ -699,9 +699,9 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Collection deleted successfully
-        '404':
+        "404":
           description: Collection not found
 
   /api/v1/collections/{collectionId}/all-products:
@@ -716,9 +716,9 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: List of products
-   # ---------------- PRODUCTS ----------------
+    # ---------------- PRODUCTS ----------------
   /api/v1/collections/{collectionId}/products:
     post:
       tags:
@@ -764,9 +764,9 @@ paths:
                     type: string
                     format: binary
       responses:
-        '201':
+        "201":
           description: Product created successfully
-        '400':
+        "400":
           description: Bad request
 
   /api/v1/products/{id}:
@@ -781,9 +781,9 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Product details
-        '404':
+        "404":
           description: Product not found
     put:
       tags:
@@ -824,9 +824,9 @@ paths:
                     type: string
                     format: binary
       responses:
-        '200':
+        "200":
           description: Product updated successfully
-        '400':
+        "400":
           description: Bad request
     delete:
       tags:
@@ -841,9 +841,9 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Product deleted successfully
-        '404':
+        "404":
           description: Product not found
 
   /api/v1/products:
@@ -863,7 +863,7 @@ paths:
             type: integer
           example: 10
       responses:
-        '200':
+        "200":
           description: Paginated products list
 
   /api/v1/products/filter:
@@ -902,7 +902,7 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Filtered products
 
   /api/v1/products/search:
@@ -924,7 +924,7 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: Search results
 
   # ---------------- ATTACHMENTS ----------------
@@ -941,16 +941,16 @@ paths:
             type: string
           description: The name of the file to download
       responses:
-        '200':
+        "200":
           description: File downloaded successfully
           content:
             application/octet-stream:
               schema:
                 type: string
                 format: binary
-        '404':
+        "404":
           description: File not found
-        '500':
+        "500":
           description: Failed to download file
 
   # ---------------- DESIGNS ----------------
@@ -985,9 +985,9 @@ paths:
                 productId:
                   type: string
       responses:
-        '201':
+        "201":
           description: Design uploaded successfully
-        '400':
+        "400":
           description: Bad request
 
   /api/v1/design/update/{designId}:
@@ -1021,9 +1021,9 @@ paths:
                 productId:
                   type: string
       responses:
-        '200':
+        "200":
           description: Design updated successfully
-        '400':
+        "400":
           description: Bad request
 
   /api/v1/design/delete/{designId}:
@@ -1040,9 +1040,9 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Design deleted successfully
-        '400':
+        "400":
           description: Bad request
 
   /api/v1/design/{designId}/approve:
@@ -1059,9 +1059,9 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Design approved successfully
-        '400':
+        "400":
           description: Bad request
 
   /api/v1/design/{designId}:
@@ -1076,9 +1076,9 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Design retrieved successfully
-        '400':
+        "400":
           description: Bad request
 
   /api/v1/design/users/{userId}:
@@ -1095,9 +1095,9 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Designs retrieved successfully
-        '400':
+        "400":
           description: Bad request
 
   /api/v1/design/orders/{orderId}:
@@ -1112,9 +1112,9 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Designs retrieved successfully
-        '400':
+        "400":
           description: Bad request
 
   /api/v1/design/products/{productId}:
@@ -1129,9 +1129,9 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Designs retrieved successfully
-        '400':
+        "400":
           description: Bad request
 
   /api/v1/design/all:
@@ -1140,9 +1140,9 @@ paths:
         - Designs
       summary: Get all designs
       responses:
-        '200':
+        "200":
           description: Designs retrieved successfully
-        '400':
+        "400":
           description: Bad request
 
   /api/v1/design/filter:
@@ -1180,7 +1180,7 @@ paths:
                   type: string
                   format: date-time
       responses:
-        '200':
+        "200":
           description: Designs filtered successfully
-        '400':
+        "400":
           description: Bad request

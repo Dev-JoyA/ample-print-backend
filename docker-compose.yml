@@ -1,35 +1,35 @@
-version: '3.8'
+version: "3.8"
 
 services:
   app:
-    image : joygold/ample-printhub-backend:v1.1  # Name the image for easy reference
+    image: joygold/ample-printhub-backend:v1.1 # Name the image for easy reference
     ports:
-      - "4001:4001"  # Map host port 4001 to container port 4001
+      - "4001:4001" # Map host port 4001 to container port 4001
     env_file:
-      - .env  # Load environment variables from .env file
+      - .env # Load environment variables from .env file
     depends_on:
-      - postgres  # Ensure PostgreSQL starts first
+      - postgres # Ensure PostgreSQL starts first
     networks:
       - my-network
-    restart: unless-stopped  # Restart on failure unless explicitly stopped
+    restart: unless-stopped # Restart on failure unless explicitly stopped
 
   postgres:
-    image: postgres:16  # Use a specific PostgreSQL version
+    image: postgres:16 # Use a specific PostgreSQL version
     ports:
-      - "5433:5432"  # Expose PostgreSQL for local tools like pgAdmin
+      - "5433:5432" # Expose PostgreSQL for local tools like pgAdmin
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
-      - postgres-data:/var/lib/postgresql/data  # Persist database data
+      - postgres-data:/var/lib/postgresql/data # Persist database data
     networks:
       - my-network
     restart: unless-stopped
 
 networks:
   my-network:
-    driver: bridge  # Create a private network for app and database
+    driver: bridge # Create a private network for app and database
 
 volumes:
-  postgres-data:  # Persistent volume for PostgreSQL data
+  postgres-data: # Persistent volume for PostgreSQL data
