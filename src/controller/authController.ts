@@ -41,7 +41,8 @@ export const signInController = async (req: Request, res: Response) => {
 export const logoutController = async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken) return res.status(400).json({ error: "Refresh token is required" });
+    if (!refreshToken)
+      return res.status(400).json({ error: "Refresh token is required" });
 
     await logoutService(refreshToken);
     res.status(200).json({ message: "Logged out successfully" });
@@ -54,7 +55,8 @@ export const logoutController = async (req: Request, res: Response) => {
 export const refreshTokenController = async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken) return res.status(400).json({ error: "Refresh token is required" });
+    if (!refreshToken)
+      return res.status(400).json({ error: "Refresh token is required" });
 
     const tokens = await refreshTokenService(refreshToken);
     res.status(200).json(tokens);
@@ -78,18 +80,26 @@ export const createAdminController = async (req: Request, res: Response) => {
 };
 
 // Create superadmin (usually once)
-export const createSuperAdminController = async (req: Request, res: Response) => {
+export const createSuperAdminController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const data: SignUpData = req.body;
     const result = await createSuperAdminService(data);
     res.status(201).json(result);
   } catch (err: any) {
-    res.status(400).json({ error: err.message || "Failed to create superadmin" });
+    res
+      .status(400)
+      .json({ error: err.message || "Failed to create superadmin" });
   }
 };
 
 // Deactivate admin
-export const deactivateAdminController = async (req: Request, res: Response) => {
+export const deactivateAdminController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
     const { email } = req.body;
@@ -99,12 +109,17 @@ export const deactivateAdminController = async (req: Request, res: Response) => 
     res.status(200).json({ message: "Admin deactivated successfully" });
   } catch (err: any) {
     const status = err.message.includes("not found") ? 404 : 400;
-    res.status(status).json({ error: err.message || "Failed to deactivate admin" });
+    res
+      .status(status)
+      .json({ error: err.message || "Failed to deactivate admin" });
   }
 };
 
 // Reactivate admin
-export const reactivateAdminController = async (req: Request, res: Response) => {
+export const reactivateAdminController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
     const { email } = req.body;
@@ -114,7 +129,9 @@ export const reactivateAdminController = async (req: Request, res: Response) => 
     res.status(200).json({ message: "Admin reactivated successfully" });
   } catch (err: any) {
     const status = err.message.includes("not found") ? 404 : 400;
-    res.status(status).json({ error: err.message || "Failed to reactivate admin" });
+    res
+      .status(status)
+      .json({ error: err.message || "Failed to reactivate admin" });
   }
 };
 
@@ -125,30 +142,48 @@ export const forgotPasswordController = async (req: Request, res: Response) => {
     const result = await forgotPasswordService(email);
     res.status(200).json(result);
   } catch (err: any) {
-    res.status(400).json({ error: err.message || "Failed to send password reset email" });
+    res
+      .status(400)
+      .json({ error: err.message || "Failed to send password reset email" });
   }
 };
 
 // Reset password
-export const effectForgotPasswordController = async (req: Request, res: Response) => {
+export const effectForgotPasswordController = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const token = req.query.token as string;
-    const {newPassword, confirmPassword} = req.body;
-    const result = await effectForgotPassword(token, newPassword, confirmPassword);
+    const { newPassword, confirmPassword } = req.body;
+    const result = await effectForgotPassword(
+      token,
+      newPassword,
+      confirmPassword,
+    );
     res.status(200).json(result);
   } catch (err: any) {
-    const status = err.message.includes("expired") || err.message.includes("Invalid") ? 400 : 400;
-    res.status(status).json({ error: err.message || "Failed to effect password change" });
+    const status =
+      err.message.includes("expired") || err.message.includes("Invalid")
+        ? 400
+        : 400;
+    res
+      .status(status)
+      .json({ error: err.message || "Failed to effect password change" });
   }
 };
 
 export const resetPasswordController = async (req: Request, res: Response) => {
   try {
-    const {userId} = req.params;
-    const {newPassword, confirmPassword} = req.body;
-    const result = await resetPasswordService(userId, newPassword, confirmPassword);
-    res.status(200).json(result)
-  }catch(err: any) {
-    res.status(400).json({error : err.message || "failed to reset password"});
+    const { userId } = req.params;
+    const { newPassword, confirmPassword } = req.body;
+    const result = await resetPasswordService(
+      userId,
+      newPassword,
+      confirmPassword,
+    );
+    res.status(200).json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || "failed to reset password" });
   }
-}
+};

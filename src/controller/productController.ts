@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import * as productService from "../service/productService.js";
-import {ProductData} from "../models/productInterface.js"
-
+import { ProductData } from "../models/productInterface.js";
 
 export const createCollection = async (req: Request, res: Response) => {
   try {
@@ -16,7 +15,7 @@ export const createCollection = async (req: Request, res: Response) => {
 export const updateCollection = async (req: Request, res: Response) => {
   try {
     const { name } = req.body;
-    const {id} = req.params;
+    const { id } = req.params;
     const collection = await productService.updateCollection(id, name);
     res.status(200).json({ success: true, collection });
   } catch (error: any) {
@@ -45,7 +44,6 @@ export const getCollectionsPaginated = async (req: Request, res: Response) => {
   }
 };
 
-
 // ---------------- CREATE PRODUCT ----------------
 export const createProduct = async (req: Request, res: Response) => {
   try {
@@ -53,20 +51,25 @@ export const createProduct = async (req: Request, res: Response) => {
     const files = req.files as Express.Multer.File[];
 
     if (!files || files.length === 0) {
-      return res.status(400).json({ success: false, message: "At least one image is required." });
+      return res
+        .status(400)
+        .json({ success: false, message: "At least one image is required." });
     }
 
-   const parsedProductData = JSON.parse(req.body.productData);
+    const parsedProductData = JSON.parse(req.body.productData);
 
     const productData: ProductData = {
       ...parsedProductData,
       image: `/uploads/${files[0].filename}`,
       filename: files[0].filename,
-      images: files.map(f => `/uploads/${f.filename}`),
-      filenames: files.map(f => f.filename),
+      images: files.map((f) => `/uploads/${f.filename}`),
+      filenames: files.map((f) => f.filename),
     };
 
-    const product = await productService.createProduct(collectionId, productData);
+    const product = await productService.createProduct(
+      collectionId,
+      productData,
+    );
 
     res.status(201).json({ success: true, product });
   } catch (error: any) {
@@ -84,8 +87,8 @@ export const updateProduct = async (req: Request, res: Response) => {
     if (files && files.length > 0) {
       updatedData.image = `/uploads/${files[0].filename}`;
       updatedData.filename = `${files[0].filename}`;
-      updatedData.images = files.map(file => `/uploads/${file.filename}`);
-      updatedData.filenames = files.map(file => file.filename)
+      updatedData.images = files.map((file) => `/uploads/${file.filename}`);
+      updatedData.filenames = files.map((file) => file.filename);
     }
 
     const updatedProduct = await productService.updateProduct(id, updatedData);
@@ -95,7 +98,6 @@ export const updateProduct = async (req: Request, res: Response) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
-
 
 export const deleteProduct = async (req: Request, res: Response) => {
   try {
@@ -142,7 +144,7 @@ export const filterProducts = async (req: Request, res: Response) => {
         collectionId: collectionId as string,
       },
       page,
-      limit
+      limit,
     );
 
     res.status(200).json({ success: true, ...result });
@@ -151,10 +153,14 @@ export const filterProducts = async (req: Request, res: Response) => {
   }
 };
 
-export const getProductsByCollectionId = async (req: Request, res: Response) => {
+export const getProductsByCollectionId = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const { collectionId } = req.params;
-    const products = await productService.getProductsByCollectionId(collectionId);
+    const products =
+      await productService.getProductsByCollectionId(collectionId);
     res.status(200).json({ success: true, products });
   } catch (error: any) {
     res.status(404).json({ success: false, message: error.message });
@@ -167,7 +173,11 @@ export const searchProductsByName = async (req: Request, res: Response) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
 
-    const result = await productService.searchProductsByName(search as string, page, limit);
+    const result = await productService.searchProductsByName(
+      search as string,
+      page,
+      limit,
+    );
     res.status(200).json({ success: true, ...result });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });

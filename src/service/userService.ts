@@ -9,7 +9,6 @@ export interface IProfileUpdate {
   address?: string;
 }
 
-
 export async function getAllUsers(): Promise<IUser[]> {
   return User.find().exec();
 }
@@ -24,24 +23,34 @@ export async function getUserByEmail(email: string): Promise<IUser | null> {
   return User.findOne({ email }).exec();
 }
 
-
-
-export async function getProfileByUserId(userId: string): Promise<ProfileType | null> {
+export async function getProfileByUserId(
+  userId: string,
+): Promise<ProfileType | null> {
   return Profile.findOne({ userId }).exec();
 }
 
-export async function updateProfileDetails(userId: string, profileData: Partial<IProfileUpdate>) {
+export async function updateProfileDetails(
+  userId: string,
+  profileData: Partial<IProfileUpdate>,
+) {
   try {
     const user = await getUserById(userId);
 
-   
-    if (profileData.userName) profileData.userName = profileData.userName.trim().toLowerCase();
-    if (profileData.firstName) profileData.firstName = profileData.firstName.trim();
-    if (profileData.lastName) profileData.lastName = profileData.lastName.trim();
-    if (profileData.phoneNumber) profileData.phoneNumber = profileData.phoneNumber.trim();
+    if (profileData.userName)
+      profileData.userName = profileData.userName.trim().toLowerCase();
+    if (profileData.firstName)
+      profileData.firstName = profileData.firstName.trim();
+    if (profileData.lastName)
+      profileData.lastName = profileData.lastName.trim();
+    if (profileData.phoneNumber)
+      profileData.phoneNumber = profileData.phoneNumber.trim();
     if (profileData.address) profileData.address = profileData.address.trim();
 
-    const profile = await Profile.findOneAndUpdate({ userId: user._id }, profileData, { new: true }).exec();
+    const profile = await Profile.findOneAndUpdate(
+      { userId: user._id },
+      profileData,
+      { new: true },
+    ).exec();
     if (!profile) throw new Error(`Profile for user ${userId} not found`);
 
     return { user, profile };
@@ -49,8 +58,6 @@ export async function updateProfileDetails(userId: string, profileData: Partial<
     throw new Error(`Error updating profile: ${err.message}`);
   }
 }
-
-
 
 export async function deleteUser(userId: string) {
   try {
@@ -67,7 +74,11 @@ export async function deleteUser(userId: string) {
 
 export async function changeUserRole(userId: string, newRole: UserRole) {
   try {
-    const user = await User.findByIdAndUpdate(userId, { role: newRole }, { new: true }).exec();
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { role: newRole },
+      { new: true },
+    ).exec();
     if (!user) throw new Error(`User with ID ${userId} not found`);
     return user;
   } catch (err: any) {
@@ -85,8 +96,6 @@ export async function toggleUserActiveness(userId: string) {
     throw new Error(`Error toggling user activeness: ${err.message}`);
   }
 }
-
-
 
 export async function getUserAddress(userId: string): Promise<string | null> {
   try {

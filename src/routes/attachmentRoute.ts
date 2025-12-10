@@ -20,7 +20,9 @@ router.get("/download/:filename", (req, res) => {
   // Send the file for download
   res.download(filePath, filename, (err) => {
     if (err) {
-      res.status(500).json({ success: false, message: "Failed to download file" });
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to download file" });
     }
   });
 });
