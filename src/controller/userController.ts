@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import * as userService from "../service/userService.js";
 import { UserRole } from "../models/userModel.js";
 
-
 export async function getAllUsersController(req: Request, res: Response) {
   try {
     const users = await userService.getAllUsers();
@@ -23,7 +22,6 @@ export async function getUserByIdController(req: Request, res: Response) {
     res.status(404).json({ message: err.message });
   }
 }
-
 
 export async function updateProfileController(req: Request, res: Response) {
   try {
@@ -48,7 +46,6 @@ export async function deleteUserController(req: Request, res: Response) {
   }
 }
 
-
 export async function changeUserRoleController(req: Request, res: Response) {
   try {
     const { userId } = req.params;
@@ -65,7 +62,10 @@ export async function changeUserRoleController(req: Request, res: Response) {
   }
 }
 
-export async function toggleUserActivenessController(req: Request, res: Response) {
+export async function toggleUserActivenessController(
+  req: Request,
+  res: Response,
+) {
   try {
     const { userId } = req.params;
     const user = await userService.toggleUserActiveness(userId);

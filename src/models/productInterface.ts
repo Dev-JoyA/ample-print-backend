@@ -1,36 +1,36 @@
-import { Document, Schema , model, Types } from "mongoose";
+import { Document, Schema, model, Types } from "mongoose";
 
 export interface ICollection extends Document {
-    name : string;
-    createdAt: Date;
-    updatedAt: Date;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export enum ProductStatus {
-    Active = 'active',
-    Inactive = 'inactive',
-    Archived = 'archived'
+  Active = "active",
+  Inactive = "inactive",
+  Archived = "archived",
 }
 
 export interface IProduct extends Document {
-    collectionId : Types.ObjectId;
-    name : string;
-    description : string;
-    price : number;
-    dimension : {
-        width : string;
-        height : string;
-    };
-    minOrder : number;
-    image : string;
-    filename : string,
-    images : string[];
-    filenames : string[];
-    material : string;
-    status : ProductStatus;
-    deliveryDay : string;
-    createdAt: Date;
-    updatedAt: Date;
+  collectionId: Types.ObjectId;
+  name: string;
+  description: string;
+  price: number;
+  dimension: {
+    width: string;
+    height: string;
+  };
+  minOrder: number;
+  image: string;
+  filename: string;
+  images: string[];
+  filenames: string[];
+  material: string;
+  status: ProductStatus;
+  deliveryDay: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface ProductData {

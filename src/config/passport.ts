@@ -1,5 +1,9 @@
 import passport from "passport";
-import { Strategy as JwtStrategy, ExtractJwt, StrategyOptions } from "passport-jwt";
+import {
+  Strategy as JwtStrategy,
+  ExtractJwt,
+  StrategyOptions,
+} from "passport-jwt";
 import { Profile } from "../models/profileModel.js";
 import { User } from "../models/userModel.js";
 import dotenv from "dotenv";
@@ -36,14 +40,13 @@ passport.use(
       return done(null, {
         userId: user._id,
         email: user.email,
-        role: user.role
+        role: user.role,
       });
-
     } catch (error) {
       console.error("JWT Strategy error:", error);
       return done(error, false);
     }
-  })
+  }),
 );
 
 export default passport;

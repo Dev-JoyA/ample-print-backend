@@ -1,18 +1,17 @@
-import { Document, Schema , model, Types } from "mongoose";
+import { Document, Schema, model, Types } from "mongoose";
 import { ICollection } from "./productInterface.js";
 
 const CollectionSchema = new Schema<ICollection>(
-    {
-        name : {
-            type : String,
-            required : true,
-            index : true
-        }
+  {
+    name: {
+      type: String,
+      required: true,
+      index: true,
     },
-    {
-        timestamps : true
-    }
-)
+  },
+  {
+    timestamps: true,
+  },
+);
 
-
-export const Collection = model<ICollection>("Collection", CollectionSchema)
+export const Collection = model<ICollection>("Collection", CollectionSchema);
