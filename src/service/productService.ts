@@ -7,7 +7,6 @@ import {
   ProductData,
   ProductFilter,
   PaginatedCollections,
-  CollectionWithProducts,
 } from "../models/productInterface.js";
 
 export async function createCollection(name: string): Promise<ICollection> {
