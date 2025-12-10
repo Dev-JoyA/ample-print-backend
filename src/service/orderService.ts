@@ -5,6 +5,7 @@ import {
   Order,
   PaymentStatus,
   IOrderModel,
+  PaginatedOrder
 } from "../models/orderModel.js";
 import { Product } from "../models/productModel.js";
 import { Profile } from "../models/profileModel.js";
@@ -14,7 +15,7 @@ import emails from "../utils/email.js";
 export const createOrder = async (
   id: string,
   data: OrderData,
-  io: Server,
+  io: Server
 ): Promise<IOrderModel> => {
   const user = await User.findById(id);
 
@@ -53,7 +54,7 @@ export const createOrder = async (
 
     if (item.quantity < product.minOrder) {
       throw new Error(
-        `${product.name} minimum order quantity is ${product.minOrder}`,
+        `${product.name} minimum order quantity is ${product.minOrder}`
       );
     }
 
@@ -102,19 +103,55 @@ export const createOrder = async (
     `Hello ${profile.firstName},
             Your order with ORDER NUMBER :  **${order.orderNumber}** have been created.
             Order Number: ${order.orderNumber}
-            Please log in to your dashboard to track your order and expect a follow up email for your invoice `,
+            Please log in to your dashboard to track your order and expect a follow up email for your invoice `
   ).catch((err) =>
-    console.error("Error sending order confirmation email", err),
+    console.error("Error sending order confirmation email", err)
   );
 
   return order;
 };
 
-export const updateOrder = async () => {};
-export const deleteOrder = async () => {};
-export const trackOrder = async () => {};
-export const getOrderById = async () => {};
-export const getUserOrder = async () => {};
+export const updateOrder = async (
+  data: Partial<IOrderModel>
+): Promise<IOrderModel> => {
+  const order = await Order.findByIdAndUpdate(data.id, data, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (!order) throw new Error("Order not found");
+
+  return order;
+};
+
+export const deleteOrder = async (id: string): Promise<string> => {
+    const order = await Order.findByIdAndDelete(id);
+    if(!order) throw new Error("No order found");
+    return "Deleted Successfully";
+};
+export const getOrderById = async (id: string): Promise<IOrderModel> => {
+    const order = await Order.findById(id)
+    if(!order) throw new Error("No order found");
+    return order;
+};
+export const getUserOrder = async (userId: string, page: number = 1, limit: number = 10): Promise<PaginatedOrder> => {
+    const skip = (page - 1) * limit;
+    const [order, total] = await Promise.all([
+        Order.find({ userId: userId })
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 })
+            .populate("items.productId", "items.productName"),
+        Order.countDocuments({ userId: userId }),
+    ]);
+    
+    return { order, total, page, limit };
+};
 export const filterOrder = async () => {};
 export const completeOrder = async () => {};
-export const PaginatedOrder = async () => {};
+export const allOrders = async () => {};
+
+export const searchByOrderNumber = async (orderNumber: string): Promise<IOrderModel | null> => {
+    const order = await Order.findOne({ orderNumber });
+    return order;
+};

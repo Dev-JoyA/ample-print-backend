@@ -7,10 +7,10 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon --exec tsx server.ts",
-    "build": "tsc",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write ."
+    "build": "tsc"
+    // "lint": "eslint .",
+    // "lint:fix": "eslint . --fix",
+    // "format": "prettier --write ."
   },
   "author": "Joy Aruku",
   "license": "ISC",
