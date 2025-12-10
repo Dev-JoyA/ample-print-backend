@@ -12,7 +12,7 @@ export const createDesignController = async (req: Request, res: Response) => {
     const admin = req.user as { _id: string; fullname: string };
     const files = req.files as Express.Multer.File[];
     const io = getIO(req);
-
+    
     if (!files || files.length === 0) {
       return res
         .status(400)
