@@ -22,7 +22,14 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const emails = async (to: string, subject: string, header: string, name: string, bodyMessage: string, linkUrl = "https://www.yourbusinesswebsite.com") => {
+const emails = async (
+  to: string,
+  subject: string,
+  header: string,
+  name: string,
+  bodyMessage: string,
+  linkUrl = "https://www.yourbusinesswebsite.com",
+) => {
   try {
     const templatePath = path.resolve(projectRoot, "html/emailTemplate.ejs");
     const template = await fs.readFile(templatePath, "utf-8");
@@ -32,20 +39,22 @@ const emails = async (to: string, subject: string, header: string, name: string,
       name,
       header,
       bodyMessage,
-      linkUrl
+      linkUrl,
     });
 
     // Send the email
     const info = await transporter.sendMail({
       from: `"AMPLE PRINTHUB" <${process.env.EMAIL_USER}>`,
       to,
-      subject ,
+      subject,
       html,
-      attachments: [{
-        filename: 'ample_logo.png',
-        path: 'public/images/ample_logo.png',
-        cid: 'ample_logo' // Reference in HTML: <img src="cid:ample_logo">
-      }]
+      attachments: [
+        {
+          filename: "ample_logo.png",
+          path: "public/images/ample_logo.png",
+          cid: "ample_logo", // Reference in HTML: <img src="cid:ample_logo">
+        },
+      ],
     });
 
     console.log("Email successfully sent to", to);

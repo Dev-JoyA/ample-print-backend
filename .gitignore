@@ -2,3 +2,6 @@
 .env
 /migrations
 /config
+.prettierignore
+.eslintignore
+.vscode

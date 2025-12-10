@@ -1,14 +1,14 @@
-import  { Product } from "../models/productModel.js";
-import  { Collection }  from "../models/collectionModel.js";
-import {ICollection, 
-    IProduct,
-    ProductStatus ,
-    ProductData,
-    ProductFilter,
-    PaginatedCollections,
-    CollectionWithProducts} from "../models/productInterface.js"
-
-
+import { Product } from "../models/productModel.js";
+import { Collection } from "../models/collectionModel.js";
+import {
+  ICollection,
+  IProduct,
+  ProductStatus,
+  ProductData,
+  ProductFilter,
+  PaginatedCollections,
+  CollectionWithProducts,
+} from "../models/productInterface.js";
 
 export async function createCollection(name: string): Promise<ICollection> {
   const existing = await Collection.findOne({ name });
@@ -17,9 +17,12 @@ export async function createCollection(name: string): Promise<ICollection> {
   return await Collection.create({ name });
 }
 
-export async function updateCollection(id: string, name: string): Promise<ICollection> {
+export async function updateCollection(
+  id: string,
+  name: string,
+): Promise<ICollection> {
   const updated = await Collection.findById(id);
-  
+
   if (!updated) throw new Error("Collection does not exist");
 
   const nameExists = await Collection.findOne({ name });
@@ -50,12 +53,19 @@ export async function getAllCollections(): Promise<ICollection[]> {
   return await Collection.find();
 }
 
-export async function searchCollections(search: string): Promise<ICollection[]> {
+export async function searchCollections(
+  search: string,
+): Promise<ICollection[]> {
   if (!search) return [];
-  return await Collection.find({ name: { $regex: `.*${search}.*`, $options: "i" } });
+  return await Collection.find({
+    name: { $regex: `.*${search}.*`, $options: "i" },
+  });
 }
 
-export async function getCollectionsPaginated(page: number = 1, limit: number = 10): Promise<PaginatedCollections> {
+export async function getCollectionsPaginated(
+  page: number = 1,
+  limit: number = 10,
+): Promise<PaginatedCollections> {
   const skip = (page - 1) * limit;
   const [collections, total] = await Promise.all([
     Collection.find().skip(skip).limit(limit).sort({ createdAt: -1 }),
@@ -74,14 +84,18 @@ export interface PaginatedProducts {
 
 // -------------------- PRODUCT SERVICES -------------------- //
 
-export async function createProduct(collectionId: string, data: ProductData): Promise<IProduct> {
+export async function createProduct(
+  collectionId: string,
+  data: ProductData,
+): Promise<IProduct> {
   const collection = await Collection.findById(collectionId);
   if (!collection) throw new Error("Collection not found");
 
   const existingProduct = await Product.findOne({ name: data.name });
   if (existingProduct) throw new Error("Product with that name already exists");
 
-  if (!data.name || !data.price || !data.image) throw new Error("Missing required fields");
+  if (!data.name || !data.price || !data.image)
+    throw new Error("Missing required fields");
 
   const newProduct = await Product.create({
     collectionId: collection._id,
@@ -89,8 +103,8 @@ export async function createProduct(collectionId: string, data: ProductData): Pr
     description: data.description,
     price: data.price,
     dimension: {
-        width: data.dimension.width,
-        height: data.dimension.height
+      width: data.dimension.width,
+      height: data.dimension.height,
     },
     minOrder: data.minOrder,
     image: data.image,
@@ -105,11 +119,14 @@ export async function createProduct(collectionId: string, data: ProductData): Pr
   return newProduct;
 }
 
-export async function updateProduct(id: string, data: Partial<ProductData>): Promise<IProduct> {
+export async function updateProduct(
+  id: string,
+  data: Partial<ProductData>,
+): Promise<IProduct> {
   const updated = await Product.findByIdAndUpdate(
     id,
     { ...data },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   );
   if (!updated) throw new Error("Product not found");
 
@@ -141,53 +158,78 @@ export async function searchProducts(search: string): Promise<IProduct[]> {
   }).populate("collectionId", "name");
 }
 
-
-export async function getProductsPaginated(page: number = 1, limit: number = 10): Promise<PaginatedProducts> {
+export async function getProductsPaginated(
+  page: number = 1,
+  limit: number = 10,
+): Promise<PaginatedProducts> {
   const skip = (page - 1) * limit;
   const [products, total] = await Promise.all([
-    Product.find().skip(skip).limit(limit).sort({ createdAt: -1 }).populate("collectionId", "name"),
+    Product.find()
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .populate("collectionId", "name"),
     Product.countDocuments(),
   ]);
 
   return { products, total, page, limit };
 }
 
-export async function filterProducts(filter: ProductFilter, page: number = 1, limit: number = 10): Promise<PaginatedProducts> {
+export async function filterProducts(
+  filter: ProductFilter,
+  page: number = 1,
+  limit: number = 10,
+): Promise<PaginatedProducts> {
   const query: any = {};
 
-  if (filter.priceMin !== undefined) query.price = { ...query.price, $gte: filter.priceMin };
-  if (filter.priceMax !== undefined) query.price = { ...query.price, $lte: filter.priceMax };
+  if (filter.priceMin !== undefined)
+    query.price = { ...query.price, $gte: filter.priceMin };
+  if (filter.priceMax !== undefined)
+    query.price = { ...query.price, $lte: filter.priceMax };
   if (filter.status) query.status = filter.status;
   if (filter.collectionId) query.collectionId = filter.collectionId;
 
   const skip = (page - 1) * limit;
   const [products, total] = await Promise.all([
-    Product.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }).populate("collectionId", "name"),
+    Product.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .populate("collectionId", "name"),
     Product.countDocuments(query),
   ]);
 
   return { products, total, page, limit };
 }
 
-export async function getProductsByCollectionId(collectionId: string): Promise<IProduct[]> {
+export async function getProductsByCollectionId(
+  collectionId: string,
+): Promise<IProduct[]> {
   const collection = await Collection.findById(collectionId);
   if (!collection) throw new Error("Collection not found");
 
-  return await Product.find({ collectionId }).sort({ createdAt: -1 }).populate("collectionId", "name");
+  return await Product.find({ collectionId })
+    .sort({ createdAt: -1 })
+    .populate("collectionId", "name");
 }
 
-
-export async function searchProductsByName(search: string, page: number = 1, limit: number = 10): Promise<PaginatedProducts> {
+export async function searchProductsByName(
+  search: string,
+  page: number = 1,
+  limit: number = 10,
+): Promise<PaginatedProducts> {
   if (!search) return { products: [], total: 0, page, limit };
 
   const skip = (page - 1) * limit;
   const query = { name: { $regex: `.*${search}.*`, $options: "i" } };
 
   const [products, total] = await Promise.all([
-    Product.find(query).skip(skip).limit(limit).populate("collectionId", "name"),
+    Product.find(query)
+      .skip(skip)
+      .limit(limit)
+      .populate("collectionId", "name"),
     Product.countDocuments(query),
   ]);
 
   return { products, total, page, limit };
 }
-
