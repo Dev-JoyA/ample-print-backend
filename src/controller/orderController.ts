@@ -36,5 +36,18 @@ export const updateOrder = async (req: Request, res: Response) => {
     }
 }
 
+export const searchByOrderNumber = async (req: Request, res: Response) => {
+    try {
+        const orderNumber = req.params.orderNumber;
+        const order = await orderService.searchByOrderNumber(orderNumber);
+        if(!order){
+            return  res.status(404).json({ success: false, message: "Order not found"});
+        }
+        res.status(200).json({ success: true, order });
+    }catch(err: any){
+        res.status(400).json({ success: false, message: err.message});
+    }
+}
+
 
 
