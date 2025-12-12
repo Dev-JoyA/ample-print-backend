@@ -50,4 +50,28 @@ export const searchByOrderNumber = async (req: Request, res: Response) => {
 }
 
 
+export const deleteOrder = async (req: Request, res: Response) => {
+    try{
+        const {id} = req.params;
+        const response = await orderService.deleteOrder(id);
+        res.status(20).json({success: true, message: response});
+    }catch(err: any){
+        res.status(400).json({ success: false, message: err.message})
+    }
+}
+
+
+export const getOrderById = async (req: Request, res: Response ) => {
+    try{
+        const {id} = req.params;
+        const order = await orderService.getOrderById(id);
+        res.status(200).json({success: true, order});
+    }catch(err: any){
+        res.status(400).json({ success: false, message: err.message})
+    }
+}
+
+
+
+
 
