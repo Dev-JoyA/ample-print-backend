@@ -7,6 +7,8 @@ export interface ICustomerBrief extends Document {
   image?: string;
   voiceNote?: string;
   video?: string;
+  description?: string;
+  logo?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,12 +27,16 @@ const CustomerBriefSchema = new Schema<ICustomerBrief>(
       required: true,
       index: true,
     },
+    description: {
+        type: String,
+    },
     designId: {
       type: Schema.Types.ObjectId,
       ref: "Design",
       required: false,
       index: true,
     },
+    logo: String,
     image: String,
     voiceNote: String,
     video: String,
