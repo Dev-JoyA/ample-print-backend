@@ -127,4 +127,6 @@ const OrderSchema = new Schema<IOrderModel>(
   },
 );
 
+//filter by status:
+
 export const Order = model<IOrderModel>("Order", OrderSchema);
