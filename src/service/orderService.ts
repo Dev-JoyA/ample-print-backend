@@ -148,8 +148,21 @@ export const getUserOrder = async (userId: string, page: number = 1, limit: numb
     return { order, total, page, limit };
 };
 export const filterOrder = async () => {};
-export const completeOrder = async () => {};
-export const allOrders = async () => {};
+
+export const completeOrder = async (): Promise<IOrderModel | null> => {
+    const order = await Order.findOneAndUpdate(
+        { status: OrderStatus.Completed },
+        { status : OrderStatus.Delivered },
+        // { status : OrderStatus.Approved },
+        // { status : OrderStatus.Cancelled },
+        { new: true }
+    );
+    return order;
+};
+export const allOrders = async (): Promise<IOrderModel[]> => {
+    const order = await Order.find().sort({ createdAt: -1 });
+    return order;
+};
 
 export const searchByOrderNumber = async (orderNumber: string): Promise<IOrderModel | null> => {
     const order = await Order.findOne({ orderNumber });
