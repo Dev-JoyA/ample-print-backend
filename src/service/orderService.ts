@@ -149,16 +149,21 @@ export const getUserOrder = async (userId: string, page: number = 1, limit: numb
 };
 export const filterOrder = async () => {};
 
-export const completeOrder = async (): Promise<IOrderModel | null> => {
-    const order = await Order.findOneAndUpdate(
-        { status: OrderStatus.Completed },
-        { status : OrderStatus.Delivered },
-        // { status : OrderStatus.Approved },
-        // { status : OrderStatus.Cancelled },
-        { new: true }
-    );
-    return order;
+const updateOrderStatus = async (
+  orderId: string,
+  newStatus: OrderStatus
+): Promise<IOrderModel | null> => {
+
+  const order = await Order.findByIdAndUpdate(
+    orderId,
+    { status: newStatus },   
+    { new: true }
+  );
+
+  return order;
 };
+
+
 export const allOrders = async (): Promise<IOrderModel[]> => {
     const order = await Order.find().sort({ createdAt: -1 });
     return order;
