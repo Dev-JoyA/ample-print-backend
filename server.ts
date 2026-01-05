@@ -1,20 +1,20 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import { startServer } from "./src/config/db.js";
-import designRoute from "./src/routes/designRoute.js";
-import authRoute from "./src/routes/authRoute.js";
-import userRoute from "./src/routes/userRoute.js";
+import designRoute from "./src/design/routes/designRoute.js";
+import authRoute from "./src/auth/routes/authRoute.js";
+import userRoute from "./src/users/routes/userRoute.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
-import productRoute from "./src/routes/productRoute.js";
+import productRoute from "./src/product/routes/productRoute.js";
 import passport from "./src/config/passport.js";
-import attachmentRoute from "./src/routes/attachmentRoute.js";
+import attachmentRoute from "./src/shared/routes/attachmentRoute.js";
 import cors from "cors";
 import { Server } from "socket.io";
-import { UserRole } from "./src/models/userModel.js";
+import { UserRole } from "./src/users/model/userModel.js";
 import http from "http";
 
 dotenv.config();
