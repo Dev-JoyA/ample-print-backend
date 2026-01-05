@@ -1,5 +1,6 @@
 import { User, IUser, UserRole } from "../models/userModel.js";
 import { Profile, IProfile as ProfileType } from "../models/profileModel.js";
+import { Document } from "mongoose";
 
 export interface IProfileUpdate {
   userName?: string;
@@ -9,18 +10,70 @@ export interface IProfileUpdate {
   address?: string;
 }
 
-export async function getAllUsers(): Promise<IUser[]> {
-  return User.find().exec();
+export interface IUserResponse{
+  user: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  firstName?: string;
+  lastName?: string;
+  userName?: string;
+  phoneNumber?: string;
+  address?: string;
 }
 
-export async function getUserById(userId: string): Promise<IUser> {
+export async function getAllUsers(): Promise<IUserResponse[]> {
+  const users = await User.find();
+  const profiles = await Profile.find({ userId: { $in: users.map(u => u._id) } });
+  return users.map(u => {
+    const doc: any = u;
+    const profile = profiles.find(p => p.userId.equals(doc._id));
+    return {
+      user: doc._id?.toString(),
+      email: doc.email,
+      role: doc.role,
+      isActive: doc.isActive,
+      firstName: profile?.firstName,
+      lastName: profile?.lastName,
+      userName: profile?.userName,
+      phoneNumber: profile?.phoneNumber,
+      address: profile?.address,
+    } as IUserResponse;
+  });
+}
+export async function getUserById(userId: string): Promise<IUserResponse> {
   const user = await User.findById(userId).exec();
   if (!user) throw new Error(`User with ID ${userId} not found`);
-  return user;
+  const profile = await Profile.findOne({userId: user._id});
+  return {
+    user: user._id.toString(),
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    firstName: profile?.firstName,
+    lastName: profile?.lastName,
+    userName: profile?.userName,
+    phoneNumber: profile?.phoneNumber,
+    address: profile?.address,
+  };
+
 }
 
-export async function getUserByEmail(email: string): Promise<IUser | null> {
-  return User.findOne({ email }).exec();
+export async function getUserByEmail(email: string): Promise<IUserResponse | null> {
+  const user = await User.findOne({ email }).exec();
+  if (!user) return null;
+  const profile = await Profile.findOne({ userId: user._id });
+  return {
+    user: user._id.toString(),
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    firstName: profile?.firstName,
+    lastName: profile?.lastName,
+    userName: profile?.userName,
+    phoneNumber: profile?.phoneNumber,
+    address: profile?.address
+  };
 }
 
 export async function getProfileByUserId(
@@ -47,7 +100,7 @@ export async function updateProfileDetails(
     if (profileData.address) profileData.address = profileData.address.trim();
 
     const profile = await Profile.findOneAndUpdate(
-      { userId: user._id },
+      { userId },
       profileData,
       { new: true },
     ).exec();
@@ -88,7 +141,8 @@ export async function changeUserRole(userId: string, newRole: UserRole) {
 
 export async function toggleUserActiveness(userId: string) {
   try {
-    const user = await getUserById(userId);
+    const user = await User.findById(userId).exec();
+    if (!user) throw new Error(`User with ID ${userId} not found`);
     user.isActive = !user.isActive;
     await user.save();
     return user;
