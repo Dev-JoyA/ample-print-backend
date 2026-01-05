@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { User, UserRole } from "../models/userModel.js";
+import { User, UserRole } from "../users/model/userModel.js";
 import mongoose from "mongoose";
 
 export const checkRole =
