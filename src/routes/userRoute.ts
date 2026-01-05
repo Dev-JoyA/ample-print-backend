@@ -18,9 +18,16 @@ import {
 
 const router = Router();
 
-router.get("/", authMiddleware, checkAdmin, getAllUsersController);
+router.get("/", getAllUsersController);
 
-router.get("/:userId", authMiddleware, checkOwnership, getUserByIdController);
+router.get("/:userId", authMiddleware, checkAdmin, getUserByIdController);
+
+router.get(
+  "/:userId/address",
+  authMiddleware,
+  checkOwnership,
+  getUserAddressController,
+);
 
 router.put(
   "/:userId/profile",
@@ -50,11 +57,6 @@ router.patch(
   toggleUserActivenessController,
 );
 
-router.get(
-  "/:userId/address",
-  authMiddleware,
-  checkOwnership,
-  getUserAddressController,
-);
+
 
 export default router;
