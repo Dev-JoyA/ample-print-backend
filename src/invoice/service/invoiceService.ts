@@ -10,6 +10,7 @@ export const createInvoice = async (orderId: string, data: IInvoice) : Promise<I
     if(!order) {
         throw new Error("Order not found for creating invoice");
     }
+    
     const existingInvoice = await Invoice.findOne({ orderId: order._id }).exec();
     if (existingInvoice) {
         throw new Error("Invoice already exists for this order");
