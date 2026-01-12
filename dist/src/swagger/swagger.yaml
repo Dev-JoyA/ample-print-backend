@@ -1,0 +1,1287 @@
+openapi: 3.0.3
+info:
+  title: AMPLE PRINT HUB API
+  description: API documentation for AMPLE PRINT HUB endpoints
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:4001
+    description: Local server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SignUpData:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - userName
+        - email
+        - password
+        - phoneNumber
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        userName:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        phoneNumber:
+          type: string
+        address:
+          type: string
+          nullable: true
+
+    SignInData:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    PasswordResetData:
+      type: object
+      required:
+        - newPassword
+        - confirmPassword
+      properties:
+        newPassword:
+          type: string
+        confirmPassword:
+          type: string
+        token:
+          type: string
+          nullable: true
+
+    RefreshTokenData:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Profile:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        userName:
+          type: string
+        phoneNumber:
+          type: string
+        address:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        profile:
+          $ref: "#/components/schemas/Profile"
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    Collection:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+        collectionId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        dimension:
+          type: object
+          properties:
+            width:
+              type: string
+            height:
+              type: string
+        minOrder:
+          type: number
+        material:
+          type: string
+        deliveryDay:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [active, inactive, archived]
+        createdAt:
+          type: string
+          format: date-time
+
+    Design:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        productId:
+          type: string
+        orderId:
+          type: string
+        designUrl:
+          type: string
+        otherImage:
+          type: array
+          items:
+            type: string
+        uploadedBy:
+          type: string
+        isApproved:
+          type: boolean
+        version:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+
+paths:
+  # ---------------- AUTH ----------------
+  /api/v1/auth/sign-up:
+    post:
+      summary: Register a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpData"
+      responses:
+        "201":
+          description: User and profile created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error or email/username exists
+
+  /api/v1/auth/sign-in:
+    post:
+      summary: Log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInData"
+      responses:
+        "200":
+          description: Authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid credentials
+
+  /api/v1/auth/admin-sign-up:
+    post:
+      summary: Create a new admin (requires superadmin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpData"
+      responses:
+        "201":
+          description: Admin created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+
+  /api/v1/auth/superadmin-sign-up:
+    post:
+      summary: Create superadmin (only once)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpData"
+      responses:
+        "201":
+          description: Superadmin created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /api/v1/auth/deactivate-admin:
+    post:
+      summary: Deactivate an admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Admin deactivated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /api/v1/auth/reactivate-admin:
+    post:
+      summary: Reactivate an admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Admin reactivated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /api/v1/auth/forgot-password:
+    post:
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /api/v1/auth/effect-forgot-password:
+    post:
+      summary: Effect password reset using token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetData"
+      responses:
+        "200":
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /api/v1/auth/reset-password/{userId}:
+    post:
+      summary: Reset password by logged-in user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - newPassword
+                - confirmPassword
+              properties:
+                newPassword:
+                  type: string
+                confirmPassword:
+                  type: string
+      responses:
+        "200":
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /api/v1/auth/logout:
+    post:
+      summary: Logout user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenData"
+      responses:
+        "200":
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /api/v1/auth/refresh-token:
+    post:
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenData"
+      responses:
+        "200":
+          description: New access and refresh token generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+  # ---------------- USERS ----------------
+  /api/v1/users:
+    get:
+      summary: Get all users
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /api/v1/users/{userId}:
+    get:
+      summary: Get user by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+    delete:
+      summary: Delete a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+
+  /api/v1/users/{userId}/profile:
+  put:
+    tags:
+      - Users
+    summary: Update logged-in user's profile
+    description: Updates profile details (firstName, lastName, username, phone, address). User must own the profile.
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              userName:
+                type: string
+                example: joydev
+              firstName:
+                type: string
+                example: Joy
+              lastName:
+                type: string
+                example: Aruku
+              phoneNumber:
+                type: string
+                example: "+2348012345678"
+              address:
+                type: string
+                example: Lagos, Nigeria
+    responses:
+      "200":
+        description: Profile updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    user:
+                      type: string
+                    email:
+                      type: string
+                      format: email
+                    role:
+                      type: string
+                      enum: [Customer, Admin, SuperAdmin]
+                    isActive:
+                      type: boolean
+                    firstName:
+                      type: string
+                    lastName:
+                      type: string
+                    userName:
+                      type: string
+                    phoneNumber:
+                      type: string
+                    address:
+                      type: string
+                profile:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    userId:
+                      type: string
+                    firstName:
+                      type: string
+                    lastName:
+                      type: string
+                    userName:
+                      type: string
+                    phoneNumber:
+                      type: string
+                    address:
+                      type: string
+      "400":
+        description: Validation error or profile not found
+      "401":
+        description: Unauthorized
+      "403":
+        description: Forbidden (not profile owner)
+
+  /api/v1/users/{userId}/role:
+    patch:
+      summary: Change user role
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - newRole
+              properties:
+                newRole:
+                  type: string
+                  enum: [Customer, Admin, SuperAdmin]
+      responses:
+        "200":
+          description: User role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+
+  /api/v1/users/{userId}/activeness:
+    patch:
+      summary: Toggle user activeness
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User activeness toggled successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+
+  /api/v1/users/{userId}/address:
+    get:
+      summary: Get user address
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Address fetched successfully
+          content:
+            application/json:
+              schema:
+                type: string
+        "404":
+          description: Profile not found
+
+  # ---------------- COLLECTIONS ----------------
+  /api/v1/collections:
+    post:
+      tags:
+        - Collections
+      summary: Create a new collection
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "Posters"
+      responses:
+        "201":
+          description: Collection created successfully
+        "400":
+          description: Bad request / Collection already exists
+    get:
+      tags:
+        - Collections
+      summary: Get paginated list of collections
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          example: 10
+      responses:
+        "200":
+          description: Paginated collections list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Collection"
+
+  /api/v1/collections/{id}:
+    put:
+      tags:
+        - Collections
+      summary: Update a collection
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "Updated Collection Name"
+      responses:
+        "200":
+          description: Collection updated
+        "400":
+          description: Bad request
+    delete:
+      tags:
+        - Collections
+      summary: Delete a collection
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Collection deleted successfully
+        "404":
+          description: Collection not found
+
+  /api/v1/collections/{collectionId}/all-products:
+    get:
+      tags:
+        - Products
+      summary: Get all products of a specific collection
+      parameters:
+        - name: collectionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+  # ---------------- PRODUCTS ----------------
+  /api/v1/collections/{collectionId}/products:
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: collectionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - price
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                dimension:
+                  type: object
+                  properties:
+                    width:
+                      type: string
+                    height:
+                      type: string
+                minOrder:
+                  type: number
+                material:
+                  type: string
+                deliveryDay:
+                  type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "201":
+          description: Product created successfully
+        "400":
+          description: Bad request
+
+  /api/v1/products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get a single product by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Product not found
+    put:
+      tags:
+        - Products
+      summary: Update a product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                dimension:
+                  type: string
+                minOrder:
+                  type: number
+                material:
+                  type: string
+                deliveryDay:
+                  type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "200":
+          description: Product updated successfully
+        "400":
+          description: Bad request
+    delete:
+      tags:
+        - Products
+      summary: Delete a product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product deleted successfully
+        "404":
+          description: Product not found
+
+  /api/v1/products:
+    get:
+      tags:
+        - Products
+      summary: Get paginated list of products
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          example: 10
+      responses:
+        "200":
+          description: Paginated products list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+  /api/v1/products/filter:
+    get:
+      tags:
+        - Products
+      summary: Filter products
+      parameters:
+        - in: query
+          name: priceMin
+          schema:
+            type: number
+        - in: query
+          name: priceMax
+          schema:
+            type: number
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, inactive, archived]
+        - in: query
+          name: deliveryDay
+          schema:
+            type: string
+        - in: query
+          name: collectionId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Filtered products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+  /api/v1/products/search:
+    get:
+      tags:
+        - Products
+      summary: Search products by name
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+  # ---------------- ATTACHMENTS ----------------
+  /attachments/download/{filename}:
+    get:
+      tags:
+        - Attachments
+      summary: Download a file by filename
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File downloaded successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: File not found
+        "500":
+          description: Failed to download file
+  # ---------------- DESIGNS ----------------
+  /api/v1/designs:
+    post:
+      tags:
+        - Designs
+      summary: Create a new design
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - productId
+                - file
+              properties:
+                name:
+                  type: string
+                  example: "My Cool Design"
+                description:
+                  type: string
+                productId:
+                  type: string
+                  example: "64a2f7b..."
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Design created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Design"
+        "400":
+          description: Bad request
+
+    get:
+      tags:
+        - Designs
+      summary: Get paginated list of designs
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          example: 10
+      responses:
+        "200":
+          description: Paginated designs list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Design"
+
+  /api/v1/designs/{id}:
+    get:
+      tags:
+        - Designs
+      summary: Get a single design by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Design details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Design"
+        "404":
+          description: Design not found
+
+    put:
+      tags:
+        - Designs
+      summary: Update a design
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                productId:
+                  type: string
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Design updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Design"
+        "404":
+          description: Design not found
+
+    delete:
+      tags:
+        - Designs
+      summary: Delete a design
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Design deleted successfully
+        "404":
+          description: Design not found
+
+  /api/v1/designs/user/{userId}:
+    get:
+      tags:
+        - Designs
+      summary: Get all designs by a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User's designs list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Design"
+        "404":
+          description: User or designs not found
+
+  /api/v1/designs/product/{productId}:
+    get:
+      tags:
+        - Designs
+      summary: Get all designs for a product
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product's designs list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Design"
+        "404":
+          description: Product or designs not found
+
+  /api/v1/designs/filter:
+    get:
+      tags:
+        - Designs
+      summary: Filter designs by product, user, or status
+      parameters:
+        - in: query
+          name: productId
+          schema:
+            type: string
+        - in: query
+          name: userId
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, inactive, archived]
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Filtered designs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Design"
