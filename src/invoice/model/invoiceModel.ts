@@ -21,7 +21,7 @@ export interface IInvoice extends Document {
   depositAmount?: number;
   partPaymentAmount?: number;
   remainingAmount: number;
-  dueDate: Date;
+  discount: number;
   status: InvoiceStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -53,7 +53,7 @@ const InvoiceSchema = new Schema<IInvoice>(
     depositAmount: { type: Number, required: true },
     partPaymentAmount: { type: Number },
     remainingAmount: { type: Number, required: true },
-    dueDate: { type: Date, required: true },
+    discount: { type: Number, required: true },
     status: {
       type: String,
       enum: Object.values(InvoiceStatus),
