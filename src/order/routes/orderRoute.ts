@@ -13,14 +13,13 @@ import {checkAdmin, checkOwnership,checkRole,
 const router = Router();
 
 
-router.post("/create/:id", authMiddleware, createOrder);
+router.post("/create/:id", createOrder);
 
 router.put("/update/:id", authMiddleware, updateOrder);
 
 router.get(
   "/search/:orderNumber",
-
-  searchByOrderNumber
+    searchByOrderNumber
 );
 
 
