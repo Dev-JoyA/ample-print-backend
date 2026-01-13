@@ -4,6 +4,7 @@ import { startServer } from "./src/config/db.js";
 import designRoute from "./src/design/routes/designRoute.js";
 import authRoute from "./src/auth/routes/authRoute.js";
 import userRoute from "./src/users/routes/userRoute.js";
+import orderRoute from "./src/order/routes/orderRoute.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -16,6 +17,7 @@ import cors from "cors";
 import { Server } from "socket.io";
 import { UserRole } from "./src/users/model/userModel.js";
 import http from "http";
+import Api from "twilio/lib/rest/Api.js";
 
 dotenv.config();
 
@@ -75,6 +77,7 @@ app.use("/api/v1/users", userRoute);
 app.use("/api/v1", productRoute);
 app.use("/api/v1/attachments", attachmentRoute);
 app.use("/api/v1/design", designRoute);
+app.use("/api/v1/orders", orderRoute);
 
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
