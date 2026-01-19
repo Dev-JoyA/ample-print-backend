@@ -5,7 +5,7 @@ import {
   Order,
   PaymentStatus,
   IOrderModel,
-  PaginatedOrder
+  PaginatedOrder,
 } from "../model/orderModel.js";
 import { Product } from "../../product/model/productModel.js";
 import { Profile } from "../../users/model/profileModel.js";
@@ -15,7 +15,7 @@ import emails from "../../utils/email.js";
 export const createOrder = async (
   id: string,
   data: OrderData,
-  io: Server
+  io: Server,
 ): Promise<IOrderModel> => {
   const user = await User.findById(id);
 
@@ -54,7 +54,7 @@ export const createOrder = async (
 
     if (item.quantity < product.minOrder) {
       throw new Error(
-        `${product.name} minimum order quantity is ${product.minOrder}`
+        `${product.name} minimum order quantity is ${product.minOrder}`,
       );
     }
 
@@ -103,16 +103,16 @@ export const createOrder = async (
     `Hello ${profile.firstName},
             Your order with ORDER NUMBER :  **${order.orderNumber}** have been created.
             Order Number: ${order.orderNumber}
-            Please log in to your dashboard to track your order and expect a follow up email for your invoice `
+            Please log in to your dashboard to track your order and expect a follow up email for your invoice `,
   ).catch((err) =>
-    console.error("Error sending order confirmation email", err)
+    console.error("Error sending order confirmation email", err),
   );
 
   return order;
 };
 
 export const updateOrder = async (
-  data: Partial<IOrderModel>
+  data: Partial<IOrderModel>,
 ): Promise<IOrderModel> => {
   const order = await Order.findByIdAndUpdate(data.id, data, {
     new: true,
@@ -125,51 +125,83 @@ export const updateOrder = async (
 };
 
 export const deleteOrder = async (id: string): Promise<string> => {
-    const order = await Order.findByIdAndDelete(id);
-    if(!order) throw new Error("No order found");
-    return "Deleted Successfully";
+  const order = await Order.findByIdAndDelete(id);
+  if (!order) throw new Error("No order found");
+  return "Deleted Successfully";
 };
 export const getOrderById = async (id: string): Promise<IOrderModel> => {
-    const order = await Order.findById(id)
-    if(!order) throw new Error("No order found");
-    return order;
+  const order = await Order.findById(id);
+  if (!order) throw new Error("No order found");
+  return order;
 };
-export const getUserOrder = async (userId: string, page: number = 1, limit: number = 10): Promise<PaginatedOrder> => {
-    const skip = (page - 1) * limit;
-    const [order, total] = await Promise.all([
-        Order.find({ userId: userId })
-            .skip(skip)
-            .limit(limit)
-            .sort({ createdAt: -1 })
-            .populate("items.productId", "items.productName"),
-        Order.countDocuments({ userId: userId }),
-    ]);
-    
-    return { order, total, page, limit };
+export const getUserOrder = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 10,
+): Promise<PaginatedOrder> => {
+  const skip = (page - 1) * limit;
+  const [order, total] = await Promise.all([
+    Order.find({ userId: userId })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .populate("items.productId", "items.productName"),
+    Order.countDocuments({ userId: userId }),
+  ]);
+
+  return { order, total, page, limit };
 };
 export const filterOrder = async () => {};
 
 const updateOrderStatus = async (
   orderId: string,
-  newStatus: OrderStatus
+  newStatus: OrderStatus,
 ): Promise<IOrderModel | null> => {
-
   const order = await Order.findByIdAndUpdate(
     orderId,
-    { status: newStatus },   
-    { new: true }
+    { status: newStatus },
+    { new: true },
   );
+
+  if (newStatus === OrderStatus.Completed && order) {
+    order.paymentStatus = PaymentStatus.Completed;
+    await order.save();
+
+    const user = await User.findById(order.userId);
+
+    if (!user) throw new Error("User not found");
+
+    const profile = await Profile.findOne({ userId: user._id }).exec();
+
+    if (!profile) {
+      throw new Error("User not found");
+    }
+
+    emails(
+      user.email,
+      `Your Order is ready ${order.orderNumber} `,
+      "your order is complete and ready for delivery or pickup",
+      profile.firstName,
+      `Hello ${profile.firstName},
+                Your order with ORDER NUMBER :  **${order.orderNumber}** has been completed.
+                Order Number: ${order.orderNumber}
+                Please log in to your dashboard to select your delivery or pickup options `,
+    ).catch((err) =>
+      console.error("Error sending order completion email", err),
+    );
+  }
 
   return order;
 };
 
-
 export const allOrders = async (): Promise<IOrderModel[]> => {
-    const order = await Order.find().sort({ createdAt: -1 });
-    return order;
+  const order = await Order.find().sort({ createdAt: -1 });
+  return order;
 };
 
-export const searchByOrderNumber = async (orderNumber: string): Promise<IOrderModel | null> => {
-    const order = await Order.findOne({ orderNumber });
-    return order;
+export const searchByOrderNumber = async (
+  orderNumber: string,
+): Promise<IOrderModel | null> => {
+  const order = await Order.findOne({ orderNumber });
+  return order;
 };

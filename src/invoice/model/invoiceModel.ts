@@ -1,4 +1,5 @@
 import { Document, Schema, Types, model } from "mongoose";
+import { SourceIpMappingContext } from "twilio/lib/rest/voice/v1/sourceIpMapping.js";
 import { v4 as uuid } from "uuid";
 
 export enum InvoiceStatus {
@@ -11,6 +12,7 @@ export enum InvoiceStatus {
 export interface IInvoice extends Document {
   orderId: Types.ObjectId;
   invoiceNumber: string;
+  orderNumber: string;
   items: {
     description: string;
     quantity: number;
@@ -40,6 +42,11 @@ const InvoiceSchema = new Schema<IInvoice>(
       required: true,
       default: () => uuid(),
       unique: true,
+    },
+    orderNumber: {
+      type: String,
+      required: true,
+      index: true,
     },
     items: [
       {

@@ -28,7 +28,7 @@ const CustomerBriefSchema = new Schema<ICustomerBrief>(
       index: true,
     },
     description: {
-        type: String,
+      type: String,
     },
     designId: {
       type: Schema.Types.ObjectId,
