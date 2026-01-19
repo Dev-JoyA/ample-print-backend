@@ -59,11 +59,11 @@ export interface OrderData {
   }[];
 }
 
-export interface PaginatedOrder{
-    order: IOrderModel[];
-    total: number;
-    page: number;
-    limit: number
+export interface PaginatedOrder {
+  order: IOrderModel[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 const OrderSchema = new Schema<IOrderModel>(

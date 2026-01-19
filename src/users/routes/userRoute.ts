@@ -57,6 +57,4 @@ router.patch(
   toggleUserActivenessController,
 );
 
-
-
 export default router;

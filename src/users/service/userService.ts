@@ -10,7 +10,7 @@ export interface IProfileUpdate {
   address?: string;
 }
 
-export interface IUserResponse{
+export interface IUserResponse {
   user: string;
   email: string;
   role: UserRole;
@@ -24,10 +24,12 @@ export interface IUserResponse{
 
 export async function getAllUsers(): Promise<IUserResponse[]> {
   const users = await User.find();
-  const profiles = await Profile.find({ userId: { $in: users.map(u => u._id) } });
-  return users.map(u => {
+  const profiles = await Profile.find({
+    userId: { $in: users.map((u) => u._id) },
+  });
+  return users.map((u) => {
     const doc: any = u;
-    const profile = profiles.find(p => p.userId.equals(doc._id));
+    const profile = profiles.find((p) => p.userId.equals(doc._id));
     return {
       user: doc._id?.toString(),
       email: doc.email,
@@ -44,7 +46,7 @@ export async function getAllUsers(): Promise<IUserResponse[]> {
 export async function getUserById(userId: string): Promise<IUserResponse> {
   const user = await User.findById(userId).exec();
   if (!user) throw new Error(`User with ID ${userId} not found`);
-  const profile = await Profile.findOne({userId: user._id});
+  const profile = await Profile.findOne({ userId: user._id });
   return {
     user: user._id.toString(),
     email: user.email,
@@ -56,10 +58,11 @@ export async function getUserById(userId: string): Promise<IUserResponse> {
     phoneNumber: profile?.phoneNumber,
     address: profile?.address,
   };
-
 }
 
-export async function getUserByEmail(email: string): Promise<IUserResponse | null> {
+export async function getUserByEmail(
+  email: string,
+): Promise<IUserResponse | null> {
   const user = await User.findOne({ email }).exec();
   if (!user) return null;
   const profile = await Profile.findOne({ userId: user._id });
@@ -72,7 +75,7 @@ export async function getUserByEmail(email: string): Promise<IUserResponse | nul
     lastName: profile?.lastName,
     userName: profile?.userName,
     phoneNumber: profile?.phoneNumber,
-    address: profile?.address
+    address: profile?.address,
   };
 }
 
@@ -99,11 +102,9 @@ export async function updateProfileDetails(
       profileData.phoneNumber = profileData.phoneNumber.trim();
     if (profileData.address) profileData.address = profileData.address.trim();
 
-    const profile = await Profile.findOneAndUpdate(
-      { userId },
-      profileData,
-      { new: true },
-    ).exec();
+    const profile = await Profile.findOneAndUpdate({ userId }, profileData, {
+      new: true,
+    }).exec();
     if (!profile) throw new Error(`Profile for user ${userId} not found`);
 
     return { user, profile };
