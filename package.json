@@ -15,6 +15,7 @@
   "author": "Joy Aruku",
   "license": "ISC",
   "dependencies": {
+    "@paystack/inline-js": "^2.22.7",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
     "cookie": "^1.0.2",
@@ -47,6 +48,7 @@
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth2": "^0.1.10",
     "@types/passport-jwt": "^4.0.1",
+    "@types/paystack__inline-js": "^1.0.2",
     "@types/speakeasy": "^2.0.10",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/yamljs": "^0.2.34",
