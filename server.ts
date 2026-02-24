@@ -40,7 +40,7 @@ app.use(passport.initialize());
 
 // Swagger setup BEFORE other routes
 try {
-  const swaggerPath = path.join(__dirname, "src", "swagger", "swagger.yaml");
+  const swaggerPath = path.join(__dirname, "swagger", "swagger.yaml");
   console.log("Looking for swagger file at:", swaggerPath);
 
   const swaggerDocument = YAML.load(swaggerPath);
