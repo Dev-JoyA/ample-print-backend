@@ -207,6 +207,88 @@ components:
           type: string
           format: date-time
 
+    CustomerBriefRole:
+      type: string
+      enum: [customer, admin, super-admin]
+      description: Role of the user who created this brief
+
+    CustomerBrief:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c85"
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c86"
+        productId:
+          type: string
+          example: "60d21b4667d0d8992e610c87"
+        role:
+          $ref: "#/components/schemas/CustomerBriefRole"
+        description:
+          type: string
+          example: "I want a blue flyer with my logo on the top right corner"
+        image:
+          type: string
+          example: "/uploads/1642534567890-reference.jpg"
+        voiceNote:
+          type: string
+          example: "/uploads/1642534567890-voice.mp3"
+        video:
+          type: string
+          example: "/uploads/1642534567890-video.mp4"
+        logo:
+          type: string
+          example: "/uploads/1642534567890-logo.png"
+        designId:
+          type: string
+          example: "60d21b4667d0d8992e610c88"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CustomerBriefConversation:
+      type: object
+      properties:
+        customer:
+          $ref: "#/components/schemas/CustomerBrief"
+        admin:
+          $ref: "#/components/schemas/CustomerBrief"
+        superAdmin:
+          $ref: "#/components/schemas/CustomerBrief"
+
+    AdminResponseStatus:
+      type: object
+      properties:
+        hasAdminResponded:
+          type: boolean
+          example: true
+        adminBrief:
+          $ref: "#/components/schemas/CustomerBrief"
+        customerBrief:
+          $ref: "#/components/schemas/CustomerBrief"
+
+    PaginatedCustomerBriefs:
+      type: object
+      properties:
+        briefs:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerBrief"
+        total:
+          type: integer
+          example: 25
+        page:
+          type: integer
+          example: 1
+        pages:
+          type: integer
+          example: 3      
+
 paths:
   # ---------------- AUTH ----------------
   /api/v1/auth/sign-up:
@@ -1285,3 +1367,664 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Design"
+
+    # ---------------- CUSTOMER BRIEFS ----------------
+  /api/v1/customer/orders/{orderId}/products/{productId}/brief:
+    post:
+      tags:
+        - Customer Briefs
+      summary: Submit a new customization brief (Customer only)
+      description: Customer submits their customization requirements for a product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c86"
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c87"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  example: "I want a blue flyer with my logo"
+                image:
+                  type: string
+                  format: binary
+                  description: Reference image (max 10MB)
+                voiceNote:
+                  type: string
+                  format: binary
+                  description: Voice note recording (max 10MB)
+                video:
+                  type: string
+                  format: binary
+                  description: Video reference (max 10MB)
+                logo:
+                  type: string
+                  format: binary
+                  description: Company logo (max 10MB)
+      responses:
+        "201":
+          description: Brief submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Brief submitted successfully"
+                  data:
+                    $ref: "#/components/schemas/CustomerBrief"
+        "400":
+          description: Bad request - Missing content or validation error
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Not a customer or not order owner
+
+    put:
+      tags:
+        - Customer Briefs
+      summary: Update existing customer brief
+      description: Customer updates their previously submitted brief
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                voiceNote:
+                  type: string
+                  format: binary
+                video:
+                  type: string
+                  format: binary
+                logo:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Brief updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Brief updated successfully"
+                  data:
+                    $ref: "#/components/schemas/CustomerBrief"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /api/v1/admin/orders/{orderId}/products/{productId}/respond:
+    post:
+      tags:
+        - Customer Briefs
+      summary: Admin responds to customer brief
+      description: Admin submits their response, design preview, or feedback
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  example: "Based on your request, I've created this design"
+                designId:
+                  type: string
+                  example: "60d21b4667d0d8992e610c88"
+                  description: ID of the design being shared
+                image:
+                  type: string
+                  format: binary
+                  description: Design preview image
+                voiceNote:
+                  type: string
+                  format: binary
+                video:
+                  type: string
+                  format: binary
+                logo:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Admin response submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Admin response submitted successfully"
+                  data:
+                    $ref: "#/components/schemas/CustomerBrief"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Not admin
+
+    put:
+      tags:
+        - Customer Briefs
+      summary: Admin updates their response
+      description: Admin updates their previously submitted response
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                designId:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                voiceNote:
+                  type: string
+                  format: binary
+                video:
+                  type: string
+                  format: binary
+                logo:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Response updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Admin response updated successfully"
+                  data:
+                    $ref: "#/components/schemas/CustomerBrief"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /api/v1/customer/briefs:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Get all briefs for logged-in customer
+      description: Returns paginated list of briefs submitted by the customer
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          example: 10
+      responses:
+        "200":
+          description: List of customer briefs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  briefs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CustomerBrief"
+                  total:
+                    type: integer
+                    example: 25
+                  page:
+                    type: integer
+                    example: 1
+                  pages:
+                    type: integer
+                    example: 3
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /api/v1/admin/briefs:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Get briefs for admin dashboard
+      description: Returns briefs that need admin attention or have been responded to
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+          description: Filter by order status
+        - in: query
+          name: hasResponded
+          schema:
+            type: boolean
+          description: Filter by whether admin has responded
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of briefs for admin
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  briefs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        needsAdminResponse:
+                          type: boolean
+                        hasAdminResponse:
+                          type: boolean
+                        brief:
+                          $ref: "#/components/schemas/CustomerBrief"
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  pages:
+                    type: integer
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /api/v1/briefs/orders/{orderId}/products/{productId}:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Get full conversation for an order
+      description: Returns all briefs (customer, admin, super-admin) for a specific order and product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Full conversation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/CustomerBriefConversation"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Order not found
+
+  /api/v1/briefs/{briefId}:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Get a specific brief by ID
+      description: Returns a single brief with populated order, product, and design details
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: briefId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Brief details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/CustomerBrief"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Brief not found
+
+    delete:
+      tags:
+        - Customer Briefs
+      summary: Delete a brief (Super Admin only)
+      description: Permanently delete a brief from the system
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: briefId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Brief deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "customer brief deleted successfully"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Not super admin
+        "404":
+          description: Brief not found
+
+  /api/v1/briefs/status/{orderId}/{productId}:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Check if admin has responded
+      description: Quick check to see if admin has responded to a customer's brief
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Response status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/AdminResponseStatus"
+        "401":
+          description: Unauthorized
+
+  /api/v1/briefs/filter:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Filter briefs (Admin only)
+      description: Advanced filtering of briefs with multiple criteria
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: orderId
+          schema:
+            type: string
+        - in: query
+          name: productId
+          schema:
+            type: string
+        - in: query
+          name: role
+          schema:
+            $ref: "#/components/schemas/CustomerBriefRole"
+        - in: query
+          name: hasDesign
+          schema:
+            type: boolean
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: searchTerm
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            default: createdAt
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        "200":
+          description: Filtered results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  briefs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CustomerBrief"
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  pages:
+                    type: integer
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /api/v1/analytics/product/{productId}:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Get brief analytics for a product
+      description: Returns statistics about briefs submitted for a specific product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      totalBriefs:
+                        type: integer
+                        example: 50
+                      customerBriefs:
+                        type: integer
+                        example: 30
+                      adminResponses:
+                        type: integer
+                        example: 25
+                      completionRate:
+                        type: number
+                        example: 83.33
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
