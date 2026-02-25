@@ -40,7 +40,7 @@ router.post(
   "/collections/:collectionId/products",
   authMiddleware,
   checkAdmin,
-  upload.array("images", 10), // up to 10 images
+  upload.array("images", 3),
   productController.createProduct,
 );
 

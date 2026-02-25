@@ -5,14 +5,16 @@ import * as customerBriefService from "../service/customerBriefService.js";
 import { CreateCustomerBriefDTO } from "../model/customerBrief.js";
 import { UserRole } from "../../users/model/userModel.js";
 
+const getIO = (req: Request) => {
+  return (req as any).io || req.app.get("io");
+};
 
 export const uploadBriefFiles = upload.fields([
-  { name: 'image', maxCount: 1 },
-  { name: 'voiceNote', maxCount: 1 },
-  { name: 'video', maxCount: 1 },
-  { name: 'logo', maxCount: 1 }
+  { name: "image", maxCount: 1 },
+  { name: "voiceNote", maxCount: 1 },
+  { name: "video", maxCount: 1 },
+  { name: "logo", maxCount: 1 },
 ]);
-
 
 // POST /api/customer/orders/:orderId/products/:productId/brief
 export const submitCustomerBrief = async (req: Request, res: Response) => {
@@ -20,12 +22,13 @@ export const submitCustomerBrief = async (req: Request, res: Response) => {
     const user = req.user as { _id: string; role: UserRole };
     const { orderId, productId } = req.params;
     const { description } = req.body;
+    const io = getIO(req);
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
     if (!orderId || !productId) {
       return res.status(400).json({
         success: false,
-        message: "Order ID and Product ID are required in URL"
+        message: "Order ID and Product ID are required in URL",
       });
     }
 
@@ -35,37 +38,38 @@ export const submitCustomerBrief = async (req: Request, res: Response) => {
     if (!hasText && !hasFiles) {
       return res.status(400).json({
         success: false,
-        message: "At least one customization detail (text or file) is required"
+        message: "At least one customization detail (text or file) is required",
       });
     }
 
     const briefData: CreateCustomerBriefDTO = {
       orderId: new Types.ObjectId(orderId),
       productId: new Types.ObjectId(productId),
-      description: description || undefined
+      description: description || undefined,
     };
 
     if (files?.image) briefData.image = `/uploads/${files.image[0].filename}`;
-    if (files?.voiceNote) briefData.voiceNote = `/uploads/${files.voiceNote[0].filename}`;
+    if (files?.voiceNote)
+      briefData.voiceNote = `/uploads/${files.voiceNote[0].filename}`;
     if (files?.video) briefData.video = `/uploads/${files.video[0].filename}`;
     if (files?.logo) briefData.logo = `/uploads/${files.logo[0].filename}`;
 
     const brief = await customerBriefService.createOrUpdateCustomerBrief(
       briefData,
       user._id,
-      user.role
+      user.role,
+      io,
     );
 
     res.status(201).json({
       success: true,
       message: "Brief submitted successfully",
-      data: brief
+      data: brief,
     });
-
   } catch (error: any) {
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -75,13 +79,14 @@ export const adminRespondToBrief = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
     const { orderId, productId } = req.params;
-    const { description, designId } = req.body; 
+    const { description, designId } = req.body;
+    const io = getIO(req);
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
     if (!orderId || !productId) {
       return res.status(400).json({
         success: false,
-        message: "Order ID and Product ID are required in URL"
+        message: "Order ID and Product ID are required in URL",
       });
     }
 
@@ -89,37 +94,41 @@ export const adminRespondToBrief = async (req: Request, res: Response) => {
       orderId: new Types.ObjectId(orderId),
       productId: new Types.ObjectId(productId),
       description: description || undefined,
-      designId: designId ? new Types.ObjectId(designId) : undefined
+      designId: designId ? new Types.ObjectId(designId) : undefined,
     };
 
     // Add file paths
     if (files?.image) briefData.image = `/uploads/${files.image[0].filename}`;
-    if (files?.voiceNote) briefData.voiceNote = `/uploads/${files.voiceNote[0].filename}`;
+    if (files?.voiceNote)
+      briefData.voiceNote = `/uploads/${files.voiceNote[0].filename}`;
     if (files?.video) briefData.video = `/uploads/${files.video[0].filename}`;
     if (files?.logo) briefData.logo = `/uploads/${files.logo[0].filename}`;
 
     const brief = await customerBriefService.createOrUpdateCustomerBrief(
       briefData,
       user._id,
-      user.role
+      user.role,
+      io,
     );
 
     res.status(201).json({
       success: true,
       message: "Admin response submitted successfully",
-      data: brief
+      data: brief,
     });
-
   } catch (error: any) {
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
 
 // GET /api/briefs/orders/:orderId/products/:productId
-export const getBriefByOrderAndProduct = async (req: Request, res: Response) => {
+export const getBriefByOrderAndProduct = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
     const { orderId, productId } = req.params;
@@ -127,25 +136,24 @@ export const getBriefByOrderAndProduct = async (req: Request, res: Response) => 
     if (!orderId || !productId) {
       return res.status(400).json({
         success: false,
-        message: "Order ID and Product ID are required"
+        message: "Order ID and Product ID are required",
       });
     }
 
     const briefs = await customerBriefService.getCustomerBriefByOrderId(
       orderId,
       user._id,
-      user.role
+      user.role,
     );
 
     res.status(200).json({
       success: true,
-      data: briefs
+      data: briefs,
     });
-
   } catch (error: any) {
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -159,32 +167,31 @@ export const getCustomerBriefById = async (req: Request, res: Response) => {
     if (!briefId) {
       return res.status(400).json({
         success: false,
-        message: "Brief ID is required"
+        message: "Brief ID is required",
       });
     }
 
     const brief = await customerBriefService.getCustomerBriefById(
       briefId,
       user._id,
-      user.role
+      user.role,
     );
 
     if (!brief) {
       return res.status(404).json({
         success: false,
-        message: "Brief not found"
+        message: "Brief not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: brief
+      data: brief,
     });
-
   } catch (error: any) {
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -194,29 +201,30 @@ export const deleteCustomerBrief = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
     const { briefId } = req.params;
+    const io = getIO(req);
 
     if (!briefId) {
       return res.status(400).json({
         success: false,
-        message: "Brief ID is required"
+        message: "Brief ID is required",
       });
     }
 
     const result = await customerBriefService.deleteCustomerBrief(
       briefId,
       user._id,
-      user.role
+      user.role,
+      io,
     );
 
     res.status(200).json({
       success: true,
-      message: result.message
+      message: result.message,
     });
-
   } catch (error: any) {
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -225,29 +233,27 @@ export const deleteCustomerBrief = async (req: Request, res: Response) => {
 export const getUserCustomerBriefs = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
-    
+
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
 
     const result = await customerBriefService.getUserCustomerBriefs(
       user._id,
       page,
-      limit
+      limit,
     );
 
     res.status(200).json({
       success: true,
-      ...result
+      ...result,
     });
-
   } catch (error: any) {
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-
 
 // GET /api/admin/briefs
 export const getAdminCustomerBriefs = async (req: Request, res: Response) => {
@@ -257,23 +263,28 @@ export const getAdminCustomerBriefs = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const status = req.query.status as string;
-    const hasResponded = req.query.hasResponded === 'true' ? true : 
-                        req.query.hasResponded === 'false' ? false : undefined;
+    const hasResponded =
+      req.query.hasResponded === "true"
+        ? true
+        : req.query.hasResponded === "false"
+          ? false
+          : undefined;
 
-    const result = await customerBriefService.getAdminCustomerBriefs(
-      user._id,
-      { status: status as any, hasResponded, page, limit }
-    );
+    const result = await customerBriefService.getAdminCustomerBriefs(user._id, {
+      status: status as any,
+      hasResponded,
+      page,
+      limit,
+    });
 
     res.status(200).json({
       success: true,
-      ...result
+      ...result,
     });
-
   } catch (error: any) {
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -285,18 +296,17 @@ export const checkAdminResponseStatus = async (req: Request, res: Response) => {
 
     const result = await customerBriefService.checkAdminResponseStatus(
       orderId,
-      productId
+      productId,
     );
 
     res.status(200).json({
       success: true,
-      data: result
+      data: result,
     });
-
   } catch (error: any) {
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };

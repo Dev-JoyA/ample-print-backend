@@ -219,8 +219,10 @@ export async function searchProductsByName(
 ): Promise<PaginatedProducts> {
   if (!search) return { products: [], total: 0, page, limit };
 
+  const sanitized = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
   const skip = (page - 1) * limit;
-  const query = { name: { $regex: `.*${search}.*`, $options: "i" } };
+  const query = { name: { $regex: sanitized, $options: "i" } };
 
   const [products, total] = await Promise.all([
     Product.find(query)

@@ -5,6 +5,8 @@ import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
 import emails from "../../utils/email.js";
 import { Product } from "../../product/model/productModel.js";
+import path from "path";
+import fs from "fs/promises";
 
 export interface IDesignFilter {
   userId?: string;
@@ -177,11 +179,32 @@ export const updateDesign = async (
 };
 
 export const deleteDesign = async (id: string): Promise<string> => {
-  const design = await Design.findByIdAndDelete(id);
+  const design = await Design.findById(id);
   if (!design) throw new Error("Design not found");
 
-  return "Design deleted Successfully";
+  // Delete all associated files
+  const filesToDelete = [design.designUrl, ...(design.otherImage || [])].filter(
+    Boolean,
+  ); // Remove undefined/null
+
+  for (const fileUrl of filesToDelete) {
+    if (fileUrl) {
+      const filename = path.basename(fileUrl);
+      const filePath = path.join("uploads", filename);
+      try {
+        await fs.unlink(filePath);
+        console.log(`Deleted file: ${filePath}`);
+      } catch (err) {
+        console.error(`Failed to delete file ${filePath}:`, err);
+        // Continue even if file delete fails
+      }
+    }
+  }
+
+  await Design.findByIdAndDelete(id);
+  return "Design deleted successfully";
 };
+
 export const approveDesign = async (id: string): Promise<IDesign> => {
   const design = await Design.findById(id);
   if (!design) throw new Error("Design not found");

@@ -1,12 +1,26 @@
 openapi: 3.0.3
 info:
   title: AMPLE PRINT HUB API
-  description: API documentation for AMPLE PRINT HUB endpoints
-  version: 1.0.0
+  description: |
+    Complete API documentation for AMPLE PRINT HUB - A printing company application
+    that handles collections, products, orders, customization briefs, designs, feedback,
+    and user management.
+
+    ## Key Features:
+    - Multi-role authentication (Customer, Admin, SuperAdmin)
+    - Product catalog with collections
+    - Order management with complex status tracking
+    - Customization briefs with role-based documents
+    - Design uploads with version control
+    - Feedback system for design discussions
+    - Real-time notifications via Socket.io
+  version: 2.0.0
 
 servers:
-  - url: http://localhost:4001
-    description: Local server
+  - url: http://localhost:4001/api/v1
+    description: Local development server
+  - url: https://api.ampleprinthub.com/api/v1
+    description: Production server
 
 components:
   securitySchemes:
@@ -14,9 +28,15 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: Enter JWT token with format "Bearer {token}"
 
   schemas:
-    # ==================== AUTH SCHEMAS ====================
+    # ==================== AUTH & USER SCHEMAS ====================
+    UserRole:
+      type: string
+      enum: [Customer, Admin, SuperAdmin]
+      description: User roles in the system
+
     SignUpData:
       type: object
       required:
@@ -29,20 +49,29 @@ components:
       properties:
         firstName:
           type: string
+          example: John
         lastName:
           type: string
+          example: Doe
         userName:
           type: string
+          example: johndoe
         email:
           type: string
           format: email
+          example: john@example.com
         password:
           type: string
+          format: password
+          minLength: 5
+          example: password123
         phoneNumber:
           type: string
+          example: "+2348012345678"
         address:
           type: string
           nullable: true
+          example: "Lagos, Nigeria"
 
     SignInData:
       type: object
@@ -53,8 +82,11 @@ components:
         email:
           type: string
           format: email
+          example: john@example.com
         password:
           type: string
+          format: password
+          example: password123
 
     PasswordResetData:
       type: object
@@ -64,11 +96,15 @@ components:
       properties:
         newPassword:
           type: string
+          format: password
+          minLength: 5
         confirmPassword:
           type: string
+          format: password
         token:
           type: string
           nullable: true
+          description: Reset token from email (for effect-forgot-password)
 
     RefreshTokenData:
       type: object
@@ -83,14 +119,20 @@ components:
       properties:
         _id:
           type: string
+          example: "60d21b4667d0d8992e610c85"
         email:
           type: string
           format: email
+          example: "john@example.com"
         role:
-          type: string
+          $ref: "#/components/schemas/UserRole"
         isActive:
           type: boolean
+          example: true
         createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
 
@@ -99,19 +141,29 @@ components:
       properties:
         _id:
           type: string
+          example: "60d21b4667d0d8992e610c86"
         userId:
           type: string
+          example: "60d21b4667d0d8992e610c85"
         firstName:
           type: string
+          example: "John"
         lastName:
           type: string
+          example: "Doe"
         userName:
           type: string
+          example: "johndoe"
         phoneNumber:
           type: string
+          example: "+2348012345678"
         address:
           type: string
+          example: "Lagos, Nigeria"
         createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
 
@@ -124,14 +176,27 @@ components:
           $ref: "#/components/schemas/Profile"
         accessToken:
           type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         refreshToken:
           type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
     MessageResponse:
       type: object
       properties:
         message:
           type: string
+          example: "Operation completed successfully"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Error message"
 
     # ==================== COLLECTION SCHEMAS ====================
     Collection:
@@ -139,20 +204,110 @@ components:
       properties:
         _id:
           type: string
+          example: "60d21b4667d0d8992e610c87"
         name:
           type: string
+          example: "Flyers"
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaginatedCollections:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        collections:
+          type: array
+          items:
+            $ref: "#/components/schemas/Collection"
+        total:
+          type: integer
+          example: 25
+        page:
+          type: integer
+          example: 1
+        pages:
+          type: integer
+          example: 3
 
     # ==================== PRODUCT SCHEMAS ====================
+    ProductStatus:
+      type: string
+      enum: [active, inactive, archived]
+      description: Product availability status
+
+    ProductDimension:
+      type: object
+      properties:
+        width:
+          type: string
+          example: "100mm"
+        height:
+          type: string
+          example: "150mm"
+
     Product:
       type: object
       properties:
         _id:
           type: string
+          example: "60d21b4667d0d8992e610c88"
         collectionId:
           type: string
+          example: "60d21b4667d0d8992e610c87"
+        name:
+          type: string
+          example: "A5 Flyer"
+        description:
+          type: string
+          example: "High quality flyer for promotions"
+        price:
+          type: number
+          example: 50.00
+        dimension:
+          $ref: "#/components/schemas/ProductDimension"
+        minOrder:
+          type: integer
+          example: 100
+        image:
+          type: string
+          example: "/uploads/product-main.jpg"
+        filename:
+          type: string
+          example: "1642534567890-product-main.jpg"
+        images:
+          type: array
+          items:
+            type: string
+          example: ["/uploads/product-1.jpg", "/uploads/product-2.jpg"]
+        filenames:
+          type: array
+          items:
+            type: string
+          example: ["1642534567890-product-1.jpg", "1642534567890-product-2.jpg"]
+        material:
+          type: string
+          example: "Glossy paper"
+        status:
+          $ref: "#/components/schemas/ProductStatus"
+        deliveryDay:
+          type: string
+          example: "3-5 business days"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProductData:
+      type: object
+      properties:
         name:
           type: string
         description:
@@ -167,49 +322,31 @@ components:
             height:
               type: string
         minOrder:
-          type: number
+          type: integer
         material:
           type: string
         deliveryDay:
           type: string
-        images:
-          type: array
-          items:
-            type: string
-        status:
-          type: string
-          enum: [active, inactive, archived]
-        createdAt:
-          type: string
-          format: date-time
 
-    # ==================== DESIGN SCHEMAS ====================
-    Design:
+    PaginatedProducts:
       type: object
       properties:
-        _id:
-          type: string
-        userId:
-          type: string
-        productId:
-          type: string
-        orderId:
-          type: string
-        designUrl:
-          type: string
-        otherImage:
+        success:
+          type: boolean
+          example: true
+        products:
           type: array
           items:
-            type: string
-        uploadedBy:
-          type: string
-        isApproved:
-          type: boolean
-        version:
-          type: number
-        createdAt:
-          type: string
-          format: date-time
+            $ref: "#/components/schemas/Product"
+        total:
+          type: integer
+          example: 50
+        page:
+          type: integer
+          example: 1
+        pages:
+          type: integer
+          example: 5
 
     # ==================== ORDER SCHEMAS ====================
     OrderStatus:
@@ -227,7 +364,7 @@ components:
       properties:
         productId:
           type: string
-          example: "60d21b4667d0d8992e610c87"
+          example: "60d21b4667d0d8992e610c88"
         productName:
           type: string
           example: "A5 Flyer"
@@ -243,10 +380,10 @@ components:
       properties:
         _id:
           type: string
-          example: "60d21b4667d0d8992e610c85"
+          example: "60d21b4667d0d8992e610c89"
         userId:
           type: string
-          example: "60d21b4667d0d8992e610c86"
+          example: "60d21b4667d0d8992e610c85"
         orderNumber:
           type: string
           example: "ORD-2024-001"
@@ -287,6 +424,7 @@ components:
       properties:
         items:
           type: array
+          minItems: 1
           items:
             type: object
             required:
@@ -295,9 +433,10 @@ components:
             properties:
               productId:
                 type: string
-                example: "60d21b4667d0d8992e610c87"
+                example: "60d21b4667d0d8992e610c88"
               quantity:
                 type: integer
+                minimum: 1
                 example: 100
 
     UpdateOrderData:
@@ -324,6 +463,9 @@ components:
     PaginatedOrders:
       type: object
       properties:
+        success:
+          type: boolean
+          example: true
         order:
           type: array
           items:
@@ -338,6 +480,102 @@ components:
           type: integer
           example: 10
 
+    # ==================== DESIGN SCHEMAS ====================
+    Design:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c90"
+        userId:
+          type: string
+          example: "60d21b4667d0d8992e610c85"
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        productId:
+          type: string
+          example: "60d21b4667d0d8992e610c88"
+        uploadedBy:
+          type: string
+          example: "60d21b4667d0d8992e610c91"
+        version:
+          type: integer
+          example: 1
+        isApproved:
+          type: boolean
+          example: false
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        designUrl:
+          type: string
+          example: "/uploads/design-main.pdf"
+        filename:
+          type: string
+          example: "1642534567890-design-main.pdf"
+        otherImage:
+          type: array
+          items:
+            type: string
+          example: ["/uploads/design-1.jpg", "/uploads/design-2.jpg"]
+        filenames:
+          type: array
+          items:
+            type: string
+          example: ["1642534567890-design-1.jpg", "1642534567890-design-2.jpg"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DesignFilter:
+      type: object
+      properties:
+        userId:
+          type: string
+        orderId:
+          type: string
+        productId:
+          type: string
+        uploadedBy:
+          type: string
+        isApproved:
+          type: boolean
+        minVersion:
+          type: integer
+        maxVersion:
+          type: integer
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+
+    PaginatedDesigns:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        designs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Design"
+        total:
+          type: integer
+          example: 25
+        page:
+          type: integer
+          example: 1
+        pages:
+          type: integer
+          example: 3
+
     # ==================== CUSTOMER BRIEF SCHEMAS ====================
     CustomerBriefRole:
       type: string
@@ -349,13 +587,13 @@ components:
       properties:
         _id:
           type: string
-          example: "60d21b4667d0d8992e610c85"
+          example: "60d21b4667d0d8992e610c92"
         orderId:
           type: string
-          example: "60d21b4667d0d8992e610c86"
+          example: "60d21b4667d0d8992e610c89"
         productId:
           type: string
-          example: "60d21b4667d0d8992e610c87"
+          example: "60d21b4667d0d8992e610c88"
         role:
           $ref: "#/components/schemas/CustomerBriefRole"
         description:
@@ -375,7 +613,7 @@ components:
           example: "/uploads/1642534567890-logo.png"
         designId:
           type: string
-          example: "60d21b4667d0d8992e610c88"
+          example: "60d21b4667d0d8992e610c90"
         createdAt:
           type: string
           format: date-time
@@ -404,9 +642,41 @@ components:
         customerBrief:
           $ref: "#/components/schemas/CustomerBrief"
 
+    AdminBriefsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        briefs:
+          type: array
+          items:
+            type: object
+            properties:
+              needsAdminResponse:
+                type: boolean
+                example: true
+              hasAdminResponse:
+                type: boolean
+                example: false
+              brief:
+                $ref: "#/components/schemas/CustomerBrief"
+        total:
+          type: integer
+          example: 25
+        page:
+          type: integer
+          example: 1
+        pages:
+          type: integer
+          example: 3
+
     PaginatedCustomerBriefs:
       type: object
       properties:
+        success:
+          type: boolean
+          example: true
         briefs:
           type: array
           items:
@@ -421,9 +691,150 @@ components:
           type: integer
           example: 3
 
+    BriefAnalytics:
+      type: object
+      properties:
+        totalBriefs:
+          type: integer
+          example: 50
+        customerBriefs:
+          type: integer
+          example: 30
+        adminResponses:
+          type: integer
+          example: 25
+        completionRate:
+          type: number
+          example: 83.33
+
+    # ==================== FEEDBACK SCHEMAS ====================
+    FeedBackStatus:
+      type: string
+      enum: [Pending, Reviewed, Resolved]
+      description: Status of the feedback
+
+    Feedback:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c93"
+        userId:
+          type: string
+          example: "60d21b4667d0d8992e610c85"
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        designId:
+          type: string
+          example: "60d21b4667d0d8992e610c90"
+          nullable: true
+        respondedBy:
+          type: string
+          example: "60d21b4667d0d8992e610c91"
+          nullable: true
+        message:
+          type: string
+          example: "The design needs to be darker, can you adjust it?"
+        attachment:
+          type: array
+          items:
+            type: string
+          example: ["/uploads/1642534567890-image.jpg", "/uploads/1642534567890-reference.png"]
+        adminResponse:
+          type: string
+          example: "I've made the design darker as requested. Please check the updated version."
+          nullable: true
+        adminResponseAt:
+          type: string
+          format: date-time
+          example: "2024-01-02T14:30:00Z"
+          nullable: true
+        status:
+          $ref: "#/components/schemas/FeedBackStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FeedbackWithPopulated:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/Feedback"
+        - type: object
+          properties:
+            userId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                fullname:
+                  type: string
+                email:
+                  type: string
+            orderId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                orderNumber:
+                  type: string
+                status:
+                  type: string
+            designId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                designUrl:
+                  type: string
+                filename:
+                  type: string
+            respondedBy:
+              type: object
+              properties:
+                _id:
+                  type: string
+                fullname:
+                  type: string
+                email:
+                  type: string
+
+    PaginatedFeedback:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        feedback:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeedbackWithPopulated"
+        total:
+          type: integer
+          example: 25
+        page:
+          type: integer
+          example: 1
+        pages:
+          type: integer
+          example: 3
+
+    PendingFeedbackCount:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 5
+        timestamp:
+          type: string
+          format: date-time
+
 paths:
-  # ==================== AUTH ENDPOINTS ====================
-  /api/v1/auth/sign-up:
+  # ==================== AUTHENTICATION ====================
+  /auth/sign-up:
     post:
       tags:
         - Authentication
@@ -443,8 +854,12 @@ paths:
                 $ref: "#/components/schemas/AuthResponse"
         "400":
           description: Validation error or email/username exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
-  /api/v1/auth/sign-in:
+  /auth/sign-in:
     post:
       tags:
         - Authentication
@@ -462,10 +877,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthResponse"
-        "400":
+        "401":
           description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
-  /api/v1/auth/admin-sign-up:
+  /auth/admin-sign-up:
     post:
       tags:
         - Authentication
@@ -487,8 +906,12 @@ paths:
                 $ref: "#/components/schemas/AuthResponse"
         "400":
           description: Validation error
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Superadmin only
 
-  /api/v1/auth/superadmin-sign-up:
+  /auth/superadmin-sign-up:
     post:
       tags:
         - Authentication
@@ -506,8 +929,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error or superadmin already exists
 
-  /api/v1/auth/deactivate-admin:
+  /auth/deactivate-admin:
     post:
       tags:
         - Authentication
@@ -533,8 +958,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Superadmin only
+        "404":
+          description: Admin not found
 
-  /api/v1/auth/reactivate-admin:
+  /auth/reactivate-admin:
     post:
       tags:
         - Authentication
@@ -560,8 +993,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Superadmin only
+        "404":
+          description: Admin not found
 
-  /api/v1/auth/forgot-password:
+  /auth/forgot-password:
     post:
       tags:
         - Authentication
@@ -585,12 +1026,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Bad request
 
-  /api/v1/auth/effect-forgot-password:
+  /auth/effect-forgot-password:
     post:
       tags:
         - Authentication
-      summary: Effect password reset using token
+      summary: Reset password using token from email
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -604,8 +1053,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid or expired token
 
-  /api/v1/auth/reset-password/{userId}:
+  /auth/reset-password/{userId}:
     post:
       tags:
         - Authentication
@@ -630,8 +1081,11 @@ paths:
               properties:
                 newPassword:
                   type: string
+                  format: password
+                  minLength: 5
                 confirmPassword:
                   type: string
+                  format: password
       responses:
         "200":
           description: Password reset successful
@@ -639,8 +1093,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Not account owner
 
-  /api/v1/auth/logout:
+  /auth/logout:
     post:
       tags:
         - Authentication
@@ -658,8 +1118,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Bad request
 
-  /api/v1/auth/refresh-token:
+  /auth/refresh-token:
     post:
       tags:
         - Authentication
@@ -682,9 +1144,34 @@ paths:
                     type: string
                   refreshToken:
                     type: string
+        "401":
+          description: Invalid or expired refresh token
 
-  # ==================== USERS ENDPOINTS ====================
-  /api/v1/users:
+  /auth/verify-token:
+    get:
+      tags:
+        - Authentication
+      summary: Verify access token validity
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                    example: true
+                  user:
+                    type: object
+        "401":
+          description: Invalid token
+
+  # ==================== USERS ====================
+  /users:
     get:
       tags:
         - Users
@@ -697,11 +1184,16 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/User"
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
 
-  /api/v1/users/{userId}:
+  /users/{userId}:
     get:
       tags:
         - Users
@@ -720,7 +1212,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
         "404":
           description: User not found
     delete:
@@ -741,16 +1240,26 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User deleted successfully"
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Superadmin only
         "404":
           description: User not found
 
-  /api/v1/users/{userId}/profile:
+  /users/{userId}/profile:
     put:
       tags:
         - Users
       summary: Update logged-in user's profile
-      description: Updates profile details (firstName, lastName, username, phone, address). User must own the profile.
+      description: Updates profile details. User must own the profile.
       security:
         - bearerAuth: []
       parameters:
@@ -816,30 +1325,15 @@ paths:
                       address:
                         type: string
                   profile:
-                    type: object
-                    properties:
-                      _id:
-                        type: string
-                      userId:
-                        type: string
-                      firstName:
-                        type: string
-                      lastName:
-                        type: string
-                      userName:
-                        type: string
-                      phoneNumber:
-                        type: string
-                      address:
-                        type: string
+                    $ref: "#/components/schemas/Profile"
         "400":
           description: Validation error or profile not found
         "401":
           description: Unauthorized
         "403":
-          description: Forbidden (not profile owner)
+          description: Forbidden - Not profile owner
 
-  /api/v1/users/{userId}/role:
+  /users/{userId}/role:
     patch:
       tags:
         - Users
@@ -862,19 +1356,30 @@ paths:
                 - newRole
               properties:
                 newRole:
-                  type: string
-                  enum: [Customer, Admin, SuperAdmin]
+                  $ref: "#/components/schemas/UserRole"
       responses:
         "200":
           description: User role updated successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User role updated"
+                  user:
+                    $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid role
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Superadmin only
         "404":
           description: User not found
 
-  /api/v1/users/{userId}/activeness:
+  /users/{userId}/activeness:
     patch:
       tags:
         - Users
@@ -893,11 +1398,21 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User activeness toggled"
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Superadmin only
         "404":
           description: User not found
 
-  /api/v1/users/{userId}/address:
+  /users/{userId}/address:
     get:
       tags:
         - Users
@@ -924,11 +1439,15 @@ paths:
                   address:
                     type: string
                     example: "Lagos, Nigeria"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Not account owner
         "404":
           description: Profile not found
 
-  # ==================== COLLECTIONS ENDPOINTS ====================
-  /api/v1/collections:
+  # ==================== COLLECTIONS ====================
+  /collections:
     post:
       tags:
         - Collections
@@ -961,7 +1480,11 @@ paths:
                   collection:
                     $ref: "#/components/schemas/Collection"
         "400":
-          description: Bad request / Collection already exists
+          description: Collection already exists or bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
     get:
       tags:
         - Collections
@@ -971,12 +1494,15 @@ paths:
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
           example: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
           example: 10
       responses:
@@ -985,26 +1511,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  collections:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Collection"
-                  total:
-                    type: integer
-                    example: 25
-                  page:
-                    type: integer
-                    example: 1
-                  pages:
-                    type: integer
-                    example: 3
+                $ref: "#/components/schemas/PaginatedCollections"
 
-  /api/v1/collections/{id}:
+  /collections/{id}:
     put:
       tags:
         - Collections
@@ -1043,7 +1552,11 @@ paths:
                   collection:
                     $ref: "#/components/schemas/Collection"
         "400":
-          description: Bad request
+          description: Bad request or name already exists
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
         "404":
           description: Collection not found
     delete:
@@ -1072,10 +1585,14 @@ paths:
                   message:
                     type: string
                     example: "Collection deleted successfully"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
         "404":
           description: Collection not found
 
-  /api/v1/collections/{collectionId}/all-products:
+  /collections/{collectionId}/all-products:
     get:
       tags:
         - Products
@@ -1088,7 +1605,7 @@ paths:
             type: string
       responses:
         "200":
-          description: List of products
+          description: List of products in collection
           content:
             application/json:
               schema:
@@ -1101,9 +1618,11 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Product"
+        "404":
+          description: Collection not found
 
-  # ==================== PRODUCTS ENDPOINTS ====================
-  /api/v1/collections/{collectionId}/products:
+  # ==================== PRODUCTS ====================
+  /collections/{collectionId}/products:
     post:
       tags:
         - Products
@@ -1123,33 +1642,19 @@ paths:
             schema:
               type: object
               required:
-                - name
-                - price
+                - productData
+                - images
               properties:
-                name:
+                productData:
                   type: string
-                description:
-                  type: string
-                price:
-                  type: number
-                dimension:
-                  type: object
-                  properties:
-                    width:
-                      type: string
-                    height:
-                      type: string
-                minOrder:
-                  type: number
-                material:
-                  type: string
-                deliveryDay:
-                  type: string
+                  description: JSON string of product data
+                  example: '{"name":"A5 Flyer","description":"High quality flyer","price":50,"dimension":{"width":"100mm","height":"150mm"},"minOrder":100,"material":"Glossy paper","deliveryDay":"3-5 business days"}'
                 images:
                   type: array
                   items:
                     type: string
                     format: binary
+                  description: Product images (max 10 files)
       responses:
         "201":
           description: Product created successfully
@@ -1165,8 +1670,14 @@ paths:
                     $ref: "#/components/schemas/Product"
         "400":
           description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+        "404":
+          description: Collection not found
 
-  /api/v1/products/{id}:
+  /products/{id}:
     get:
       tags:
         - Products
@@ -1211,25 +1722,16 @@ paths:
             schema:
               type: object
               properties:
-                name:
+                productData:
                   type: string
-                description:
-                  type: string
-                price:
-                  type: number
-                dimension:
-                  type: string
-                minOrder:
-                  type: number
-                material:
-                  type: string
-                deliveryDay:
-                  type: string
+                  description: JSON string of product data to update
+                  example: '{"name":"Updated Flyer","price":55}'
                 images:
                   type: array
                   items:
                     type: string
                     format: binary
+                  description: New product images (optional)
       responses:
         "200":
           description: Product updated successfully
@@ -1245,6 +1747,10 @@ paths:
                     $ref: "#/components/schemas/Product"
         "400":
           description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
         "404":
           description: Product not found
     delete:
@@ -1273,10 +1779,14 @@ paths:
                   message:
                     type: string
                     example: "Product deleted successfully"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
         "404":
           description: Product not found
 
-  /api/v1/products:
+  /products:
     get:
       tags:
         - Products
@@ -1286,12 +1796,15 @@ paths:
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
           example: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
           example: 10
       responses:
@@ -1300,26 +1813,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  products:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Product"
-                  total:
-                    type: integer
-                    example: 50
-                  page:
-                    type: integer
-                    example: 1
-                  pages:
-                    type: integer
-                    example: 5
+                $ref: "#/components/schemas/PaginatedProducts"
 
-  /api/v1/products/filter:
+  /products/filter:
     get:
       tags:
         - Products
@@ -1329,19 +1825,18 @@ paths:
           name: priceMin
           schema:
             type: number
+            minimum: 0
+          example: 10
         - in: query
           name: priceMax
           schema:
             type: number
+            minimum: 0
+          example: 100
         - in: query
           name: status
           schema:
-            type: string
-            enum: [active, inactive, archived]
-        - in: query
-          name: deliveryDay
-          schema:
-            type: string
+            $ref: "#/components/schemas/ProductStatus"
         - in: query
           name: collectionId
           schema:
@@ -1350,11 +1845,14 @@ paths:
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
       responses:
         "200":
@@ -1362,23 +1860,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  products:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Product"
-                  total:
-                    type: integer
-                  page:
-                    type: integer
-                  pages:
-                    type: integer
+                $ref: "#/components/schemas/PaginatedProducts"
 
-  /api/v1/products/search:
+  /products/search:
     get:
       tags:
         - Products
@@ -1386,17 +1870,22 @@ paths:
       parameters:
         - in: query
           name: search
+          required: true
           schema:
             type: string
+          example: "flyer"
         - in: query
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
       responses:
         "200":
@@ -1404,55 +1893,22 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  products:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Product"
-                  total:
-                    type: integer
-                  page:
-                    type: integer
-                  pages:
-                    type: integer
+                $ref: "#/components/schemas/PaginatedProducts"
 
-  # ==================== ATTACHMENTS ENDPOINTS ====================
-  /attachments/download/{filename}:
-    get:
+  # ==================== DESIGNS ====================
+  /designs/orders/{orderId}:
+    post:
       tags:
-        - Attachments
-      summary: Download a file by filename
+        - Designs
+      summary: Upload a new design for an order
+      security:
+        - bearerAuth: []
       parameters:
-        - name: filename
+        - name: orderId
           in: path
           required: true
           schema:
             type: string
-      responses:
-        "200":
-          description: File downloaded successfully
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-        "404":
-          description: File not found
-        "500":
-          description: Failed to download file
-
-  # ==================== DESIGNS ENDPOINTS ====================
-  /api/v1/designs:
-    post:
-      tags:
-        - Designs
-      summary: Create a new design
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -1460,24 +1916,24 @@ paths:
             schema:
               type: object
               required:
-                - name
                 - productId
-                - file
+                - images
               properties:
-                name:
-                  type: string
-                  example: "My Cool Design"
-                description:
-                  type: string
                 productId:
                   type: string
-                  example: "64a2f7b..."
-                file:
+                  example: "60d21b4667d0d8992e610c88"
+                description:
                   type: string
-                  format: binary
+                  example: "Initial design based on customer brief"
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Design files (at least one required)
       responses:
         "201":
-          description: Design created successfully
+          description: Design uploaded successfully
           content:
             application/json:
               schema:
@@ -1490,88 +1946,59 @@ paths:
                     $ref: "#/components/schemas/Design"
         "400":
           description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+        "404":
+          description: Order not found
 
     get:
       tags:
         - Designs
-      summary: Get paginated list of designs
+      summary: Get all designs for an order
       security:
         - bearerAuth: []
       parameters:
-        - in: query
-          name: page
-          schema:
-            type: integer
-            default: 1
-          example: 1
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            default: 10
-          example: 10
-      responses:
-        "200":
-          description: Paginated designs list
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  designs:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Design"
-                  total:
-                    type: integer
-                    example: 25
-                  page:
-                    type: integer
-                    example: 1
-                  pages:
-                    type: integer
-                    example: 3
-
-  /api/v1/designs/{id}:
-    get:
-      tags:
-        - Designs
-      summary: Get a single design by ID
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
+        - name: orderId
           in: path
           required: true
           schema:
             type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
       responses:
         "200":
-          description: Design details
+          description: Order's designs
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  design:
-                    $ref: "#/components/schemas/Design"
+                $ref: "#/components/schemas/PaginatedDesigns"
+        "401":
+          description: Unauthorized
         "404":
-          description: Design not found
+          description: Order not found
 
+  /designs/update/{designId}:
     put:
       tags:
         - Designs
-      summary: Update a design
+      summary: Update an existing design
       security:
         - bearerAuth: []
       parameters:
-        - name: id
+        - name: designId
           in: path
           required: true
           schema:
@@ -1583,15 +2010,14 @@ paths:
             schema:
               type: object
               properties:
-                name:
-                  type: string
                 description:
                   type: string
-                productId:
-                  type: string
-                file:
-                  type: string
-                  format: binary
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: New design files
       responses:
         "200":
           description: Design updated successfully
@@ -1605,9 +2031,16 @@ paths:
                     example: true
                   design:
                     $ref: "#/components/schemas/Design"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
         "404":
           description: Design not found
 
+  /designs/delete/{designId}:
     delete:
       tags:
         - Designs
@@ -1615,7 +2048,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
+        - name: designId
           in: path
           required: true
           schema:
@@ -1634,14 +2067,83 @@ paths:
                   message:
                     type: string
                     example: "Design deleted successfully"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Superadmin only
         "404":
           description: Design not found
 
-  /api/v1/designs/user/{userId}:
+  /designs/{designId}/approve:
+    put:
+      tags:
+        - Designs
+      summary: Approve a design
+      description: Customer approves the design
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: designId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Design approved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  design:
+                    $ref: "#/components/schemas/Design"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Not order owner
+        "404":
+          description: Design not found
+
+  /designs/{designId}:
     get:
       tags:
         - Designs
-      summary: Get all designs by a user
+      summary: Get design by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: designId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Design details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  design:
+                    $ref: "#/components/schemas/Design"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Design not found
+
+  /designs/users/{userId}:
+    get:
+      tags:
+        - Designs
+      summary: Get all designs for a user
       security:
         - bearerAuth: []
       parameters:
@@ -1654,37 +2156,30 @@ paths:
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
       responses:
         "200":
-          description: User's designs list
+          description: User's designs
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  designs:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Design"
-                  total:
-                    type: integer
-                  page:
-                    type: integer
-                  pages:
-                    type: integer
+                $ref: "#/components/schemas/PaginatedDesigns"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
         "404":
-          description: User or designs not found
+          description: User not found
 
-  /api/v1/designs/product/{productId}:
+  /designs/products/{productId}:
     get:
       tags:
         - Designs
@@ -1701,66 +2196,116 @@ paths:
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
       responses:
         "200":
-          description: Product's designs list
+          description: Product's designs
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  designs:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Design"
-                  total:
-                    type: integer
-                  page:
-                    type: integer
-                  pages:
-                    type: integer
+                $ref: "#/components/schemas/PaginatedDesigns"
+        "401":
+          description: Unauthorized
         "404":
-          description: Product or designs not found
+          description: Product not found
 
-  /api/v1/designs/filter:
+  /designs/all:
     get:
       tags:
         - Designs
-      summary: Filter designs by product, user, or status
+      summary: Get all designs (paginated)
       security:
         - bearerAuth: []
       parameters:
         - in: query
-          name: productId
+          name: page
           schema:
-            type: string
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: Paginated designs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedDesigns"
+        "401":
+          description: Unauthorized
+
+  /designs/filter:
+    get:
+      tags:
+        - Designs
+      summary: Filter designs with criteria
+      security:
+        - bearerAuth: []
+      parameters:
         - in: query
           name: userId
           schema:
             type: string
         - in: query
-          name: status
+          name: orderId
           schema:
             type: string
-            enum: [active, inactive, archived]
+        - in: query
+          name: productId
+          schema:
+            type: string
+        - in: query
+          name: uploadedBy
+          schema:
+            type: string
+        - in: query
+          name: isApproved
+          schema:
+            type: boolean
+        - in: query
+          name: minVersion
+          schema:
+            type: integer
+        - in: query
+          name: maxVersion
+          schema:
+            type: integer
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
         - in: query
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
       responses:
         "200":
@@ -1768,24 +2313,14 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  designs:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Design"
-                  total:
-                    type: integer
-                  page:
-                    type: integer
-                  pages:
-                    type: integer
+                $ref: "#/components/schemas/PaginatedDesigns"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
 
-  # ==================== ORDERS ENDPOINTS ====================
-  /api/v1/orders/create:
+  # ==================== ORDERS ====================
+  /orders/create:
     post:
       tags:
         - Orders
@@ -1822,7 +2357,7 @@ paths:
         "403":
           description: Forbidden - Not a customer
 
-  /api/v1/orders/my-orders:
+  /orders/my-orders:
     get:
       tags:
         - Orders
@@ -1835,42 +2370,26 @@ paths:
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
-          example: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
-          example: 10
       responses:
         "200":
           description: List of user orders
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  order:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Order"
-                  total:
-                    type: integer
-                    example: 25
-                  page:
-                    type: integer
-                    example: 1
-                  limit:
-                    type: integer
-                    example: 10
+                $ref: "#/components/schemas/PaginatedOrders"
         "401":
           description: Unauthorized
 
-  /api/v1/orders/{id}:
+  /orders/{id}:
     get:
       tags:
         - Orders
@@ -1903,7 +2422,6 @@ paths:
           description: Forbidden - Not authorized to view
         "404":
           description: Order not found
-
     put:
       tags:
         - Orders
@@ -1947,7 +2465,6 @@ paths:
           description: Forbidden
         "404":
           description: Order not found
-
     delete:
       tags:
         - Orders
@@ -1982,7 +2499,7 @@ paths:
         "404":
           description: Order not found
 
-  /api/v1/orders:
+  /orders:
     get:
       tags:
         - Orders
@@ -1995,44 +2512,28 @@ paths:
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
-          example: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
-          example: 10
       responses:
         "200":
           description: List of all orders
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  order:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Order"
-                  total:
-                    type: integer
-                    example: 50
-                  page:
-                    type: integer
-                    example: 1
-                  limit:
-                    type: integer
-                    example: 10
+                $ref: "#/components/schemas/PaginatedOrders"
         "401":
           description: Unauthorized
         "403":
           description: Forbidden - Admin only
 
-  /api/v1/orders/{id}/status:
+  /orders/{id}/status:
     patch:
       tags:
         - Orders
@@ -2077,7 +2578,7 @@ paths:
         "404":
           description: Order not found
 
-  /api/v1/orders/filter:
+  /orders/filter:
     get:
       tags:
         - Orders
@@ -2108,10 +2609,12 @@ paths:
           name: minAmount
           schema:
             type: number
+            minimum: 0
         - in: query
           name: maxAmount
           schema:
             type: number
+            minimum: 0
         - in: query
           name: userId
           schema:
@@ -2120,11 +2623,14 @@ paths:
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
       responses:
         "200":
@@ -2132,27 +2638,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  order:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Order"
-                  total:
-                    type: integer
-                  page:
-                    type: integer
-                  limit:
-                    type: integer
+                $ref: "#/components/schemas/PaginatedOrders"
         "401":
           description: Unauthorized
         "403":
           description: Forbidden - Admin only
 
-  /api/v1/orders/needing-invoice:
+  /orders/needing-invoice:
     get:
       tags:
         - Orders
@@ -2180,7 +2672,7 @@ paths:
         "403":
           description: Forbidden - Admin only
 
-  /api/v1/orders/search/{orderNumber}:
+  /orders/search/{orderNumber}:
     get:
       tags:
         - Orders
@@ -2214,7 +2706,7 @@ paths:
         "404":
           description: Order not found
 
-  /api/v1/orders/super-admin/create/{customerId}:
+  /orders/super-admin/create/{customerId}:
     post:
       tags:
         - Orders
@@ -2259,8 +2751,8 @@ paths:
         "404":
           description: Customer not found
 
-  # ==================== CUSTOMER BRIEFS ENDPOINTS ====================
-  /api/v1/customer/orders/{orderId}/products/{productId}/brief:
+  # ==================== CUSTOMER BRIEFS ====================
+  /customer/orders/{orderId}/products/{productId}/brief:
     post:
       tags:
         - Customer Briefs
@@ -2274,13 +2766,11 @@ paths:
           required: true
           schema:
             type: string
-          example: "60d21b4667d0d8992e610c86"
         - name: productId
           in: path
           required: true
           schema:
             type: string
-          example: "60d21b4667d0d8992e610c87"
       requestBody:
         required: true
         content:
@@ -2329,7 +2819,6 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden - Not a customer or not order owner
-
     put:
       tags:
         - Customer Briefs
@@ -2392,7 +2881,7 @@ paths:
         "403":
           description: Forbidden
 
-  /api/v1/admin/orders/{orderId}/products/{productId}/respond:
+  /admin/orders/{orderId}/products/{productId}/respond:
     post:
       tags:
         - Customer Briefs
@@ -2423,7 +2912,6 @@ paths:
                   example: "Based on your request, I've created this design"
                 designId:
                   type: string
-                  example: "60d21b4667d0d8992e610c88"
                   description: ID of the design being shared
                 image:
                   type: string
@@ -2460,7 +2948,6 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden - Not admin
-
     put:
       tags:
         - Customer Briefs
@@ -2525,7 +3012,7 @@ paths:
         "403":
           description: Forbidden
 
-  /api/v1/customer/briefs:
+  /customer/briefs:
     get:
       tags:
         - Customer Briefs
@@ -2538,44 +3025,28 @@ paths:
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
-          example: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
-          example: 10
       responses:
         "200":
           description: List of customer briefs
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  briefs:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/CustomerBrief"
-                  total:
-                    type: integer
-                    example: 25
-                  page:
-                    type: integer
-                    example: 1
-                  pages:
-                    type: integer
-                    example: 3
+                $ref: "#/components/schemas/PaginatedCustomerBriefs"
         "401":
           description: Unauthorized
         "403":
-          description: Forbidden
+          description: Forbidden - Customer only
 
-  /api/v1/admin/briefs:
+  /admin/briefs:
     get:
       tags:
         - Customer Briefs
@@ -2598,11 +3069,14 @@ paths:
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
       responses:
         "200":
@@ -2610,34 +3084,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  briefs:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        needsAdminResponse:
-                          type: boolean
-                        hasAdminResponse:
-                          type: boolean
-                        brief:
-                          $ref: "#/components/schemas/CustomerBrief"
-                  total:
-                    type: integer
-                  page:
-                    type: integer
-                  pages:
-                    type: integer
+                $ref: "#/components/schemas/AdminBriefsResponse"
         "401":
           description: Unauthorized
         "403":
-          description: Forbidden
+          description: Forbidden - Admin only
 
-  /api/v1/briefs/orders/{orderId}/products/{productId}:
+  /briefs/orders/{orderId}/products/{productId}:
     get:
       tags:
         - Customer Briefs
@@ -2676,7 +3129,7 @@ paths:
         "404":
           description: Order not found
 
-  /api/v1/briefs/{briefId}:
+  /briefs/{briefId}:
     get:
       tags:
         - Customer Briefs
@@ -2709,7 +3162,6 @@ paths:
           description: Forbidden
         "404":
           description: Brief not found
-
     delete:
       tags:
         - Customer Briefs
@@ -2740,11 +3192,11 @@ paths:
         "401":
           description: Unauthorized
         "403":
-          description: Forbidden - Not super admin
+          description: Forbidden - Super admin only
         "404":
           description: Brief not found
 
-  /api/v1/briefs/status/{orderId}/{productId}:
+  /briefs/status/{orderId}/{productId}:
     get:
       tags:
         - Customer Briefs
@@ -2779,7 +3231,7 @@ paths:
         "401":
           description: Unauthorized
 
-  /api/v1/briefs/filter:
+  /briefs/filter:
     get:
       tags:
         - Customer Briefs
@@ -2822,16 +3274,20 @@ paths:
           name: page
           schema:
             type: integer
+            minimum: 1
             default: 1
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 10
         - in: query
           name: sortBy
           schema:
             type: string
+            enum: [createdAt, updatedAt, role]
             default: createdAt
         - in: query
           name: sortOrder
@@ -2845,27 +3301,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  briefs:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/CustomerBrief"
-                  total:
-                    type: integer
-                  page:
-                    type: integer
-                  pages:
-                    type: integer
+                $ref: "#/components/schemas/PaginatedCustomerBriefs"
         "401":
           description: Unauthorized
         "403":
-          description: Forbidden
+          description: Forbidden - Admin only
 
-  /api/v1/analytics/product/{productId}:
+  /analytics/product/{productId}:
     get:
       tags:
         - Customer Briefs
@@ -2901,21 +3343,457 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    type: object
-                    properties:
-                      totalBriefs:
-                        type: integer
-                        example: 50
-                      customerBriefs:
-                        type: integer
-                        example: 30
-                      adminResponses:
-                        type: integer
-                        example: 25
-                      completionRate:
-                        type: number
-                        example: 83.33
+                    $ref: "#/components/schemas/BriefAnalytics"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+
+  # ==================== FEEDBACK ====================
+  /feedback:
+    post:
+      tags:
+        - Feedback
+      summary: Create new feedback (Customer only)
+      description: Customer submits feedback about an order or design
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - orderId
+                - message
+              properties:
+                orderId:
+                  type: string
+                  example: "60d21b4667d0d8992e610c89"
+                designId:
+                  type: string
+                  description: Optional - if feedback is about a specific design
+                message:
+                  type: string
+                  minLength: 1
+                  example: "The design needs to be darker, can you adjust it?"
+                attachments:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Optional - Max 5 files, 10MB each (images only)
+      responses:
+        "201":
+          description: Feedback created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Feedback submitted successfully"
+                  data:
+                    $ref: "#/components/schemas/FeedbackWithPopulated"
+        "400":
+          description: Bad request - Missing required fields
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Not a customer
+
+  /feedback/user:
+    get:
+      tags:
+        - Feedback
+      summary: Get all feedback for logged-in customer
+      description: Returns paginated list of feedback submitted by the customer
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: List of customer feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedFeedback"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Customer only
+
+  /feedback/pending:
+    get:
+      tags:
+        - Feedback
+      summary: Get pending feedback (Admin only)
+      description: Returns paginated list of feedback with Pending status for admin dashboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: List of pending feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedFeedback"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+
+  /feedback/{feedbackId}/respond:
+    post:
+      tags:
+        - Feedback
+      summary: Admin responds to feedback
+      description: Admin submits a response to customer feedback
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: feedbackId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  type: string
+                  minLength: 1
+                  example: "I've made the design darker as requested. Please check the updated version."
+      responses:
+        "200":
+          description: Response submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Response submitted successfully"
+                  data:
+                    $ref: "#/components/schemas/FeedbackWithPopulated"
+        "400":
+          description: Bad request - Empty response
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Not admin
+        "404":
+          description: Feedback not found
+
+  /feedback/{feedbackId}/status:
+    patch:
+      tags:
+        - Feedback
+      summary: Update feedback status
+      description: Update the status of feedback (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: feedbackId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  $ref: "#/components/schemas/FeedBackStatus"
+      responses:
+        "200":
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Feedback status updated"
+                  data:
+                    $ref: "#/components/schemas/FeedbackWithPopulated"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+        "404":
+          description: Feedback not found
+
+  /feedback/{feedbackId}:
+    get:
+      tags:
+        - Feedback
+      summary: Get feedback by ID
+      description: Returns a single feedback with populated data
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: feedbackId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Feedback details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/FeedbackWithPopulated"
         "401":
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Feedback not found
+    delete:
+      tags:
+        - Feedback
+      summary: Delete feedback (Super Admin only)
+      description: Permanently delete feedback from the system
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: feedbackId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Feedback deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Feedback deleted successfully"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Super admin only
+        "404":
+          description: Feedback not found
+
+  /feedback/order/{orderId}:
+    get:
+      tags:
+        - Feedback
+      summary: Get all feedback for an order
+      description: Returns all feedback associated with a specific order
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of feedback for the order
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FeedbackWithPopulated"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Order not found
+
+  # ==================== ATTACHMENTS ====================
+  /attachments/download/{filename}:
+    get:
+      tags:
+        - Attachments
+      summary: Download a file by filename
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File downloaded successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: File not found
+        "500":
+          description: Failed to download file
+
+  # ==================== WEBSOCKET ====================
+  /websocket/events:
+    get:
+      tags:
+        - WebSocket
+      summary: WebSocket event reference
+      description: |
+        ## WebSocket Events
+
+        ### Connection
+        - Connect to: `ws://localhost:4001` or `wss://api.ampleprinthub.com`
+        - Authentication: Send JWT token in query param: `?token=your_jwt_token`
+
+        ### Rooms
+        - Users are automatically added to room: `user-{userId}`
+        - Admins are added to room: `admin-room`
+        - SuperAdmins are added to room: `superadmin-room`
+
+        ### Server Emits
+
+        **To Customer (room: `user-{userId}`):**
+        - `admin-brief-response` - Admin responded to customization brief
+        - `feedback-response` - Admin responded to feedback
+        - `feedback-status-updated` - Feedback status changed
+        - `feedback-deleted` - Feedback was deleted
+        - `order-status-updated` - Order status changed
+        - `brief-deleted` - Brief was deleted by super admin
+
+        **To Admin (room: `admin-room`):**
+        - `new-order` - New order created
+        - `new-customer-brief` - Customer submitted new brief
+        - `new-feedback` - New feedback received
+        - `designUploaded` - New design uploaded
+        - `feedback-resolved` - Feedback was resolved
+        - `feedback-status-updated` - Feedback status changed
+        - `feedback-deleted` - Feedback was deleted
+        - `pending-feedback-count` - Updated count of pending feedback
+        - `brief-deleted` - Brief was deleted
+
+        **To SuperAdmin (room: `superadmin-room`):**
+        - `new-order` - New order created (requires invoice)
+        - `new-customer-brief` - New customer brief
+        - `new-feedback` - New feedback
+        - `designUploaded` - Design uploaded
+
+        ### Event Payload Examples
+
+        **new-order:**
+        ```json
+        {
+          "orderId": "60d21b4667d0d8992e610c89",
+          "orderNumber": "ORD-2024-001",
+          "message": "New order requires invoice generation"
+        }
+        ```
+
+        **new-customer-brief:**
+        ```json
+        {
+          "briefId": "60d21b4667d0d8992e610c92",
+          "orderId": "60d21b4667d0d8992e610c89",
+          "orderNumber": "ORD-2024-001",
+          "productId": "60d21b4667d0d8992e610c88",
+          "message": "New customization request from customer",
+          "timestamp": "2024-01-01T10:00:00Z"
+        }
+        ```
+
+        **admin-brief-response:**
+        ```json
+        {
+          "briefId": "60d21b4667d0d8992e610c92",
+          "orderId": "60d21b4667d0d8992e610c89",
+          "orderNumber": "ORD-2024-001",
+          "productId": "60d21b4667d0d8992e610c88",
+          "role": "admin",
+          "message": "Admin has responded to your customization request",
+          "hasDesign": true,
+          "timestamp": "2024-01-02T14:30:00Z"
+        }
+        ```
+
+        **pending-feedback-count:**
+        ```json
+        {
+          "count": 5,
+          "timestamp": "2024-01-01T10:00:00Z"
+        }
+        ```
+      responses:
+        "200":
+          description: WebSocket event reference
