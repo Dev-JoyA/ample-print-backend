@@ -1,9 +1,9 @@
-import { Document, Types, Schema, model } from "mongoose"
+import { Document, Types, Schema, model } from "mongoose";
 
 export enum CustomerBriefRole {
-    Customer = "customer",
-    Admin = "admin",
-    SuperAdmin = "super-admin"
+  Customer = "customer",
+  Admin = "admin",
+  SuperAdmin = "super-admin",
 }
 export interface ICustomerBrief extends Document {
   orderId: Types.ObjectId;
@@ -68,9 +68,14 @@ const CustomerBriefSchema = new Schema<ICustomerBrief>(
   { timestamps: true },
 );
 
-CustomerBriefSchema.index({ orderId: 1, productId: 1, role: 1 }, { unique: true });
+CustomerBriefSchema.index(
+  { orderId: 1, productId: 1, role: 1 },
+  { unique: true },
+);
 
 CustomerBriefSchema.index({ orderId: 1 });
+
+CustomerBriefSchema.index({ role: 1, createdAt: -1 });
 
 export const CustomerBrief = model<ICustomerBrief>(
   "CustomerBrief",

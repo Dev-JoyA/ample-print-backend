@@ -127,6 +127,9 @@ const OrderSchema = new Schema<IOrderModel>(
   },
 );
 
+OrderSchema.index({ status: 1, createdAt: -1 }); // For dashboard queries
+OrderSchema.index({ paymentStatus: 1, userId: 1 }); // For user payment queries
+OrderSchema.index({ orderNumber: 1 }); // Already has unique, but ensure
 //filter by status:
 
 export const Order = model<IOrderModel>("Order", OrderSchema);
