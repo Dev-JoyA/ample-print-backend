@@ -57,4 +57,8 @@ const FeedbackSchema = new Schema<IFeedback>(
   { timestamps: true },
 );
 
+FeedbackSchema.index({ status: 1, createdAt: -1 }); // For pending feedback queries
+FeedbackSchema.index({ orderId: 1 }); // For order feedback
+FeedbackSchema.index({ userId: 1, createdAt: -1 });
+
 export const Feedback = model<IFeedback>("Feedback", FeedbackSchema);

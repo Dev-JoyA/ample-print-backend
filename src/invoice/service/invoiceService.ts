@@ -37,7 +37,7 @@ export const createInvoice = async (
     discount: data.discount || 0,
     status: InvoiceStatus.Draft,
   });
-  
+
   order.status = OrderStatus.InvoiceSent;
   order.status = OrderStatus.AwaitingDeposit;
   await order.save();

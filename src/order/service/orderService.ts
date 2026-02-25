@@ -13,6 +13,62 @@ import { Server } from "socket.io";
 import emails from "../../utils/email.js";
 import { Types } from "mongoose";
 
+const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
+  [OrderStatus.Pending]: [OrderStatus.OrderReceived, OrderStatus.Cancelled],
+  [OrderStatus.OrderReceived]: [
+    OrderStatus.FilesUploaded,
+    OrderStatus.InvoiceSent,
+    OrderStatus.Cancelled,
+  ],
+  [OrderStatus.FilesUploaded]: [
+    OrderStatus.DesignUploaded,
+    OrderStatus.Cancelled,
+  ],
+  [OrderStatus.InvoiceSent]: [
+    OrderStatus.AwaitingDeposit,
+    OrderStatus.Cancelled,
+  ],
+  [OrderStatus.AwaitingDeposit]: [
+    OrderStatus.DepositPaid,
+    OrderStatus.Cancelled,
+  ],
+  [OrderStatus.DepositPaid]: [
+    OrderStatus.DesignUploaded,
+    OrderStatus.Cancelled,
+  ],
+  [OrderStatus.DesignUploaded]: [
+    OrderStatus.UnderReview,
+    OrderStatus.Cancelled,
+  ],
+  [OrderStatus.UnderReview]: [
+    OrderStatus.Approved,
+    OrderStatus.AwaitingPartPayment,
+    OrderStatus.Cancelled,
+  ],
+  [OrderStatus.Approved]: [OrderStatus.InProduction, OrderStatus.Cancelled],
+  [OrderStatus.AwaitingPartPayment]: [
+    OrderStatus.PartPaymentMade,
+    OrderStatus.Cancelled,
+  ],
+  [OrderStatus.PartPaymentMade]: [
+    OrderStatus.InProduction,
+    OrderStatus.Cancelled,
+  ],
+  [OrderStatus.InProduction]: [OrderStatus.Completed, OrderStatus.Cancelled],
+  [OrderStatus.Completed]: [
+    OrderStatus.AwaitingFinalPayment,
+    OrderStatus.Shipped,
+    OrderStatus.Delivered,
+  ],
+  [OrderStatus.AwaitingFinalPayment]: [
+    OrderStatus.FinalPaid,
+    OrderStatus.Cancelled,
+  ],
+  [OrderStatus.FinalPaid]: [OrderStatus.Shipped, OrderStatus.Delivered],
+  [OrderStatus.Shipped]: [OrderStatus.Delivered],
+  [OrderStatus.Cancelled]: [],
+  [OrderStatus.Delivered]: [],
+};
 
 export const createOrder = async (
   userId: string,
@@ -64,8 +120,15 @@ export const createOrder = async (
       productName: product.name,
       quantity: item.quantity,
       price: product.price,
+      productSnapshot: {
+        name: product.name,
+        description: product.description,
+        dimension: product.dimension,
+        minOrder: product.minOrder,
+        material: product.material,
+      },
     });
-    
+
     totalAmount += product.price * item.quantity;
   }
 
@@ -84,7 +147,6 @@ export const createOrder = async (
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (!profile) throw new Error("Profile not found");
 
-  
   io.to("superadmin-room").emit("new-order", {
     orderId: order._id,
     orderNumber: order.orderNumber,
@@ -103,7 +165,7 @@ export const createOrder = async (
 
         Order Number: ${order.orderNumber}
         Items Ordered:
-        ${orderItems.map(item => `- ${item.productName} x ${item.quantity} = ₦${item.price * item.quantity}`).join('\n')}
+        ${orderItems.map((item) => `- ${item.productName} x ${item.quantity} = ₦${item.price * item.quantity}`).join("\n")}
         Total Amount: ₦${totalAmount}
 
         Next Steps:
@@ -131,7 +193,7 @@ export const superAdminCreateOrder = async (
   customerId: string,
   data: OrderData,
   superAdminId: string,
-  io: Server
+  io: Server,
 ): Promise<IOrderModel> => {
   const customer = await User.findById(customerId);
   if (!customer) throw new Error("Customer not found");
@@ -175,7 +237,7 @@ export const superAdminCreateOrder = async (
       quantity: item.quantity,
       price: product.price,
     });
-    
+
     totalAmount += product.price * item.quantity;
   }
 
@@ -201,7 +263,7 @@ export const superAdminCreateOrder = async (
 
         Order Number: ${order.orderNumber}
         Items Ordered:
-        ${orderItems.map(item => `- ${item.productName} x ${item.quantity} = ₦${item.price * item.quantity}`).join('\n')}
+        ${orderItems.map((item) => `- ${item.productName} x ${item.quantity} = ₦${item.price * item.quantity}`).join("\n")}
         Total Amount: ₦${totalAmount}
 
         Next Steps:
@@ -215,8 +277,8 @@ export const superAdminCreateOrder = async (
       `Order Created: ${order.orderNumber}`,
       "Your order has been created",
       profile.firstName,
-      emailBody
-    ).catch(err => console.error("Error sending email", err));
+      emailBody,
+    ).catch((err) => console.error("Error sending email", err));
   }
 
   io.to("admin-room").emit("new-order", {
@@ -237,7 +299,6 @@ export const updateOrder = async (
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
 
-
   const isOwner = order.userId.toString() === userId;
   const isAdmin = userRole === UserRole.SuperAdmin;
 
@@ -247,9 +308,9 @@ export const updateOrder = async (
 
   // Restrict what customers can update
   if (isOwner && !isAdmin) {
-    const allowedFields = ['shippingAddress', 'phoneNumber', 'notes'];
+    const allowedFields = ["shippingAddress", "phoneNumber", "notes"];
     const updates = Object.keys(data);
-    
+
     for (const field of updates) {
       if (!allowedFields.includes(field)) {
         throw new Error(`You cannot update the '${field}' field`);
@@ -263,14 +324,14 @@ export const updateOrder = async (
   });
 
   if (!updatedOrder) throw new Error("Failed to update order");
-  
+
   return updatedOrder;
 };
 
 export const deleteOrder = async (
   orderId: string,
   userId: string,
-  userRole: string
+  userRole: string,
 ): Promise<string> => {
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
@@ -280,12 +341,16 @@ export const deleteOrder = async (
   const isSuperAdmin = userRole === UserRole.SuperAdmin;
 
   if (!isOwner && !isSuperAdmin) {
-    throw new Error("Only the order owner or Super Admin can delete this order");
+    throw new Error(
+      "Only the order owner or Super Admin can delete this order",
+    );
   }
 
-  if (order.status !== OrderStatus.Pending && 
-      order.status !== OrderStatus.OrderReceived && 
-      !isSuperAdmin) {
+  if (
+    order.status !== OrderStatus.Pending &&
+    order.status !== OrderStatus.OrderReceived &&
+    !isSuperAdmin
+  ) {
     throw new Error("Cannot delete order once it's been processed");
   }
 
@@ -293,24 +358,23 @@ export const deleteOrder = async (
   return "Order deleted successfully";
 };
 
-
 export const getOrderById = async (
   id: string,
   userId: string,
-  userRole: string
+  userRole: string,
 ): Promise<IOrderModel> => {
   const order = await Order.findById(id)
     .populate("userId", "email")
     .populate("items.productId", "name images dimensions")
     .exec();
-    
+
   if (!order) throw new Error("Order not found");
-  
+
   // Check authorization
   if (userRole === UserRole.Customer && order.userId.toString() !== userId) {
     throw new Error("Unauthorized to view this order");
   }
-  
+
   return order;
 };
 
@@ -321,7 +385,7 @@ export const getUserOrders = async (
   limit: number = 10,
 ): Promise<PaginatedOrder> => {
   const skip = (page - 1) * limit;
-  
+
   const [orders, total] = await Promise.all([
     Order.find({ userId: userId })
       .skip(skip)
@@ -331,11 +395,11 @@ export const getUserOrders = async (
     Order.countDocuments({ userId: userId }),
   ]);
 
-  return { 
-    order: orders, 
-    total, 
-    page, 
-    limit 
+  return {
+    order: orders,
+    total,
+    page,
+    limit,
   };
 };
 
@@ -345,7 +409,7 @@ export const updateOrderStatus = async (
   newStatus: OrderStatus,
   userId: string,
   userRole: string,
-  io: Server
+  io: Server,
 ): Promise<IOrderModel> => {
   // Only admins can update status
   if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
@@ -354,6 +418,12 @@ export const updateOrderStatus = async (
 
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
+
+  // Validate status transition
+  const allowedTransitions = validStatusTransitions[order.status];
+  if (!allowedTransitions.includes(newStatus)) {
+    throw new Error(`Cannot transition from ${order.status} to ${newStatus}`);
+  }
 
   order.status = newStatus;
   await order.save();
@@ -368,19 +438,19 @@ export const updateOrderStatus = async (
 
     if (user && profile) {
       const emailBody = `
-Hello ${profile.firstName},
+        Hello ${profile.firstName},
 
-Great news! Your order ${order.orderNumber} is now complete and ready for delivery/pickup.
+        Great news! Your order ${order.orderNumber} is now complete and ready for delivery/pickup.
 
-Order Number: ${order.orderNumber}
+        Order Number: ${order.orderNumber}
 
-Next Steps:
-- If you selected delivery, we'll ship it soon
-- If you selected pickup, you can come to our store
-- You'll receive tracking information once available
+        Next Steps:
+        - If you selected delivery, we'll ship it soon
+        - If you selected pickup, you can come to our store
+        - You'll receive tracking information once available
 
-Please log in to your dashboard to select your delivery or pickup options.
-`;
+        Please log in to your dashboard to select your delivery or pickup options.
+    `;
 
       emails(
         user.email,
@@ -408,14 +478,14 @@ Please log in to your dashboard to select your delivery or pickup options.
 export const getAllOrders = async (
   userRole: string,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
 ): Promise<PaginatedOrder> => {
   if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
     throw new Error("Unauthorized");
   }
 
   const skip = (page - 1) * limit;
-  
+
   const [orders, total] = await Promise.all([
     Order.find()
       .populate("userId", "email fullname")
@@ -424,21 +494,21 @@ export const getAllOrders = async (
       .skip(skip)
       .limit(limit)
       .exec(),
-    Order.countDocuments()
+    Order.countDocuments(),
   ]);
 
-  return { 
-    order: orders, 
-    total, 
-    page, 
-    limit 
+  return {
+    order: orders,
+    total,
+    page,
+    limit,
   };
 };
 
 // ==================== SEARCH BY ORDER NUMBER ====================
 export const searchByOrderNumber = async (
   orderNumber: string,
-  userRole: string
+  userRole: string,
 ): Promise<IOrderModel> => {
   if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
     throw new Error("Unauthorized");
@@ -447,9 +517,9 @@ export const searchByOrderNumber = async (
   const order = await Order.findOne({ orderNumber })
     .populate("userId", "email fullname")
     .populate("items.productId", "name");
-    
+
   if (!order) throw new Error("Order not found");
-  
+
   return order;
 };
 
@@ -466,34 +536,34 @@ export const filterOrders = async (
     page?: number;
     limit?: number;
   },
-  userRole: string
+  userRole: string,
 ): Promise<PaginatedOrder> => {
   if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
     throw new Error("Unauthorized");
   }
 
   const query: any = {};
-  
+
   if (filters.status) query.status = filters.status;
   if (filters.paymentStatus) query.paymentStatus = filters.paymentStatus;
   if (filters.userId) query.userId = filters.userId;
-  
+
   if (filters.startDate || filters.endDate) {
     query.createdAt = {};
     if (filters.startDate) query.createdAt.$gte = filters.startDate;
     if (filters.endDate) query.createdAt.$lte = filters.endDate;
   }
-  
+
   if (filters.minAmount || filters.maxAmount) {
     query.totalAmount = {};
     if (filters.minAmount) query.totalAmount.$gte = filters.minAmount;
     if (filters.maxAmount) query.totalAmount.$lte = filters.maxAmount;
   }
-  
+
   const page = filters.page || 1;
   const limit = filters.limit || 10;
   const skip = (page - 1) * limit;
-  
+
   const [orders, total] = await Promise.all([
     Order.find(query)
       .populate("userId", "email fullname")
@@ -502,20 +572,20 @@ export const filterOrders = async (
       .skip(skip)
       .limit(limit)
       .exec(),
-    Order.countDocuments(query)
+    Order.countDocuments(query),
   ]);
-  
+
   return {
     order: orders,
     total,
     page,
-    limit
+    limit,
   };
 };
 
 // ==================== GET ORDERS NEEDING INVOICE ====================
 export const getOrdersNeedingInvoice = async (
-  userRole: string
+  userRole: string,
 ): Promise<IOrderModel[]> => {
   if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
     throw new Error("Unauthorized");
@@ -538,7 +608,7 @@ export const updateOrderPayment = async (
     depositAmount?: number;
     paymentStatus: PaymentStatus;
     isDepositPaid?: boolean;
-  }
+  },
 ): Promise<IOrderModel> => {
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
@@ -547,11 +617,11 @@ export const updateOrderPayment = async (
   if (paymentData.depositAmount !== undefined) {
     order.deposit = paymentData.depositAmount;
   }
-  
+
   order.amountPaid = paymentData.amountPaid;
   order.remainingBalance = order.totalAmount - paymentData.amountPaid;
   order.paymentStatus = paymentData.paymentStatus;
-  
+
   if (paymentData.isDepositPaid !== undefined) {
     order.isDepositPaid = paymentData.isDepositPaid;
   }

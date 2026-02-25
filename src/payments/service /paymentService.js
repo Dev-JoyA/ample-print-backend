@@ -1,37 +1,39 @@
-import PaystackPop from '@paystack/inline-js'
-import {} from "../model/transactionModel.js"
+import PaystackPop from "@paystack/inline-js";
+import {} from "../model/transactionModel.js";
 
-const https = require('https')
+const https = require("https");
 
 const params = JSON.stringify({
-  "email": "customer@email.com",
-  "amount": "20000"
-})
+  email: "customer@email.com",
+  amount: "20000",
+});
 
 const options = {
-  hostname: 'api.paystack.co',
+  hostname: "api.paystack.co",
   port: 443,
-  path: '/transaction/initialize',
-  method: 'POST',
+  path: "/transaction/initialize",
+  method: "POST",
   headers: {
-    Authorization: 'Bearer SECRET_KEY',
-    'Content-Type': 'application/json'
-  }
-}
+    Authorization: "Bearer SECRET_KEY",
+    "Content-Type": "application/json",
+  },
+};
 
-const req = https.request(options, res => {
-  let data = ''
+const req = https
+  .request(options, (res) => {
+    let data = "";
 
-  res.on('data', (chunk) => {
-    data += chunk
+    res.on("data", (chunk) => {
+      data += chunk;
+    });
+
+    res.on("end", () => {
+      console.log(JSON.parse(data));
+    });
+  })
+  .on("error", (error) => {
+    console.error(error);
   });
 
-  res.on('end', () => {
-    console.log(JSON.parse(data))
-  })
-}).on('error', error => {
-  console.error(error)
-})
-
-req.write(params)
-req.end()
+req.write(params);
+req.end();
