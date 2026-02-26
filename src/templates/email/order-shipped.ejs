@@ -1,0 +1,27 @@
+<p>Great news! Your order <strong>#<%= orderNumber %></strong> has been shipped.</p>
+
+<div class="order-details">
+  <h3 style="margin-top: 0;">Shipping Details</h3>
+  <table>
+    <tr>
+      <td><strong>Carrier:</strong></td>
+      <td><%= carrier %></td>
+    </tr>
+    <tr>
+      <td><strong>Tracking Number:</strong></td>
+      <td><%= trackingNumber %></td>
+    </tr>
+    <tr>
+      <td><strong>Estimated Delivery:</strong></td>
+      <td><%= estimatedDelivery %></td>
+    </tr>
+    <tr>
+      <td><strong>Shipping Address:</strong></td>
+      <td><%= shippingAddress %></td>
+    </tr>
+  </table>
+</div>
+
+<div class="info-box">
+  <p>You can track your package in real-time using the tracking link below.</p>
+</div>

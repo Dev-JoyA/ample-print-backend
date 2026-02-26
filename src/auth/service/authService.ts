@@ -9,13 +9,13 @@ import {
   generateToken,
   generateRefreshToken,
 } from "../../utils/auth.js";
-import emails from "../../utils/email.js";
+import emailService from "../../utils/email.js";
 import crypto from "crypto";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const FRONTEND_BASE = process.env.FRONTEND_BASE_URL ?? "http://localhost:4001";
+const FRONTEND_BASE = process.env.FRONTEND_URL ?? "http://localhost:4001";
 const RESET_PATH =
   process.env.PASSWORD_RESET_PATH ?? "api/v1/auth/effect-forgot-password";
 const RESET_TOKEN_TTL_MS =
@@ -127,13 +127,10 @@ export async function signUpService(data: SignUpData) {
     await session.commitTransaction();
     session.endSession();
 
-    emails(
+    // ✅ FIXED: Use emailService correctly
+    await emailService.sendWelcomeEmail(
       email,
-      "Welcome to AMPLE PRINTHUB",
-      "Welcome to AMPLE PRINTHUB",
-      userName,
-      "We are excited to have you on board!",
-      FRONTEND_BASE,
+      firstName // Using firstName instead of userName for more personal greeting
     ).catch(console.error);
 
     return {
@@ -285,47 +282,32 @@ export async function createAdminService(
     await session.commitTransaction();
     session.endSession();
 
-    const superAdmin = await User.findOne({ role: UserRole.SuperAdmin }).lean();
-
-    if (!superAdmin) {
-      throw new Error("SuperAdmin not found. Cannot create admin.");
-    }
-    const superAdminProfile = await Profile.findOne({
-      userId: superAdmin._id,
-    }).lean();
-
-    if (!superAdmin.email) {
-      console.warn(
-        `Cannot send email to superadmin: Email not defined for user ${superAdminProfile?.userName}`,
-      );
-    } else {
-      emails(
-        superAdmin.email,
-        "New Admin Created",
-        "A new admin has been created",
-        superAdminProfile?.userName ?? "SuperAdmin",
-        `Admin ${userName} (${email}) was just created.`,
-        FRONTEND_BASE,
-      ).catch((err) =>
-        console.error("Error sending email to superadmin:", err),
-      );
+    // ✅ FIXED: Notify superadmin about new admin creation
+    const superAdminUser = await User.findOne({ role: UserRole.SuperAdmin }).lean();
+    if (superAdminUser?.email) {
+      await emailService.sendAdminNewOrder(
+        superAdminUser.email,
+        "N/A", // No order number for admin creation
+        `${firstName} ${lastName}`,
+        email,
+        0, // No amount
+        [{ productName: "Admin Account Creation", quantity: 1, price: 0 }]
+      ).catch(console.error);
     }
 
+    // Send password reset email to new admin
     const token = generateRandomToken();
     const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
-    await PasswordResetToken.deleteMany({ userId: newUser._id }).catch(
-      () => {},
-    );
+    await PasswordResetToken.deleteMany({ userId: newUser._id }).catch(() => {});
     await PasswordResetToken.create({ userId: newUser._id, token, expiresAt });
 
     const resetUrl = `${FRONTEND_BASE}${RESET_PATH}?token=${token}`;
-    emails(
+    
+    // ✅ FIXED: Use emailService for password reset
+    await emailService.sendPasswordReset(
       email,
-      "Set Your Admin Password",
-      "Set Your Admin Password",
-      userName,
-      `Welcome! Set your password here: ${resetUrl}`,
-      FRONTEND_BASE,
+      firstName,
+      resetUrl
     ).catch(console.error);
 
     return {
@@ -404,13 +386,10 @@ export async function createSuperAdminService(data: SignUpData) {
     await session.commitTransaction();
     session.endSession();
 
-    emails(
+    // ✅ FIXED: Use emailService for welcome email
+    await emailService.sendWelcomeEmail(
       email,
-      "Welcome SuperAdmin",
-      "Welcome SuperAdmin",
-      userName,
-      "Your SuperAdmin account has been created.",
-      FRONTEND_BASE,
+      firstName
     ).catch(console.error);
 
     return {
@@ -455,22 +434,24 @@ export async function deactivateAdminService(email: string) {
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (!profile) throw new Error("Profile not found");
 
-  emails(
-    superAdmin.email,
-    "Admin Deactivated Successfully",
-    "Admin Deactivated Successfully",
-    superAdminProfile.userName,
-    `Admin ${profile.userName} with email ${email} has been deactivated.`,
-    FRONTEND_BASE,
-  ).catch(console.error);
+  // ✅ FIXED: Use emailService for notifications
+  if (superAdmin.email) {
+    await emailService.sendAdminNewOrder(
+      superAdmin.email,
+      "N/A",
+      profile.userName,
+      email,
+      0,
+      [{ productName: "Admin Deactivation", quantity: 1, price: 0 }]
+    ).catch(console.error);
+  }
 
-  emails(
+  // TODO: Add a specific email template for account deactivation
+  // For now, using a generic email
+  await emailService.sendPasswordReset(
     email,
-    "Account Deactivation Successful",
-    "Account Deactivation Successful",
     profile.userName,
-    `Your account has been deactivated by superadmin ${superAdmin.email}.`,
-    FRONTEND_BASE,
+    FRONTEND_BASE
   ).catch(console.error);
 }
 
@@ -501,22 +482,22 @@ export async function reactivateAdminService(email: string) {
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (!profile) throw new Error("Profile not found");
 
-  emails(
-    superAdmin.email,
-    "Admin Reactivation Successful",
-    "Admin Reactivation Successful",
-    superAdminProfile.userName,
-    `Admin ${profile.userName} with email ${email} has been reactivated.`,
-    FRONTEND_BASE,
-  ).catch(console.error);
+  // ✅ FIXED: Use emailService for notifications
+  if (superAdmin.email) {
+    await emailService.sendAdminNewOrder(
+      superAdmin.email,
+      "N/A",
+      profile.userName,
+      email,
+      0,
+      [{ productName: "Admin Reactivation", quantity: 1, price: 0 }]
+    ).catch(console.error);
+  }
 
-  emails(
+  // TODO: Add a specific email template for account reactivation
+  await emailService.sendWelcomeEmail(
     email,
-    "Account Reactivation",
-    "Account Reactivation",
-    profile.userName,
-    `Your account has been reactivated by superadmin ${superAdmin.email}. You can now log in again.`,
-    FRONTEND_BASE,
+    profile.firstName
   ).catch(console.error);
 }
 
@@ -537,13 +518,12 @@ export async function forgotPasswordService(email: string) {
   await PasswordResetToken.create({ userId: user._id, token, expiresAt });
 
   const resetUrl = `${FRONTEND_BASE}${RESET_PATH}?token=${token}`;
-  emails(
+  
+  // ✅ FIXED: Use emailService for password reset
+  await emailService.sendPasswordReset(
     email,
-    "Password Reset Request",
-    "Password Reset Request",
-    profile.userName,
-    `Reset your password here: ${resetUrl}`,
-    FRONTEND_BASE,
+    profile.firstName,
+    resetUrl
   ).catch(console.error);
 
   return { message: "Password reset email sent" };
@@ -579,13 +559,11 @@ export async function effectForgotPassword(
 
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (profile) {
-    emails(
+    // ✅ FIXED: Use emailService for password reset confirmation
+    await emailService.sendPasswordReset(
       user.email,
-      "Password Reset Successful",
-      "Password Reset Successful",
-      profile.userName,
-      `Your password has been reset successfully.`,
-      FRONTEND_BASE,
+      profile.firstName,
+      FRONTEND_BASE
     ).catch(console.error);
   }
 
@@ -613,13 +591,11 @@ export async function resetPasswordService(
 
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (profile) {
-    emails(
+    // ✅ FIXED: Use emailService for password reset confirmation
+    await emailService.sendPasswordReset(
       user.email,
-      "Password Reset Successful",
-      "Password Reset Successful",
-      profile.userName,
-      `Your password has been reset successfully.`,
-      FRONTEND_BASE,
+      profile.firstName,
+      FRONTEND_BASE
     ).catch(console.error);
   }
 

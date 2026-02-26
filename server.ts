@@ -72,6 +72,19 @@ app.get("/home", (req, res) => {
   res.send("Welcome to the server");
 });
 
+// tell express to use ejs
+app.set("view engine", "ejs");
+
+// tell express where views are
+app.set("views", path.join(__dirname, "src", "templates"));
+
+app.get("/preview-email", (req, res) => {
+  res.render("email/emailTemplate", {
+    name: "Joy",
+    message: "This is a test email preview",
+  });
+});
+
 app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/users", userRoute);
 app.use("/api/v1", productRoute);
