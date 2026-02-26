@@ -13,6 +13,8 @@ import YAML from "yamljs";
 import productRoute from "./src/product/routes/productRoute.js";
 import passport from "./src/config/passport.js";
 import attachmentRoute from "./src/shared/routes/attachmentRoute.js";
+import feedbackRoute from "./src/feedback/routes/feedbackRoute.js";
+import customerBriefRoute from "./src/customerBrief/routes/customerBriefRoute.js";
 import cors from "cors";
 import { Server } from "socket.io";
 import { UserRole } from "./src/users/model/userModel.js";
@@ -91,6 +93,8 @@ app.use("/api/v1", productRoute);
 app.use("/api/v1/attachments", attachmentRoute);
 app.use("/api/v1/design", designRoute);
 app.use("/api/v1/orders", orderRoute);
+app.use("/api/v1", feedbackRoute);
+app.use("/api/v1/customer-briefs", customerBriefRoute);
 
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
