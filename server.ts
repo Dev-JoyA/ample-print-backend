@@ -13,8 +13,6 @@ import YAML from "yamljs";
 import productRoute from "./src/product/routes/productRoute.js";
 import passport from "./src/config/passport.js";
 import attachmentRoute from "./src/shared/routes/attachmentRoute.js";
-import feedbackRoute from "./src/feedback/routes/feedbackRoute.js";
-import customerBriefRoute from "./src/customerBrief/routes/customerBriefRoute.js";
 import cors from "cors";
 import { Server } from "socket.io";
 import { UserRole } from "./src/users/model/userModel.js";
@@ -74,27 +72,12 @@ app.get("/home", (req, res) => {
   res.send("Welcome to the server");
 });
 
-// tell express to use ejs
-app.set("view engine", "ejs");
-
-// tell express where views are
-app.set("views", path.join(__dirname, "src", "templates"));
-
-app.get("/preview-email", (req, res) => {
-  res.render("email/emailTemplate", {
-    name: "Joy",
-    message: "This is a test email preview",
-  });
-});
-
 app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/users", userRoute);
 app.use("/api/v1", productRoute);
 app.use("/api/v1/attachments", attachmentRoute);
 app.use("/api/v1/design", designRoute);
 app.use("/api/v1/orders", orderRoute);
-app.use("/api/v1", feedbackRoute);
-app.use("/api/v1/customer-briefs", customerBriefRoute);
 
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);

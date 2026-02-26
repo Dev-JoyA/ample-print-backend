@@ -5,4 +5,4 @@
 .prettierignore
 .eslintignore
 .vscode
-.env.example
+.env
