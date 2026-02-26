@@ -1897,16 +1897,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/PaginatedProducts"
 
-  # ==================== DESIGNS ====================
-  /designs/orders/{orderId}:
+  # ==================== DESIGNS (base path: /api/v1/design) ====================
+  /design/orders/{productId}:
     post:
       tags:
         - Designs
-      summary: Upload a new design for an order
+      summary: Upload a new design for a product (Admin)
+      description: Path parameter is productId. Backend route POST /design/orders/:productId
       security:
         - bearerAuth: []
       parameters:
-        - name: orderId
+        - name: productId
           in: path
           required: true
           schema:
@@ -1953,8 +1954,9 @@ paths:
         "403":
           description: Forbidden - Admin only
         "404":
-          description: Order not found
+          description: Product not found
 
+  /design/orders/{orderId}:
     get:
       tags:
         - Designs
@@ -1992,7 +1994,7 @@ paths:
         "404":
           description: Order not found
 
-  /designs/update/{designId}:
+  /design/update/{designId}:
     put:
       tags:
         - Designs
@@ -2042,7 +2044,7 @@ paths:
         "404":
           description: Design not found
 
-  /designs/delete/{designId}:
+  /design/delete/{designId}:
     delete:
       tags:
         - Designs
@@ -2076,7 +2078,7 @@ paths:
         "404":
           description: Design not found
 
-  /designs/{designId}/approve:
+  /design/{designId}/approve:
     put:
       tags:
         - Designs
@@ -2110,7 +2112,7 @@ paths:
         "404":
           description: Design not found
 
-  /designs/{designId}:
+  /design/{designId}:
     get:
       tags:
         - Designs
@@ -2141,7 +2143,7 @@ paths:
         "404":
           description: Design not found
 
-  /designs/users/{userId}:
+  /design/users/{userId}:
     get:
       tags:
         - Designs
@@ -2181,7 +2183,7 @@ paths:
         "404":
           description: User not found
 
-  /designs/products/{productId}:
+  /design/products/{productId}:
     get:
       tags:
         - Designs
@@ -2219,7 +2221,7 @@ paths:
         "404":
           description: Product not found
 
-  /designs/all:
+  /design/all:
     get:
       tags:
         - Designs
@@ -2250,7 +2252,7 @@ paths:
         "401":
           description: Unauthorized
 
-  /designs/filter:
+  /design/filter:
     get:
       tags:
         - Designs
