@@ -18,7 +18,9 @@ info:
 
 servers:
   - url: http://localhost:4001/api/v1
-    description: Local development server
+    description: Local development (PORT=4001)
+  - url: http://localhost:8000/api/v1
+    description: Local development (default PORT=8000)
   - url: https://api.ampleprinthub.com/api/v1
     description: Production server
 
@@ -2752,7 +2754,8 @@ paths:
           description: Customer not found
 
   # ==================== CUSTOMER BRIEFS ====================
-  /customer/orders/{orderId}/products/{productId}/brief:
+  # Base path: /api/v1/customer-briefs (see servers)
+  /customer-briefs/customer/orders/{orderId}/products/{productId}/brief:
     post:
       tags:
         - Customer Briefs
@@ -2881,7 +2884,7 @@ paths:
         "403":
           description: Forbidden
 
-  /admin/orders/{orderId}/products/{productId}/respond:
+  /customer-briefs/admin/orders/{orderId}/products/{productId}/respond:
     post:
       tags:
         - Customer Briefs
@@ -3012,7 +3015,7 @@ paths:
         "403":
           description: Forbidden
 
-  /customer/briefs:
+  /customer-briefs/customer/briefs:
     get:
       tags:
         - Customer Briefs
@@ -3046,7 +3049,7 @@ paths:
         "403":
           description: Forbidden - Customer only
 
-  /admin/briefs:
+  /customer-briefs/admin/briefs:
     get:
       tags:
         - Customer Briefs
@@ -3090,7 +3093,7 @@ paths:
         "403":
           description: Forbidden - Admin only
 
-  /briefs/orders/{orderId}/products/{productId}:
+  /customer-briefs/briefs/orders/{orderId}/products/{productId}:
     get:
       tags:
         - Customer Briefs
@@ -3129,7 +3132,7 @@ paths:
         "404":
           description: Order not found
 
-  /briefs/{briefId}:
+  /customer-briefs/briefs/{briefId}:
     get:
       tags:
         - Customer Briefs
@@ -3196,7 +3199,7 @@ paths:
         "404":
           description: Brief not found
 
-  /briefs/status/{orderId}/{productId}:
+  /customer-briefs/briefs/status/{orderId}/{productId}:
     get:
       tags:
         - Customer Briefs
@@ -3231,7 +3234,7 @@ paths:
         "401":
           description: Unauthorized
 
-  /briefs/filter:
+  /customer-briefs/briefs/filter:
     get:
       tags:
         - Customer Briefs
