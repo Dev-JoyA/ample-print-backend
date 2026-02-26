@@ -3,90 +3,270 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Business Email</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>AmplePrinthub</title>
   <style>
-    /* Reset default styles */
-    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
-    body { margin: 0; padding: 0; width: 100% !important; font-family: Arial, Helvetica, sans-serif; }
+    /* Reset styles */
+    body, table, td, p, a { 
+      -webkit-text-size-adjust: 100%; 
+      -ms-text-size-adjust: 100%; 
+      margin: 0; 
+      padding: 0;
+    }
+    img { 
+      border: 0; 
+      height: auto; 
+      line-height: 100%; 
+      outline: none; 
+      text-decoration: none; 
+      -ms-interpolation-mode: bicubic;
+    }
+    table { 
+      border-collapse: collapse !important; 
+    }
+    body { 
+      margin: 0; 
+      padding: 0; 
+      width: 100% !important; 
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background-color: #f5f7fa;
+    }
 
-    /* Email wrapper */
-    .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+    /* Container */
+    .email-container { 
+      max-width: 600px; 
+      margin: 0 auto; 
+      background-color: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
 
     /* Header */
-    .header { padding: 20px; text-align: center; background-color: #f8f8f8; }
-    .header img { max-width: 150px; height: auto; }
+    .header { 
+      padding: 30px 20px; 
+      text-align: center; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .header img { 
+      max-width: 200px; 
+      height: auto; 
+      display: block;
+      margin: 0 auto;
+    }
 
-    /* Body */
-    .content { padding: 30px; color: #333333; font-size: 16px; line-height: 1.6; }
-    .content h1 { font-size: 24px; color: #111111; margin: 0 0 20px; }
-    .content p { margin: 0 0 20px; }
+    /* Content */
+    .content { 
+      padding: 40px 30px; 
+      color: #333333; 
+      font-size: 16px; 
+      line-height: 1.6; 
+    }
+    .content h1 { 
+      font-size: 28px; 
+      color: #111111; 
+      margin: 0 0 15px; 
+      font-weight: 600;
+    }
+    .content h2 {
+      font-size: 22px;
+      color: #444444;
+      margin: 25px 0 15px;
+      font-weight: 500;
+    }
+    .content p { 
+      margin: 0 0 20px; 
+      color: #555555;
+    }
 
     /* Button */
-    .button { display: inline-block; padding: 12px 25px; background-color: #007BFF; color: #ffffff !important; text-decoration: none; border-radius: 5px; font-size: 16px; }
+    .button-container {
+      text-align: center;
+      margin: 35px 0;
+    }
+    .button { 
+      display: inline-block; 
+      padding: 14px 35px; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff !important; 
+      text-decoration: none; 
+      border-radius: 50px; 
+      font-size: 16px; 
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+      transition: all 0.3s ease;
+    }
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Order Details */
+    .order-details {
+      background-color: #f8fafc;
+      border-radius: 10px;
+      padding: 25px;
+      margin: 25px 0;
+      border: 1px solid #e2e8f0;
+    }
+    .order-details table {
+      width: 100%;
+    }
+    .order-details th {
+      text-align: left;
+      padding: 10px 0;
+      color: #4a5568;
+      font-weight: 600;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .order-details td {
+      padding: 12px 0;
+      color: #2d3748;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .order-details .total {
+      font-size: 18px;
+      font-weight: 700;
+      color: #2d3748;
+      border-bottom: none;
+    }
+    .order-details .total-amount {
+      color: #667eea;
+      font-size: 20px;
+    }
+
+    /* Design Preview */
+    .design-preview {
+      text-align: center;
+      margin: 25px 0;
+    }
+    .design-preview img {
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Info Box */
+    .info-box {
+      background-color: #ebf4ff;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      margin: 25px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .info-box p {
+      margin: 0;
+      color: #2d3748;
+    }
+    .info-box strong {
+      color: #4a5568;
+    }
 
     /* Footer */
-    .footer { padding: 20px; text-align: center; background-color: #f8f8f8; font-size: 14px; color: #666666; }
+    .footer { 
+      padding: 30px 20px; 
+      text-align: center; 
+      background-color: #f8fafc; 
+      font-size: 14px; 
+      color: #718096;
+      border-top: 1px solid #e2e8f0;
+    }
+    .footer a { 
+      color: #667eea; 
+      text-decoration: none; 
+      margin: 0 10px;
+    }
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    .social-links {
+      margin: 20px 0;
+    }
+    .social-links a {
+      display: inline-block;
+      margin: 0 8px;
+    }
 
-    /* Responsive design */
+    /* Responsive */
     @media screen and (max-width: 600px) {
-      .email-container { width: 100% !important; }
-      .content { padding: 20px !important; }
-      .header img { max-width: 120px !important; }
+      .email-container { 
+        width: 100% !important; 
+        border-radius: 0;
+      }
+      .content { 
+        padding: 30px 20px !important; 
+      }
+      .header { 
+        padding: 25px 15px !important;
+      }
+      .header img { 
+        max-width: 150px !important; 
+      }
+      .order-details {
+        padding: 15px;
+      }
+      .button {
+        display: block;
+        margin: 0 20px;
+      }
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+<body style="margin: 0; padding: 20px; background-color: #f5f7fa;">
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
     <tr>
-      <td style="padding: 20px 0; background-color: #f4f4f4;" align="center">
+      <td style="padding: 20px 10px;" align="center">
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="email-container">
-          <!-- Header -->
+          
+          <!-- Header with Logo -->
           <tr>
-            <td class="header" style="padding: 0; text-align: center; background-color: #ffffff;">
-              <!-- Outlook Fallback (MSO) -->
-              <!--[if mso]>
-                <v:image 
-                  xmlns:v="urn:schemas-microsoft-com:vml" 
-                  style="width:600px; height:auto;"
-                  src="cid:ample_logo" 
-                  alt="Ample Printhub Logo"
-                />
-              <![endif]-->
-              <!-- Modern Clients -->
-              <!--[if !mso]><!-->
-                <img 
-                  src="cid:ample_logo" 
-                  alt="Ample Printhub Logo" 
-                  width="900" 
-                  style="
-                    width: 100%; 
-                    max-width: 900px; 
-                    height: auto; 
-                    display: block; 
-                    margin: 0 auto;
-                    border: 0;
-                  "
-                >
-              <!--<![endif]-->
+            <td class="header">
+              <img 
+                src="cid:ample_logo" 
+                alt="Ample Printhub" 
+                width="200"
+                style="width: 200px; max-width: 100%; height: auto; display: block; margin: 0 auto;"
+              >
             </td>
           </tr>
+
           <!-- Content -->
           <tr>
             <td class="content">
-              <h1><%- header %></h1>
-              <p>Dear <%- name %>,</p>
-              <p><%- bodyMessage %></p>
-              <p style="text-align: center;">
-                <a href="<%= linkUrl %>" class="button">Visit Our Website</a>
-              </p>
+              <h1><%= header %></h1>
+              <p>Dear <strong><%= name %></strong>,</p>
+              
+              <!-- Dynamic Content Section -->
+              <%- bodyContent %>
+              
+              <!-- Button (if provided) -->
+              <% if (buttonText && buttonUrl) { %>
+                <div class="button-container">
+                  <a href="<%= buttonUrl %>" class="button"><%= buttonText %></a>
+                </div>
+              <% } %>
             </td>
           </tr>
+
           <!-- Footer -->
           <tr>
             <td class="footer">
-              <p>© 2025 Ample Printhub. All rights reserved.</p>
-              <p><a href="<%= linkUrl %>/unsubscribe" style="color: #007BFF;">Unsubscribe</a></p>
+              <div class="social-links">
+                <a href="https://facebook.com/ampleprinthub">Facebook</a> •
+                <a href="https://instagram.com/ampleprinthub">Instagram</a> •
+                <a href="https://twitter.com/ampleprinthub">Twitter</a>
+                <a href="https://tiktok.com/ampleprinthub">TikTok</a>
+              </div>
+              <p>© <%= year %> Ample Printhub. All rights reserved.</p>
+              <p>
+                <a href="<%= unsubscribeUrl || '#' %>">Unsubscribe</a> •
+                <a href="<%= privacyUrl || '#' %>">Privacy Policy</a>
+              </p>
+              <p style="font-size: 12px; color: #a0aec0; margin-top: 20px;">
+                5 Boyle Street Shomolu, Lagos<br>
+                Tel: +2348062356261 | Email: ampleprinthub@gmail.com
+              </p>
             </td>
           </tr>
         </table>

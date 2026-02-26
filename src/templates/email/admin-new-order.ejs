@@ -1,0 +1,29 @@
+<p>A new order has been placed and requires attention.</p>
+
+<div class="order-details">
+  <h3 style="margin-top: 0;">Order Details</h3>
+  <table>
+    <tr>
+      <td><strong>Order Number:</strong></td>
+      <td><%= orderNumber %></td>
+    </tr>
+    <tr>
+      <td><strong>Customer:</strong></td>
+      <td><%= customerName %> (<%= customerEmail %>)</td>
+    </tr>
+    <tr>
+      <td><strong>Total Amount:</strong></td>
+      <td>₦<%= total.toLocaleString() %></td>
+    </tr>
+    <tr>
+      <td><strong>Items:</strong></td>
+      <td>
+        <% items.forEach(item => { %>
+          <%= item.productName %> x<%= item.quantity %><br>
+        <% }) %>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<p><strong>Next Steps:</strong> Generate an invoice for this order.</p>

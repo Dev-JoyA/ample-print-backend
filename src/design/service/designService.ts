@@ -3,7 +3,7 @@ import { Design, IDesign } from "../model/designModel.js";
 import { User } from "../../users/model/userModel.js";
 import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
-import emails from "../../utils/email.js";
+import emailService from "../../utils/email.js"; // ✅ Updated import
 import { Product } from "../../product/model/productModel.js";
 import path from "path";
 import fs from "fs/promises";
@@ -68,6 +68,7 @@ export const uploadDesign = async (
     otherImage: data.otherImage,
     createdAt: new Date(),
   });
+  
   const user = await User.findById(order.userId).exec();
   if (!user) {
     throw new Error("User not found");
@@ -94,20 +95,15 @@ export const uploadDesign = async (
 
   const productName = productInOrder.productName;
 
-  emails(
+  // ✅ UPDATED: Use emailService.sendDesignReady
+  await emailService.sendDesignReady(
     user.email,
-    "Design Uploaded",
-    "Design for your Order have been uploaded",
     profile.firstName,
-    `Hello ${profile.firstName},
-        Your design for **${productName}** has been uploaded and is ready for your review.
-        Order Number: ${order.orderNumber}
-        Please log in to your dashboard to approve or request changes.`,
+    order.orderNumber,
+    productName,
+    `${process.env.FRONTEND_URL}/orders/${order.orderNumber}/design` || `http://localhost:4001/orders/${order.orderNumber}/design`
   ).catch((err) =>
-    console.error(
-      "Error sending email to notify customer of design upload",
-      err,
-    ),
+    console.error("Error sending design ready email:", err),
   );
 
   return design;
@@ -148,23 +144,17 @@ export const updateDesign = async (
   }
 
   const productName = product.name;
-
   const orderNumber = order.orderNumber;
 
-  emails(
+  // ✅ UPDATED: Use emailService.sendDesignReady for update as well
+  await emailService.sendDesignReady(
     user.email,
-    "Design Uploaded",
-    "Design for your Order have been updated",
     profile.firstName,
-    `Hello ${profile.firstName},
-        Your design for **${productName}** has been uploaded and is ready for your review.
-        Order Number: ${orderNumber}
-        Please log in to your dashboard to approve or request changes.`,
+    orderNumber,
+    productName,
+    `${process.env.FRONTEND_URL}/orders/${orderNumber}/design` || `http://localhost:4001/orders/${orderNumber}/design`
   ).catch((err) =>
-    console.error(
-      "Error sending email to notify customer of design upload",
-      err,
-    ),
+    console.error("Error sending design update email:", err),
   );
 
   io.to("superadmin-room").emit("designUploaded", {
@@ -185,7 +175,7 @@ export const deleteDesign = async (id: string): Promise<string> => {
   // Delete all associated files
   const filesToDelete = [design.designUrl, ...(design.otherImage || [])].filter(
     Boolean,
-  ); // Remove undefined/null
+  );
 
   for (const fileUrl of filesToDelete) {
     if (fileUrl) {
@@ -212,8 +202,27 @@ export const approveDesign = async (id: string): Promise<IDesign> => {
   design.isApproved = true;
   design.approvedAt = new Date();
   await design.save();
+
+  // ✅ ADDED: Send design approved email
+  const order = await Order.findById(design.orderId).exec();
+  const user = await User.findById(design.userId).exec();
+  const profile = await Profile.findOne({ userId: design.userId }).exec();
+  const product = await Product.findById(design.productId).exec();
+
+  if (user && profile && order && product) {
+    await emailService.sendDesignApproved(
+      user.email,
+      profile.firstName,
+      order.orderNumber,
+      product.name,
+      "2-3", // Production time - you might want to get this from settings
+      new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString() // Estimated delivery
+    ).catch(err => console.error("Error sending design approved email:", err));
+  }
+
   return design;
 };
+
 export const getDesignById = async (id: string): Promise<IDesign> => {
   const design = await Design.findById(id);
   if (!design) throw new Error("Design not found");

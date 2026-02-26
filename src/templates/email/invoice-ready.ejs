@@ -1,0 +1,42 @@
+<p>Your invoice for order <strong>#<%= orderNumber %></strong> has been generated.</p>
+
+<div class="order-details">
+  <h3 style="margin-top: 0;">Invoice Summary</h3>
+  <table>
+    <tr>
+      <td><strong>Invoice Number:</strong></td>
+      <td><%= invoiceNumber %></td>
+    </tr>
+    <tr>
+      <td><strong>Order Number:</strong></td>
+      <td><%= orderNumber %></td>
+    </tr>
+    <tr>
+      <td><strong>Total Amount:</strong></td>
+      <td>₦<%= total.toLocaleString() %></td>
+    </tr>
+    <% if (depositAmount) { %>
+    <tr>
+      <td><strong>Deposit Required:</strong></td>
+      <td>₦<%= depositAmount.toLocaleString() %></td>
+    </tr>
+    <% } %>
+    <tr>
+      <td><strong>Payment Due:</strong></td>
+      <td><%= dueDate %></td>
+    </tr>
+  </table>
+</div>
+
+<div class="info-box">
+  <p><strong>💳 Payment Instructions:</strong></p>
+  <p style="margin-bottom: 5px;"><strong>Bank Transfer:</strong></p>
+  <p style="margin: 0;">
+    Bank: GTBank<br>
+    Account Name: Ample Printhub Ltd<br>
+    Account Number: 0123456789<br>
+    Sort Code: 123456789
+  </p>
+</div>
+
+<p>Once payment is confirmed, we'll immediately begin processing your order.</p>

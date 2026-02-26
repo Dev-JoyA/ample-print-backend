@@ -10,7 +10,7 @@ import {
 import { Product } from "../../product/model/productModel.js";
 import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
-import emails from "../../utils/email.js";
+import emailService from "../../utils/email.js"; // ✅ Updated import
 import { Types } from "mongoose";
 
 const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
@@ -158,30 +158,14 @@ export const createOrder = async (
     orderNumber: order.orderNumber,
   });
 
-  const emailBody = `
-        Hello ${profile.firstName},
-
-        Your order has been received successfully!
-
-        Order Number: ${order.orderNumber}
-        Items Ordered:
-        ${orderItems.map((item) => `- ${item.productName} x ${item.quantity} = ₦${item.price * item.quantity}`).join("\n")}
-        Total Amount: ₦${totalAmount}
-
-        Next Steps:
-        1. Our team will review your order and create an invoice
-        2. You'll receive an email with invoice details and payment instructions
-        3. Once payment is confirmed, production will begin
-
-        Please log in to your dashboard to track your order status.
-    `;
-
-  emails(
+  // ✅ UPDATED: Use emailService.sendOrderConfirmation
+  await emailService.sendOrderConfirmation(
     user.email,
-    `Order Received: ${order.orderNumber}`,
-    "Your order has been received",
     profile.firstName,
-    emailBody,
+    order.orderNumber,
+    orderItems,
+    totalAmount,
+    true // Deposit required
   ).catch((err) =>
     console.error("Error sending order confirmation email", err),
   );
@@ -256,28 +240,14 @@ export const superAdminCreateOrder = async (
 
   const profile = await Profile.findOne({ userId: customer._id });
   if (profile) {
-    const emailBody = `
-        Hello ${profile.firstName},
-
-        An order has been created for you by our team.
-
-        Order Number: ${order.orderNumber}
-        Items Ordered:
-        ${orderItems.map((item) => `- ${item.productName} x ${item.quantity} = ₦${item.price * item.quantity}`).join("\n")}
-        Total Amount: ₦${totalAmount}
-
-        Next Steps:
-        1. We'll review your order and create an invoice
-        2. You'll receive an email with payment instructions
-        3. Once payment is confirmed, production will begin
-    `;
-
-    emails(
+    // ✅ UPDATED: Use emailService.sendOrderConfirmation
+    await emailService.sendOrderConfirmation(
       customer.email,
-      `Order Created: ${order.orderNumber}`,
-      "Your order has been created",
       profile.firstName,
-      emailBody,
+      order.orderNumber,
+      orderItems,
+      totalAmount,
+      true
     ).catch((err) => console.error("Error sending email", err));
   }
 
@@ -437,27 +407,11 @@ export const updateOrderStatus = async (
     const profile = await Profile.findOne({ userId: order.userId });
 
     if (user && profile) {
-      const emailBody = `
-        Hello ${profile.firstName},
-
-        Great news! Your order ${order.orderNumber} is now complete and ready for delivery/pickup.
-
-        Order Number: ${order.orderNumber}
-
-        Next Steps:
-        - If you selected delivery, we'll ship it soon
-        - If you selected pickup, you can come to our store
-        - You'll receive tracking information once available
-
-        Please log in to your dashboard to select your delivery or pickup options.
-    `;
-
-      emails(
+      // ✅ UPDATED: Use emailService.sendOrderDelivered
+      await emailService.sendOrderDelivered(
         user.email,
-        `Order Complete: ${order.orderNumber}`,
-        "Your order is ready",
         profile.firstName,
-        emailBody,
+        order.orderNumber
       ).catch((err) =>
         console.error("Error sending order completion email", err),
       );
@@ -630,6 +584,18 @@ export const updateOrderPayment = async (
   if (order.remainingBalance <= 0) {
     order.paymentStatus = PaymentStatus.Completed;
     order.status = OrderStatus.Completed;
+    
+    // ✅ ADDED: Send notification for completed payment
+    const user = await User.findById(order.userId);
+    const profile = await Profile.findOne({ userId: order.userId });
+    
+    if (user && profile) {
+      await emailService.sendOrderDelivered(
+        user.email,
+        profile.firstName,
+        order.orderNumber
+      ).catch(err => console.error("Error sending payment complete email:", err));
+    }
   }
 
   await order.save();

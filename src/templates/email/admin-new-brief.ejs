@@ -1,0 +1,29 @@
+<p>A customer has submitted a new customization brief.</p>
+
+<div class="order-details">
+  <h3 style="margin-top: 0;">Brief Details</h3>
+  <table>
+    <tr>
+      <td><strong>Order Number:</strong></td>
+      <td><%= orderNumber %></td>
+    </tr>
+    <tr>
+      <td><strong>Customer:</strong></td>
+      <td><%= customerName %></td>
+    </tr>
+    <tr>
+      <td><strong>Product:</strong></td>
+      <td><%= productName %></td>
+    </tr>
+    <tr>
+      <td><strong>Brief Description:</strong></td>
+      <td><%= briefDescription %></td>
+    </tr>
+  </table>
+</div>
+
+<% if (hasAttachments) { %>
+  <p><strong>📎 Attachments:</strong> Images/Voice notes included</p>
+<% } %>
+
+<p>Please review and respond to this brief.</p>

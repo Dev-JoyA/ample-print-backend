@@ -1,0 +1,39 @@
+<p>Great news! Your order <strong>#<%= orderNumber %></strong> has been successfully received.</p>
+
+<div class="order-details">
+  <h3 style="margin-top: 0;">Order Summary</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Qty</th>
+        <th>Price</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% items.forEach(item => { %>
+        <tr>
+          <td><%= item.productName %></td>
+          <td><%= item.quantity %></td>
+          <td>₦<%= item.price.toLocaleString() %></td>
+          <td>₦<%= (item.price * item.quantity).toLocaleString() %></td>
+        </tr>
+      <% }) %>
+      <tr>
+        <td colspan="3" style="text-align: right;"><strong>Total:</strong></td>
+        <td><strong>₦<%= total.toLocaleString() %></strong></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="info-box">
+  <p><strong>📋 Next Steps:</strong></p>
+  <ol style="margin: 10px 0 0 20px;">
+    <li>Our team will review your order within 24 hours</li>
+    <li>You'll receive an invoice with payment instructions</li>
+    <li>Once payment is confirmed, production begins</li>
+    <li>We'll notify you when your design is ready for review</li>
+  </ol>
+</div>
