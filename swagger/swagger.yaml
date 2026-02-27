@@ -847,6 +847,542 @@ components:
         timestamp:
           type: string
           format: date-time
+    
+        # ==================== SHIPPING SCHEMAS ====================
+    ShippingMethod:
+      type: string
+      enum: [pickup, delivery]
+      description: Shipping method (pickup from store or delivery to address)
+
+    ShippingStatus:
+      type: string
+      enum: [pending, shipped, delivered]
+      description: Current status of the shipping
+
+    ShippingAddress:
+      type: object
+      required:
+        - street
+        - city
+        - state
+      properties:
+        street:
+          type: string
+          example: "123 Main Street"
+        city:
+          type: string
+          example: "Lagos"
+        state:
+          type: string
+          example: "Lagos"
+        country:
+          type: string
+          example: "Nigeria"
+          default: "Nigeria"
+        postalCode:
+          type: string
+          example: "100001"
+
+    ShippingTrackingHistory:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/ShippingStatus"
+        location:
+          type: string
+          example: "Warehouse"
+        description:
+          type: string
+          example: "Package shipped via courier"
+        timestamp:
+          type: string
+          format: date-time
+
+    Shipping:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c98"
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        orderNumber:
+          type: string
+          example: "ORD-2024-001"
+        shippingMethod:
+          $ref: "#/components/schemas/ShippingMethod"
+        trackingNumber:
+          type: string
+          example: "ABC123456789"
+          nullable: true
+        recipientName:
+          type: string
+          example: "John Doe"
+        recipientPhone:
+          type: string
+          example: "+2348012345678"
+        address:
+          $ref: "#/components/schemas/ShippingAddress"
+        shippingCost:
+          type: number
+          example: 2500.00
+        shippingInvoiceId:
+          type: string
+          example: "60d21b4667d0d8992e610c95"
+          nullable: true
+        isPaid:
+          type: boolean
+          example: false
+        status:
+          $ref: "#/components/schemas/ShippingStatus"
+        trackingHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShippingTrackingHistory"
+        estimatedDelivery:
+          type: string
+          format: date
+          example: "2024-01-10"
+          nullable: true
+        actualDelivery:
+          type: string
+          format: date
+          example: "2024-01-09"
+          nullable: true
+        metadata:
+          type: object
+          properties:
+            createdBy:
+              type: string
+              example: "60d21b4667d0d8992e610c91"
+            pickupNotes:
+              type: string
+              example: "Customer will pick up after 5pm"
+            carrier:
+              type: string
+              example: "DHL"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateShippingRequest:
+      type: object
+      required:
+        - shippingMethod
+        - shippingCost
+      properties:
+        shippingMethod:
+          $ref: "#/components/schemas/ShippingMethod"
+        shippingCost:
+          type: number
+          example: 2500.00
+          minimum: 0
+        address:
+          $ref: "#/components/schemas/ShippingAddress"
+        pickupNotes:
+          type: string
+          example: "Customer will pick up after 5pm"
+
+    UpdateTrackingRequest:
+      type: object
+      required:
+        - trackingNumber
+      properties:
+        trackingNumber:
+          type: string
+          example: "ABC123456789"
+        carrier:
+          type: string
+          example: "DHL"
+        estimatedDelivery:
+          type: string
+          format: date
+          example: "2024-01-10"
+
+    UpdateShippingStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: "#/components/schemas/ShippingStatus"
+
+    PaginatedShipping:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        shipping:
+          type: array
+          items:
+            $ref: "#/components/schemas/Shipping"
+        total:
+          type: integer
+          example: 25
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        pages:
+          type: integer
+          example: 3
+    
+        # ==================== PAYMENT SCHEMAS ====================
+    TransactionStatus:
+      type: string
+      enum: [pending, completed, failed, refunded]
+      description: Status of the transaction
+
+    TransactionType:
+      type: string
+      enum: [final, part, refund]
+      description: Type of transaction (final payment, part payment, or refund)
+
+    PaymentMethod:
+      type: string
+      enum: [paystack, bank_transfer]
+      description: Payment method used
+
+    Transaction:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c97"
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        orderNumber:
+          type: string
+          example: "ORD-2024-001"
+        invoiceId:
+          type: string
+          example: "60d21b4667d0d8992e610c95"
+          nullable: true
+        transactionId:
+          type: string
+          example: "TXN-1642534567890-ABC123"
+        transactionAmount:
+          type: number
+          example: 1500.00
+        transactionStatus:
+          $ref: "#/components/schemas/TransactionStatus"
+        transactionType:
+          $ref: "#/components/schemas/TransactionType"
+        paymentMethod:
+          $ref: "#/components/schemas/PaymentMethod"
+        metadata:
+          type: object
+          example: { "paystackReference": "ref_123", "initializedAt": "2024-01-01T10:00:00Z" }
+        receiptUrl:
+          type: string
+          example: "/uploads/receipts/receipt-1642534567890.pdf"
+          nullable: true
+        verifiedBy:
+          type: string
+          example: "60d21b4667d0d8992e610c91"
+          nullable: true
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaystackInitializeRequest:
+      type: object
+      required:
+        - orderId
+        - invoiceId
+        - amount
+        - transactionType
+      properties:
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        invoiceId:
+          type: string
+          example: "60d21b4667d0d8992e610c95"
+        amount:
+          type: number
+          example: 1500.00
+        transactionType:
+          $ref: "#/components/schemas/TransactionType"
+
+    PaystackInitializeResponse:
+      type: object
+      properties:
+        authorizationUrl:
+          type: string
+          example: "https://checkout.paystack.com/xyz123"
+        accessCode:
+          type: string
+          example: "xyz123"
+        reference:
+          type: string
+          example: "TXN-1642534567890-ABC123"
+
+    BankTransferUploadRequest:
+      type: object
+      required:
+        - orderId
+        - invoiceId
+        - amount
+        - transactionType
+      properties:
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        invoiceId:
+          type: string
+          example: "60d21b4667d0d8992e610c95"
+        amount:
+          type: number
+          example: 1500.00
+        transactionType:
+          $ref: "#/components/schemas/TransactionType"
+        receipt:
+          type: string
+          format: binary
+          description: Receipt file (image or PDF, max 5MB)
+
+    BankTransferVerifyRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [approve, reject]
+          example: "approve"
+        notes:
+          type: string
+          example: "Payment confirmed via bank statement"
+          nullable: true
+
+    PaginatedTransactions:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        total:
+          type: integer
+          example: 25
+        page:
+          type: integer
+          example: 1
+        pages:
+          type: integer
+          example: 3
+    
+        # ==================== INVOICE SCHEMAS ====================
+    InvoiceStatus:
+      type: string
+      enum: [Draft, Sent, PartiallyPaid, Paid, Overdue, Cancelled]
+      description: Status of the invoice
+
+    InvoiceType:
+      type: string
+      enum: [main, shipping, deposit]
+      description: Type of invoice (main order, shipping, or deposit)
+
+    InvoiceItem:
+      type: object
+      properties:
+        description:
+          type: string
+          example: "A5 Flyer"
+        quantity:
+          type: integer
+          example: 100
+        unitPrice:
+          type: number
+          example: 50.00
+        total:
+          type: number
+          example: 5000.00
+
+    Invoice:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c95"
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        orderNumber:
+          type: string
+          example: "ORD-2024-001"
+        invoiceNumber:
+          type: string
+          example: "INV-2401-0001"
+        invoiceType:
+          $ref: "#/components/schemas/InvoiceType"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvoiceItem"
+        subtotal:
+          type: number
+          example: 5000.00
+        discount:
+          type: number
+          example: 0.00
+        totalAmount:
+          type: number
+          example: 5000.00
+        depositAmount:
+          type: number
+          example: 1500.00
+        partPaymentAmount:
+          type: number
+          example: 0.00
+        remainingAmount:
+          type: number
+          example: 3500.00
+        amountPaid:
+          type: number
+          example: 0.00
+        status:
+          $ref: "#/components/schemas/InvoiceStatus"
+        transactions:
+          type: array
+          items:
+            type: string
+          example: ["60d21b4667d0d8992e610c97"]
+        shippingId:
+          type: string
+          example: "60d21b4667d0d8992e610c96"
+          nullable: true
+        issueDate:
+          type: string
+          format: date-time
+          example: "2024-01-01T10:00:00Z"
+        dueDate:
+          type: string
+          format: date-time
+          example: "2024-01-08T10:00:00Z"
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          example: "Please pay within 7 days"
+        paymentInstructions:
+          type: string
+          example: "Bank transfer to GTBank 0123456789"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateInvoiceRequest:
+      type: object
+      required:
+        - paymentType
+        - dueDate
+      properties:
+        paymentType:
+          type: string
+          enum: [full, part]
+          example: "part"
+        depositAmount:
+          type: number
+          example: 1500.00
+        discount:
+          type: number
+          example: 0.00
+        dueDate:
+          type: string
+          format: date
+          example: "2024-01-08"
+        notes:
+          type: string
+          example: "Please pay within 7 days"
+        paymentInstructions:
+          type: string
+          example: "Bank transfer to GTBank 0123456789"
+
+    CreateShippingInvoiceRequest:
+      type: object
+      required:
+        - shippingCost
+        - dueDate
+      properties:
+        shippingCost:
+          type: number
+          example: 5000.00
+        dueDate:
+          type: string
+          format: date
+          example: "2024-01-08"
+        notes:
+          type: string
+          example: "Shipping fee invoice"
+
+    UpdateInvoiceRequest:
+      type: object
+      properties:
+        discount:
+          type: number
+          example: 500.00
+        dueDate:
+          type: string
+          format: date
+          example: "2024-01-10"
+        notes:
+          type: string
+          example: "Updated notes"
+        paymentInstructions:
+          type: string
+          example: "Updated payment instructions"
+
+    PaginatedInvoices:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        invoices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invoice"
+        total:
+          type: integer
+          example: 25
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        pages:
+          type: integer
+          example: 3
 
 paths:
   # ==================== AUTHENTICATION ====================
@@ -3898,6 +4434,1206 @@ paths:
           description: File not found
         "500":
           description: Failed to download file
+  
+    # ==================== PAYMENTS ====================
+  /payments/paystack/initialize:
+    post:
+      tags:
+        - Payments
+      summary: Initialize Paystack payment
+      description: Initialize a Paystack payment for an order invoice
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaystackInitializeRequest"
+      responses:
+        "200":
+          description: Payment initialized successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Payment initialized successfully"
+                  data:
+                    $ref: "#/components/schemas/PaystackInitializeResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Customer only
+
+  /payments/paystack/verify:
+    get:
+      tags:
+        - Payments
+      summary: Verify Paystack payment
+      description: Verify a Paystack payment using the transaction reference
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: reference
+          required: true
+          schema:
+            type: string
+          description: Paystack transaction reference
+          example: "TXN-1642534567890-ABC123"
+      responses:
+        "200":
+          description: Payment verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Payment verified successfully"
+                  data:
+                    $ref: "#/components/schemas/Transaction"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+
+  /payments/bank-transfer/upload-receipt:
+    post:
+      tags:
+        - Payments
+      summary: Upload bank transfer receipt
+      description: Upload a receipt for bank transfer payment (Customer only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/BankTransferUploadRequest"
+      responses:
+        "201":
+          description: Receipt uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Receipt uploaded successfully. Pending verification."
+                  data:
+                    $ref: "#/components/schemas/Transaction"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Customer only
+
+  /payments/bank-transfer/verify/{transactionId}:
+    post:
+      tags:
+        - Payments
+      summary: Verify bank transfer (Super Admin only)
+      description: Approve or reject a bank transfer payment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c97"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BankTransferVerifyRequest"
+      responses:
+        "200":
+          description: Bank transfer verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Bank transfer approved successfully"
+                  data:
+                    $ref: "#/components/schemas/Transaction"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Super Admin only
+        "404":
+          description: Transaction not found
+
+  /payments/bank-transfer/pending:
+    get:
+      tags:
+        - Payments
+      summary: Get pending bank transfers (Super Admin only)
+      description: Get paginated list of pending bank transfer verifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 10
+      responses:
+        "200":
+          description: List of pending bank transfers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedTransactions"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Super Admin only
+
+  /payments/order/{orderId}:
+    get:
+      tags:
+        - Payments
+      summary: Get transactions by order ID
+      description: Get all transactions for a specific order
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c89"
+      responses:
+        "200":
+          description: List of transactions for the order
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+                  count:
+                    type: integer
+                    example: 2
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Order not found
+
+  /payments/invoice/{invoiceId}:
+    get:
+      tags:
+        - Payments
+      summary: Get transactions by invoice ID
+      description: Get all transactions for a specific invoice (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c95"
+      responses:
+        "200":
+          description: List of transactions for the invoice
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+                  count:
+                    type: integer
+                    example: 2
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+        "404":
+          description: Invoice not found
+
+  /payments/my-transactions:
+    get:
+      tags:
+        - Payments
+      summary: Get logged-in customer's transactions
+      description: Get paginated list of transactions for the authenticated customer
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 10
+      responses:
+        "200":
+          description: List of user's transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedTransactions"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Customer only
+
+    # ==================== INVOICES ====================
+  /invoices/order/{orderId}:
+    post:
+      tags:
+        - Invoices
+      summary: Create main invoice for order (Super Admin only)
+      description: Create a new invoice for an order. Super admin can specify full or part payment.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c89"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceRequest"
+      responses:
+        "201":
+          description: Invoice created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Invoice created successfully"
+                  data:
+                    $ref: "#/components/schemas/Invoice"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Super Admin only
+        "404":
+          description: Order not found
+
+  /invoices/shipping/order/{orderId}/shipping/{shippingId}:
+    post:
+      tags:
+        - Invoices
+      summary: Create shipping invoice (Admin only)
+      description: Create a shipping invoice for an order
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c89"
+        - name: shippingId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c96"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateShippingInvoiceRequest"
+      responses:
+        "201":
+          description: Shipping invoice created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Shipping invoice created successfully"
+                  data:
+                    $ref: "#/components/schemas/Invoice"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+        "404":
+          description: Order or shipping record not found
+
+  /invoices/{invoiceId}:
+    put:
+      tags:
+        - Invoices
+      summary: Update invoice (Admin only)
+      description: Update an invoice that is still in draft status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c95"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInvoiceRequest"
+      responses:
+        "200":
+          description: Invoice updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Invoice updated successfully"
+                  data:
+                    $ref: "#/components/schemas/Invoice"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+        "404":
+          description: Invoice not found
+    delete:
+      tags:
+        - Invoices
+      summary: Delete invoice (Super Admin only)
+      description: Delete an invoice that is still in draft status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c95"
+      responses:
+        "200":
+          description: Invoice deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Invoice deleted successfully"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Super Admin only
+        "404":
+          description: Invoice not found
+
+  /invoices/{invoiceId}/send:
+    post:
+      tags:
+        - Invoices
+      summary: Send invoice to customer (Admin only)
+      description: Send the invoice to the customer via email and update status to Sent
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c95"
+      responses:
+        "200":
+          description: Invoice sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Invoice sent to customer successfully"
+                  data:
+                    $ref: "#/components/schemas/Invoice"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+        "404":
+          description: Invoice not found
+
+  /invoices/all:
+    get:
+      tags:
+        - Invoices
+      summary: Get all invoices (Admin only)
+      description: Get paginated list of all invoices
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 10
+      responses:
+        "200":
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedInvoices"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+
+  /invoices/filter:
+    get:
+      tags:
+        - Invoices
+      summary: Filter invoices (Admin only)
+      description: Advanced filtering of invoices with multiple criteria
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/InvoiceStatus"
+        - in: query
+          name: invoiceType
+          schema:
+            $ref: "#/components/schemas/InvoiceType"
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: minAmount
+          schema:
+            type: number
+            minimum: 0
+        - in: query
+          name: maxAmount
+          schema:
+            type: number
+            minimum: 0
+        - in: query
+          name: userId
+          schema:
+            type: string
+        - in: query
+          name: orderId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [createdAt, dueDate, totalAmount]
+            default: createdAt
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        "200":
+          description: Filtered invoices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedInvoices"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+
+  /invoices/id/{invoiceId}:
+    get:
+      tags:
+        - Invoices
+      summary: Get invoice by ID
+      description: Get a specific invoice by its ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c95"
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/Invoice"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Invoice not found
+
+  /invoices/number/{invoiceNumber}:
+    get:
+      tags:
+        - Invoices
+      summary: Get invoice by invoice number
+      description: Get a specific invoice by its unique invoice number
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceNumber
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "INV-2401-0001"
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/Invoice"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Invoice not found
+
+  /invoices/order-id/{orderId}:
+    get:
+      tags:
+        - Invoices
+      summary: Get invoice by order ID
+      description: Get the invoice associated with a specific order ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c89"
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/Invoice"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Order or invoice not found
+
+  /invoices/order-number/{orderNumber}:
+    get:
+      tags:
+        - Invoices
+      summary: Get invoice by order number
+      description: Get the invoice associated with a specific order number
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderNumber
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "ORD-2024-001"
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/Invoice"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Order or invoice not found
+
+  /invoices/my-invoices:
+    get:
+      tags:
+        - Invoices
+      summary: Get logged-in customer's invoices
+      description: Get paginated list of invoices for the authenticated customer
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 10
+      responses:
+        "200":
+          description: List of user's invoices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedInvoices"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Customer only
+  
+    # ==================== SHIPPING ====================
+  /shipping/order/{orderId}:
+    post:
+      tags:
+        - Shipping
+      summary: Create shipping record (Admin only)
+      description: Create a shipping record for an order. For delivery, address is required. Name and phone come from user profile.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c89"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateShippingRequest"
+      responses:
+        "201":
+          description: Shipping created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Shipping created successfully"
+                  data:
+                    $ref: "#/components/schemas/Shipping"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+        "404":
+          description: Order not found
+
+  /shipping/{shippingId}/tracking:
+    put:
+      tags:
+        - Shipping
+      summary: Update tracking information (Admin only)
+      description: Add tracking number and carrier information for delivery orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shippingId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c98"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTrackingRequest"
+      responses:
+        "200":
+          description: Tracking information updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Tracking information updated successfully"
+                  data:
+                    $ref: "#/components/schemas/Shipping"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+        "404":
+          description: Shipping not found
+
+  /shipping/{shippingId}/status:
+    patch:
+      tags:
+        - Shipping
+      summary: Update shipping status (Admin only)
+      description: Update the status of a shipping record (pending → shipped → delivered)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shippingId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c98"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateShippingStatusRequest"
+      responses:
+        "200":
+          description: Shipping status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Shipping status updated successfully"
+                  data:
+                    $ref: "#/components/schemas/Shipping"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+        "404":
+          description: Shipping not found
+
+  /shipping/all:
+    get:
+      tags:
+        - Shipping
+      summary: Get all shipping records (Admin only)
+      description: Get paginated list of all shipping records
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 10
+      responses:
+        "200":
+          description: List of shipping records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedShipping"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+
+  /shipping/filter:
+    get:
+      tags:
+        - Shipping
+      summary: Filter shipping records (Admin only)
+      description: Advanced filtering of shipping records with multiple criteria
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/ShippingStatus"
+        - in: query
+          name: method
+          schema:
+            $ref: "#/components/schemas/ShippingMethod"
+        - in: query
+          name: orderId
+          schema:
+            type: string
+        - in: query
+          name: userId
+          schema:
+            type: string
+        - in: query
+          name: isPaid
+          schema:
+            type: boolean
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: Filtered shipping records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedShipping"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+
+  /shipping/needing-invoice:
+    get:
+      tags:
+        - Shipping
+      summary: Get shipping needing invoice (Admin only)
+      description: Get shipping records that don't have an invoice yet
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of shipping needing invoice
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Shipping"
+                  count:
+                    type: integer
+                    example: 5
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+
+  /shipping/pending:
+    get:
+      tags:
+        - Shipping
+      summary: Get pending shipping (Admin only)
+      description: Get shipping records with pending status
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of pending shipping
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Shipping"
+                  count:
+                    type: integer
+                    example: 5
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin only
+
+  /shipping/{shippingId}:
+    get:
+      tags:
+        - Shipping
+      summary: Get shipping by ID
+      description: Get a specific shipping record by its ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shippingId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c98"
+      responses:
+        "200":
+          description: Shipping details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/Shipping"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Shipping not found
+
+  /shipping/order/{orderId}:
+    get:
+      tags:
+        - Shipping
+      summary: Get shipping by order ID
+      description: Get the shipping record associated with a specific order
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "60d21b4667d0d8992e610c89"
+      responses:
+        "200":
+          description: Shipping details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/Shipping"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Order or shipping not found
 
   # ==================== WEBSOCKET ====================
   /websocket/events:

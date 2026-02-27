@@ -1,0 +1,19 @@
+<p>Great news! We've received your payment of <strong>₦<%= amount %></strong> for order <strong>#<%= orderNumber %></strong>.</p>
+
+<div class="info-box">
+  <p><strong>Payment Details:</strong></p>
+  <p style="margin-bottom: 5px;">Amount Paid: ₦<%= amount %></p>
+  <p style="margin-bottom: 5px;">Payment Type: <%= paymentType === 'part' ? 'Deposit' : 'Full Payment' %></p>
+  <p style="margin-bottom: 5px;">Payment Method: <%= paymentMethod === 'paystack' ? 'Card Payment' : 'Bank Transfer' %></p>
+  <p style="margin-bottom: 0;">Remaining Balance: ₦<%= remainingBalance %></p>
+</div>
+
+<div class="info-box">
+  <p><strong>📋 What's Next?</strong></p>
+  <p><%= paymentType === 'part' 
+    ? 'Your deposit has been confirmed. We\'ll begin design work soon.' 
+    : 'Your payment is complete. Your order is now ready for processing.' %>
+  </p>
+</div>
+
+<p>Track your order status in your dashboard.</p>

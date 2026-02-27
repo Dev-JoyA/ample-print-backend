@@ -28,12 +28,12 @@ export interface ITransaction extends Document {
   transactionType: TransactionType;
   paymentMethod: PaymentMethod;
   metadata: Record<string, any>; // Gateway response
-  
+
   // For bank transfers
   receiptUrl?: string;
   verifiedBy?: Types.ObjectId;
   verifiedAt?: Date;
-  
+
   paidAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -107,4 +107,7 @@ TransactionSchema.index({ orderId: 1, createdAt: -1 });
 TransactionSchema.index({ transactionStatus: 1, createdAt: -1 });
 TransactionSchema.index({ transactionType: 1, transactionStatus: 1 });
 
-export const Transaction = model<ITransaction>("Transaction", TransactionSchema);
+export const Transaction = model<ITransaction>(
+  "Transaction",
+  TransactionSchema,
+);

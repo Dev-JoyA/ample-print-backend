@@ -55,11 +55,7 @@ router.post(
 );
 
 // Get orders ready for invoice (super admin only)
-router.get(
-  "/ready-for-invoice",
-  checkSuperAdmin,
-  getOrdersReadyForInvoice
-);
+router.get("/ready-for-invoice", checkSuperAdmin, getOrdersReadyForInvoice);
 
 // ==================== ADMIN ONLY ROUTES ====================
 // Get all orders (admin only)

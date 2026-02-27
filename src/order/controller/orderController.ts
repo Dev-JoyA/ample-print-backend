@@ -279,13 +279,17 @@ export const filterOrders = async (req: Request, res: Response) => {
     const filters = {
       status: req.query.status as OrderStatus,
       paymentStatus: req.query.paymentStatus as PaymentStatus,
-      startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
-      endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
+      startDate: req.query.startDate
+        ? new Date(req.query.startDate as string)
+        : undefined,
+      endDate: req.query.endDate
+        ? new Date(req.query.endDate as string)
+        : undefined,
       minAmount: req.query.minAmount ? Number(req.query.minAmount) : undefined,
       maxAmount: req.query.maxAmount ? Number(req.query.maxAmount) : undefined,
       userId: req.query.userId as string,
-      hasInvoice: req.query.hasInvoice === 'true',
-      hasShipping: req.query.hasShipping === 'true',
+      hasInvoice: req.query.hasInvoice === "true",
+      hasShipping: req.query.hasShipping === "true",
       page: req.query.page ? parseInt(req.query.page as string) : 1,
       limit: req.query.limit ? parseInt(req.query.limit as string) : 10,
     };
@@ -372,7 +376,11 @@ export const getPartiallyPaidOrders = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await orderService.getPartiallyPaidOrders(user.role, page, limit);
+    const result = await orderService.getPartiallyPaidOrders(
+      user.role,
+      page,
+      limit,
+    );
 
     res.status(200).json({
       success: true,
@@ -400,7 +408,11 @@ export const getPendingPaymentOrders = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await orderService.getPendingPaymentOrders(user.role, page, limit);
+    const result = await orderService.getPendingPaymentOrders(
+      user.role,
+      page,
+      limit,
+    );
 
     res.status(200).json({
       success: true,
@@ -415,7 +427,10 @@ export const getPendingPaymentOrders = async (req: Request, res: Response) => {
 };
 
 // ==================== GET ORDERS READY FOR SHIPPING ====================
-export const getOrdersReadyForShipping = async (req: Request, res: Response) => {
+export const getOrdersReadyForShipping = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const user = req.user as { _id: string; role: string };
     const page = parseInt(req.query.page as string) || 1;
@@ -428,7 +443,11 @@ export const getOrdersReadyForShipping = async (req: Request, res: Response) => 
       });
     }
 
-    const result = await orderService.getOrdersReadyForShipping(user.role, page, limit);
+    const result = await orderService.getOrdersReadyForShipping(
+      user.role,
+      page,
+      limit,
+    );
 
     res.status(200).json({
       success: true,

@@ -16,97 +16,91 @@ import { Types } from "mongoose";
 const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
   // Initial states
   [OrderStatus.Pending]: [OrderStatus.OrderReceived, OrderStatus.Cancelled],
-  
+
   // Order received - can go to files upload or invoice
   [OrderStatus.OrderReceived]: [
     OrderStatus.FilesUploaded,
     OrderStatus.InvoiceSent,
     OrderStatus.Cancelled,
   ],
-  
+
   // Files uploaded - design process starts
   [OrderStatus.FilesUploaded]: [
     OrderStatus.DesignUploaded,
     OrderStatus.Cancelled,
   ],
-  
+
   // Invoice sent - payment tracking begins
   [OrderStatus.InvoiceSent]: [
     OrderStatus.AwaitingPartPayment,
     OrderStatus.Cancelled,
   ],
-  
+
   // Design uploaded - customer review
   [OrderStatus.DesignUploaded]: [
     OrderStatus.UnderReview,
     OrderStatus.Cancelled,
   ],
-  
+
   // Under review - customer approving
   [OrderStatus.UnderReview]: [
     OrderStatus.Approved,
     OrderStatus.AwaitingPartPayment, // If they need to pay more
     OrderStatus.Cancelled,
   ],
-  
+
   // Approved - ready for production
   [OrderStatus.Approved]: [
     OrderStatus.InProduction,
     OrderStatus.AwaitingPartPayment, // If part payment required
     OrderStatus.Cancelled,
   ],
-  
+
   // Awaiting part payment - waiting for deposit
   [OrderStatus.AwaitingPartPayment]: [
     OrderStatus.PartPaymentMade,
     OrderStatus.Cancelled,
   ],
-  
+
   // Part payment made - deposit received
   [OrderStatus.PartPaymentMade]: [
     OrderStatus.InProduction,
     OrderStatus.AwaitingFinalPayment,
     OrderStatus.Cancelled,
   ],
-  
+
   // In production - being printed
-  [OrderStatus.InProduction]: [
-    OrderStatus.Completed,
-    OrderStatus.Cancelled
-  ],
-  
+  [OrderStatus.InProduction]: [OrderStatus.Completed, OrderStatus.Cancelled],
+
   // Completed - ready for next step
   [OrderStatus.Completed]: [
     OrderStatus.ReadyForShipping,
     OrderStatus.AwaitingFinalPayment,
     OrderStatus.Delivered,
   ],
-  
+
   // Awaiting final payment - balance due
   [OrderStatus.AwaitingFinalPayment]: [
     OrderStatus.FinalPaid,
     OrderStatus.Cancelled,
   ],
-  
+
   // Final paid - all payments complete
   [OrderStatus.FinalPaid]: [
     OrderStatus.ReadyForShipping,
     OrderStatus.Shipped,
     OrderStatus.Delivered,
   ],
-  
+
   // Ready for shipping - admin can create shipping
-  [OrderStatus.ReadyForShipping]: [
-    OrderStatus.Shipped,
-    OrderStatus.Delivered
-  ],
-  
+  [OrderStatus.ReadyForShipping]: [OrderStatus.Shipped, OrderStatus.Delivered],
+
   // Shipped - on the way
   [OrderStatus.Shipped]: [OrderStatus.Delivered],
-  
+
   // Cancelled - terminal state
   [OrderStatus.Cancelled]: [],
-  
+
   // Delivered - terminal state
   [OrderStatus.Delivered]: [],
 };
@@ -201,15 +195,17 @@ export const createOrder = async (
   });
 
   // Email notification
-  await emailService.sendOrderConfirmation(
-    user.email,
-    profile.firstName,
-    order.orderNumber,
-    orderItems,
-    totalAmount,
-  ).catch((err) =>
-    console.error("Error sending order confirmation email", err),
-  );
+  await emailService
+    .sendOrderConfirmation(
+      user.email,
+      profile.firstName,
+      order.orderNumber,
+      orderItems,
+      totalAmount,
+    )
+    .catch((err) =>
+      console.error("Error sending order confirmation email", err),
+    );
 
   return order;
 };
@@ -281,13 +277,15 @@ export const superAdminCreateOrder = async (
 
   const profile = await Profile.findOne({ userId: customer._id });
   if (profile) {
-    await emailService.sendOrderConfirmation(
-      customer.email,
-      profile.firstName,
-      order.orderNumber,
-      orderItems,
-      totalAmount,
-    ).catch((err) => console.error("Error sending email", err));
+    await emailService
+      .sendOrderConfirmation(
+        customer.email,
+        profile.firstName,
+        order.orderNumber,
+        orderItems,
+        totalAmount,
+      )
+      .catch((err) => console.error("Error sending email", err));
   }
 
   io.to("admin-room").emit("new-order", {
@@ -310,7 +308,8 @@ export const updateOrder = async (
   if (!order) throw new Error("Order not found");
 
   const isOwner = order.userId.toString() === userId;
-  const isAdmin = userRole === UserRole.SuperAdmin || userRole === UserRole.Admin;
+  const isAdmin =
+    userRole === UserRole.SuperAdmin || userRole === UserRole.Admin;
 
   if (!isOwner && !isAdmin) {
     throw new Error("Unauthorized to update this order");
@@ -453,13 +452,11 @@ export const updateOrderStatus = async (
     const profile = await Profile.findOne({ userId: order.userId });
 
     if (user && profile) {
-      await emailService.sendOrderDelivered(
-        user.email,
-        profile.firstName,
-        order.orderNumber
-      ).catch((err) =>
-        console.error("Error sending order delivered email", err),
-      );
+      await emailService
+        .sendOrderDelivered(user.email, profile.firstName, order.orderNumber)
+        .catch((err) =>
+          console.error("Error sending order delivered email", err),
+        );
     }
   }
 
@@ -611,12 +608,14 @@ export const getOrdersReadyForInvoice = async (
   userRole: string,
 ): Promise<IOrderModel[]> => {
   if (userRole !== UserRole.SuperAdmin) {
-    throw new Error("Unauthorized - Only super admin can view orders ready for invoice");
+    throw new Error(
+      "Unauthorized - Only super admin can view orders ready for invoice",
+    );
   }
 
   return Order.find({
     status: OrderStatus.OrderReceived,
-    invoiceId: { $exists: false }
+    invoiceId: { $exists: false },
   })
     .populate("userId", "email fullname")
     .populate("items.productId", "name price")
@@ -637,9 +636,9 @@ export const getPaidOrders = async (
   const skip = (page - 1) * limit;
 
   const [orders, total] = await Promise.all([
-    Order.find({ 
+    Order.find({
       paymentStatus: PaymentStatus.Completed,
-      invoiceId: { $ne: null }
+      invoiceId: { $ne: null },
     })
       .populate("userId", "email fullname")
       .populate("items.productId", "name")
@@ -648,9 +647,9 @@ export const getPaidOrders = async (
       .skip(skip)
       .limit(limit)
       .exec(),
-    Order.countDocuments({ 
+    Order.countDocuments({
       paymentStatus: PaymentStatus.Completed,
-      invoiceId: { $ne: null }
+      invoiceId: { $ne: null },
     }),
   ]);
 
@@ -675,9 +674,9 @@ export const getPartiallyPaidOrders = async (
   const skip = (page - 1) * limit;
 
   const [orders, total] = await Promise.all([
-    Order.find({ 
+    Order.find({
       paymentStatus: PaymentStatus.PartPayment,
-      invoiceId: { $ne: null }
+      invoiceId: { $ne: null },
     })
       .populate("userId", "email fullname")
       .populate("items.productId", "name")
@@ -686,9 +685,9 @@ export const getPartiallyPaidOrders = async (
       .skip(skip)
       .limit(limit)
       .exec(),
-    Order.countDocuments({ 
+    Order.countDocuments({
       paymentStatus: PaymentStatus.PartPayment,
-      invoiceId: { $ne: null }
+      invoiceId: { $ne: null },
     }),
   ]);
 
@@ -713,9 +712,9 @@ export const getPendingPaymentOrders = async (
   const skip = (page - 1) * limit;
 
   const [orders, total] = await Promise.all([
-    Order.find({ 
+    Order.find({
       paymentStatus: PaymentStatus.Pending,
-      invoiceId: { $ne: null }
+      invoiceId: { $ne: null },
     })
       .populate("userId", "email fullname")
       .populate("items.productId", "name")
@@ -724,9 +723,9 @@ export const getPendingPaymentOrders = async (
       .skip(skip)
       .limit(limit)
       .exec(),
-    Order.countDocuments({ 
+    Order.countDocuments({
       paymentStatus: PaymentStatus.Pending,
-      invoiceId: { $ne: null }
+      invoiceId: { $ne: null },
     }),
   ]);
 
@@ -753,7 +752,7 @@ export const getOrdersReadyForShipping = async (
   const [orders, total] = await Promise.all([
     Order.find({
       status: OrderStatus.ReadyForShipping,
-      shippingId: { $exists: false }
+      shippingId: { $exists: false },
     })
       .populate("userId", "email fullname")
       .populate("items.productId", "name")
@@ -764,7 +763,7 @@ export const getOrdersReadyForShipping = async (
       .exec(),
     Order.countDocuments({
       status: OrderStatus.ReadyForShipping,
-      shippingId: { $exists: false }
+      shippingId: { $exists: false },
     }),
   ]);
 
@@ -812,7 +811,7 @@ export const linkInvoiceToOrder = async (
     order.requiredDeposit = depositAmount;
   }
   order.status = OrderStatus.InvoiceSent;
-  
+
   await order.save();
   return order;
 };
