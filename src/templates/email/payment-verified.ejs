@@ -1,0 +1,36 @@
+<%
+  const isApproved = status === 'approved';
+  const statusClass = isApproved ? 'status-approved' : 'status-rejected';
+  const statusText = isApproved ? 'Approved' : 'Rejected';
+%>
+
+<% if (isApproved) { %>
+  <p>Your bank transfer of <strong>₦<%= amount %></strong> for order 
+  <strong>#<%= orderNumber %></strong> has been successfully verified and confirmed. ✅</p>
+<% } else { %>
+  <p>Unfortunately, we were unable to verify your bank transfer of 
+  <strong>₦<%= amount %></strong> for order <strong>#<%= orderNumber %></strong>. ❌</p>
+<% } %>
+
+<div class="info-box">
+  <p><strong>Transaction Details</strong></p>
+  <p>Amount: ₦<%= amount %></p>
+  <p>Reference: <%= transactionId %></p>
+  <p>
+    Status:
+    <span class="<%= statusClass %>"><%= statusText %></span>
+  </p>
+  <% if (notes) { %>
+    <p><strong>Reason:</strong> <%= notes %></p>
+  <% } %>
+</div>
+
+<div class="info-box">
+  <% if (isApproved) { %>
+    <p><strong>🚀 What's Next?</strong></p>
+    <p>Your order will now proceed to the next stage. You'll receive further updates as processing continues.</p>
+  <% } else { %>
+    <p><strong>📋 Next Steps</strong></p>
+    <p>Please upload a clearer payment receipt or contact our support team for assistance.</p>
+  <% } %>
+</div>

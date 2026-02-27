@@ -128,10 +128,12 @@ export async function signUpService(data: SignUpData) {
     session.endSession();
 
     // ✅ FIXED: Use emailService correctly
-    await emailService.sendWelcomeEmail(
-      email,
-      firstName // Using firstName instead of userName for more personal greeting
-    ).catch(console.error);
+    await emailService
+      .sendWelcomeEmail(
+        email,
+        firstName, // Using firstName instead of userName for more personal greeting
+      )
+      .catch(console.error);
 
     return {
       user: sanitizeUser(newUser),
@@ -283,32 +285,36 @@ export async function createAdminService(
     session.endSession();
 
     // ✅ FIXED: Notify superadmin about new admin creation
-    const superAdminUser = await User.findOne({ role: UserRole.SuperAdmin }).lean();
+    const superAdminUser = await User.findOne({
+      role: UserRole.SuperAdmin,
+    }).lean();
     if (superAdminUser?.email) {
-      await emailService.sendAdminNewOrder(
-        superAdminUser.email,
-        "N/A", // No order number for admin creation
-        `${firstName} ${lastName}`,
-        email,
-        0, // No amount
-        [{ productName: "Admin Account Creation", quantity: 1, price: 0 }]
-      ).catch(console.error);
+      await emailService
+        .sendAdminNewOrder(
+          superAdminUser.email,
+          "N/A", // No order number for admin creation
+          `${firstName} ${lastName}`,
+          email,
+          0, // No amount
+          [{ productName: "Admin Account Creation", quantity: 1, price: 0 }],
+        )
+        .catch(console.error);
     }
 
     // Send password reset email to new admin
     const token = generateRandomToken();
     const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
-    await PasswordResetToken.deleteMany({ userId: newUser._id }).catch(() => {});
+    await PasswordResetToken.deleteMany({ userId: newUser._id }).catch(
+      () => {},
+    );
     await PasswordResetToken.create({ userId: newUser._id, token, expiresAt });
 
     const resetUrl = `${FRONTEND_BASE}${RESET_PATH}?token=${token}`;
-    
+
     // ✅ FIXED: Use emailService for password reset
-    await emailService.sendPasswordReset(
-      email,
-      firstName,
-      resetUrl
-    ).catch(console.error);
+    await emailService
+      .sendPasswordReset(email, firstName, resetUrl)
+      .catch(console.error);
 
     return {
       user: sanitizeUser(newUser),
@@ -387,10 +393,7 @@ export async function createSuperAdminService(data: SignUpData) {
     session.endSession();
 
     // ✅ FIXED: Use emailService for welcome email
-    await emailService.sendWelcomeEmail(
-      email,
-      firstName
-    ).catch(console.error);
+    await emailService.sendWelcomeEmail(email, firstName).catch(console.error);
 
     return {
       user: sanitizeUser(newUser),
@@ -436,23 +439,18 @@ export async function deactivateAdminService(email: string) {
 
   // ✅ FIXED: Use emailService for notifications
   if (superAdmin.email) {
-    await emailService.sendAdminNewOrder(
-      superAdmin.email,
-      "N/A",
-      profile.userName,
-      email,
-      0,
-      [{ productName: "Admin Deactivation", quantity: 1, price: 0 }]
-    ).catch(console.error);
+    await emailService
+      .sendAdminNewOrder(superAdmin.email, "N/A", profile.userName, email, 0, [
+        { productName: "Admin Deactivation", quantity: 1, price: 0 },
+      ])
+      .catch(console.error);
   }
 
   // TODO: Add a specific email template for account deactivation
   // For now, using a generic email
-  await emailService.sendPasswordReset(
-    email,
-    profile.userName,
-    FRONTEND_BASE
-  ).catch(console.error);
+  await emailService
+    .sendPasswordReset(email, profile.userName, FRONTEND_BASE)
+    .catch(console.error);
 }
 
 export async function reactivateAdminService(email: string) {
@@ -484,21 +482,17 @@ export async function reactivateAdminService(email: string) {
 
   // ✅ FIXED: Use emailService for notifications
   if (superAdmin.email) {
-    await emailService.sendAdminNewOrder(
-      superAdmin.email,
-      "N/A",
-      profile.userName,
-      email,
-      0,
-      [{ productName: "Admin Reactivation", quantity: 1, price: 0 }]
-    ).catch(console.error);
+    await emailService
+      .sendAdminNewOrder(superAdmin.email, "N/A", profile.userName, email, 0, [
+        { productName: "Admin Reactivation", quantity: 1, price: 0 },
+      ])
+      .catch(console.error);
   }
 
   // TODO: Add a specific email template for account reactivation
-  await emailService.sendWelcomeEmail(
-    email,
-    profile.firstName
-  ).catch(console.error);
+  await emailService
+    .sendWelcomeEmail(email, profile.firstName)
+    .catch(console.error);
 }
 
 export async function forgotPasswordService(email: string) {
@@ -518,13 +512,11 @@ export async function forgotPasswordService(email: string) {
   await PasswordResetToken.create({ userId: user._id, token, expiresAt });
 
   const resetUrl = `${FRONTEND_BASE}${RESET_PATH}?token=${token}`;
-  
+
   // ✅ FIXED: Use emailService for password reset
-  await emailService.sendPasswordReset(
-    email,
-    profile.firstName,
-    resetUrl
-  ).catch(console.error);
+  await emailService
+    .sendPasswordReset(email, profile.firstName, resetUrl)
+    .catch(console.error);
 
   return { message: "Password reset email sent" };
 }
@@ -560,11 +552,9 @@ export async function effectForgotPassword(
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (profile) {
     // ✅ FIXED: Use emailService for password reset confirmation
-    await emailService.sendPasswordReset(
-      user.email,
-      profile.firstName,
-      FRONTEND_BASE
-    ).catch(console.error);
+    await emailService
+      .sendPasswordReset(user.email, profile.firstName, FRONTEND_BASE)
+      .catch(console.error);
   }
 
   return { message: "Password reset successful" };
@@ -592,11 +582,9 @@ export async function resetPasswordService(
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (profile) {
     // ✅ FIXED: Use emailService for password reset confirmation
-    await emailService.sendPasswordReset(
-      user.email,
-      profile.firstName,
-      FRONTEND_BASE
-    ).catch(console.error);
+    await emailService
+      .sendPasswordReset(user.email, profile.firstName, FRONTEND_BASE)
+      .catch(console.error);
   }
 
   return { message: "Password reset successful" };

@@ -9,5 +9,3 @@ export const startServer = async () => {
   await mongoose.connect(uri);
   console.log("✅ Connected to MongoDB");
 };
-
-

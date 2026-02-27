@@ -1,4 +1,8 @@
-import { Order, OrderStatus, PaymentStatus } from "../../order/model/orderModel.js";
+import {
+  Order,
+  OrderStatus,
+  PaymentStatus,
+} from "../../order/model/orderModel.js";
 import { Design, IDesign } from "../model/designModel.js";
 import { User } from "../../users/model/userModel.js";
 import { Profile } from "../../users/model/profileModel.js";
@@ -28,7 +32,9 @@ const validatePaymentForDesign = async (orderId: string): Promise<void> => {
 
   // Check if order has an invoice
   if (!order.invoiceId) {
-    throw new Error("No invoice created for this order yet. Please wait for invoice.");
+    throw new Error(
+      "No invoice created for this order yet. Please wait for invoice.",
+    );
   }
 
   const invoice = await Invoice.findById(order.invoiceId);
@@ -49,10 +55,12 @@ const validatePaymentForDesign = async (orderId: string): Promise<void> => {
     if (order.paymentStatus !== PaymentStatus.PartPayment) {
       throw new Error("Deposit payment required before design can be uploaded");
     }
-    
+
     // Verify deposit amount meets requirement
     if (order.amountPaid < (order.requiredDeposit || 0)) {
-      throw new Error(`Deposit of at least ${order.requiredDeposit} required before design can be uploaded`);
+      throw new Error(
+        `Deposit of at least ${order.requiredDeposit} required before design can be uploaded`,
+      );
     }
     return;
   }
@@ -98,7 +106,9 @@ export const uploadDesign = async (
   ];
 
   if (!allowedStatuses.includes(order.status)) {
-    throw new Error(`Design cannot be uploaded when order is in ${order.status} status`);
+    throw new Error(
+      `Design cannot be uploaded when order is in ${order.status} status`,
+    );
   }
 
   const lastDesign = await Design.findOne({ orderId: order._id }).sort({
@@ -124,7 +134,7 @@ export const uploadDesign = async (
     otherImage: data.otherImage,
     createdAt: new Date(),
   });
-  
+
   const user = await User.findById(order.userId).exec();
   if (!user) {
     throw new Error("User not found");
@@ -158,15 +168,16 @@ export const uploadDesign = async (
   const productName = productInOrder.productName;
 
   // Send email notification
-  await emailService.sendDesignReady(
-    user.email,
-    profile.firstName,
-    order.orderNumber,
-    productName,
-    `${process.env.FRONTEND_URL}/orders/${order.orderNumber}/design` || `http://localhost:4001/orders/${order.orderNumber}/design`
-  ).catch((err) =>
-    console.error("Error sending design ready email:", err),
-  );
+  await emailService
+    .sendDesignReady(
+      user.email,
+      profile.firstName,
+      order.orderNumber,
+      productName,
+      `${process.env.FRONTEND_URL}/orders/${order.orderNumber}/design` ||
+        `http://localhost:4001/orders/${order.orderNumber}/design`,
+    )
+    .catch((err) => console.error("Error sending design ready email:", err));
 
   return design;
 };
@@ -210,15 +221,16 @@ export const updateDesign = async (
   const orderNumber = order.orderNumber;
 
   // Send email notification for update
-  await emailService.sendDesignReady(
-    user.email,
-    profile.firstName,
-    orderNumber,
-    productName,
-    `${process.env.FRONTEND_URL}/orders/${orderNumber}/design` || `http://localhost:4001/orders/${orderNumber}/design`
-  ).catch((err) =>
-    console.error("Error sending design update email:", err),
-  );
+  await emailService
+    .sendDesignReady(
+      user.email,
+      profile.firstName,
+      orderNumber,
+      productName,
+      `${process.env.FRONTEND_URL}/orders/${orderNumber}/design` ||
+        `http://localhost:4001/orders/${orderNumber}/design`,
+    )
+    .catch((err) => console.error("Error sending design update email:", err));
 
   io.to("superadmin-room").emit("designUploaded", {
     designId: updatedDesign._id,
@@ -300,15 +312,19 @@ export const approveDesign = async (id: string): Promise<IDesign> => {
     // Calculate estimated delivery (you might want to get this from settings)
     const estimatedDelivery = new Date();
     estimatedDelivery.setDate(estimatedDelivery.getDate() + 7);
-    
-    await emailService.sendDesignApproved(
-      user.email,
-      profile.firstName,
-      order.orderNumber,
-      product.name,
-      "3-5", // Production time
-      estimatedDelivery.toLocaleDateString()
-    ).catch(err => console.error("Error sending design approved email:", err));
+
+    await emailService
+      .sendDesignApproved(
+        user.email,
+        profile.firstName,
+        order.orderNumber,
+        product.name,
+        "3-5", // Production time
+        estimatedDelivery.toLocaleDateString(),
+      )
+      .catch((err) =>
+        console.error("Error sending design approved email:", err),
+      );
   }
 
   return design;

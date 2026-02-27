@@ -42,18 +42,18 @@ export interface IOrderModel extends Document {
   totalAmount: number;
   amountPaid: number;
   remainingBalance: number;
-  
+
   // ✅ Add these to track invoice requirements
   requiredPaymentType?: "full" | "part"; // What super admin decided
   requiredDeposit?: number; // If part payment, how much deposit needed
-  
+
   status: OrderStatus;
   paymentStatus: PaymentStatus;
-  
+
   // ✅ Track which invoice applies to this order
   invoiceId?: Types.ObjectId;
   shippingId?: Types.ObjectId;
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -114,7 +114,7 @@ const OrderSchema = new Schema<IOrderModel>(
     totalAmount: { type: Number, required: true },
     amountPaid: { type: Number, default: 0 },
     remainingBalance: { type: Number, required: true },
-    
+
     // New fields
     requiredPaymentType: {
       type: String,
@@ -124,7 +124,7 @@ const OrderSchema = new Schema<IOrderModel>(
       type: Number,
       min: 0,
     },
-    
+
     status: {
       type: String,
       enum: Object.values(OrderStatus),
@@ -137,7 +137,7 @@ const OrderSchema = new Schema<IOrderModel>(
       default: PaymentStatus.Pending,
       index: true,
     },
-    
+
     invoiceId: {
       type: Schema.Types.ObjectId,
       ref: "Invoice",

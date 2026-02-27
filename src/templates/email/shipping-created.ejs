@@ -1,0 +1,21 @@
+<% if (shippingMethod === 'delivery') { %>
+  <p>Great news! Shipping has been arranged for your order <strong>#<%= orderNumber %></strong>. 🚚</p>
+<% } else { %>
+  <p>Your order <strong>#<%= orderNumber %></strong> is now ready for pickup at our store. 🏢</p>
+<% } %>
+
+<div class="info-box">
+  <p><strong>Shipping Details:</strong></p>
+  <p style="margin-bottom: 5px;">Method: <%= shippingMethod === 'delivery' ? 'Doorstep Delivery' : 'Store Pickup' %></p>
+  <p style="margin-bottom: 5px;">Cost: ₦<%= shippingCost %></p>
+  
+  <% if (shippingMethod === 'delivery') { %>
+    <p style="margin-bottom: 5px; margin-top: 10px;"><strong>Delivery Address:</strong> <%= address %></p>
+    <p style="margin-bottom: 5px;"><strong>Recipient:</strong> <%= recipientName %> (<%= recipientPhone %>)</p>
+    <p style="margin-bottom: 0; margin-top: 10px;">You'll receive tracking information once your package is shipped.</p>
+  <% } else { %>
+    <p style="margin-bottom: 5px; margin-top: 10px;"><strong>Store Address:</strong> <%= storeAddress %></p>
+    <p style="margin-bottom: 0;"><strong>Store Hours:</strong> <%= storeHours %></p>
+    <p style="margin-bottom: 0; margin-top: 10px;">Please bring a valid ID when picking up your order.</p>
+  <% } %>
+</div>
