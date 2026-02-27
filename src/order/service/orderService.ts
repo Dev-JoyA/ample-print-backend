@@ -10,66 +10,108 @@ import {
 import { Product } from "../../product/model/productModel.js";
 import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
-import emailService from "../../utils/email.js"; // ✅ Updated import
+import emailService from "../../utils/email.js";
 import { Types } from "mongoose";
 
 const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
+  // Initial states
   [OrderStatus.Pending]: [OrderStatus.OrderReceived, OrderStatus.Cancelled],
+  
+  // Order received - can go to files upload or invoice
   [OrderStatus.OrderReceived]: [
     OrderStatus.FilesUploaded,
     OrderStatus.InvoiceSent,
     OrderStatus.Cancelled,
   ],
+  
+  // Files uploaded - design process starts
   [OrderStatus.FilesUploaded]: [
     OrderStatus.DesignUploaded,
     OrderStatus.Cancelled,
   ],
+  
+  // Invoice sent - payment tracking begins
   [OrderStatus.InvoiceSent]: [
-    OrderStatus.AwaitingDeposit,
+    OrderStatus.AwaitingPartPayment,
     OrderStatus.Cancelled,
   ],
-  [OrderStatus.AwaitingDeposit]: [
-    OrderStatus.DepositPaid,
-    OrderStatus.Cancelled,
-  ],
-  [OrderStatus.DepositPaid]: [
-    OrderStatus.DesignUploaded,
-    OrderStatus.Cancelled,
-  ],
+  
+  // Design uploaded - customer review
   [OrderStatus.DesignUploaded]: [
     OrderStatus.UnderReview,
     OrderStatus.Cancelled,
   ],
+  
+  // Under review - customer approving
   [OrderStatus.UnderReview]: [
     OrderStatus.Approved,
-    OrderStatus.AwaitingPartPayment,
+    OrderStatus.AwaitingPartPayment, // If they need to pay more
     OrderStatus.Cancelled,
   ],
-  [OrderStatus.Approved]: [OrderStatus.InProduction, OrderStatus.Cancelled],
+  
+  // Approved - ready for production
+  [OrderStatus.Approved]: [
+    OrderStatus.InProduction,
+    OrderStatus.AwaitingPartPayment, // If part payment required
+    OrderStatus.Cancelled,
+  ],
+  
+  // Awaiting part payment - waiting for deposit
   [OrderStatus.AwaitingPartPayment]: [
     OrderStatus.PartPaymentMade,
     OrderStatus.Cancelled,
   ],
+  
+  // Part payment made - deposit received
   [OrderStatus.PartPaymentMade]: [
     OrderStatus.InProduction,
+    OrderStatus.AwaitingFinalPayment,
     OrderStatus.Cancelled,
   ],
-  [OrderStatus.InProduction]: [OrderStatus.Completed, OrderStatus.Cancelled],
+  
+  // In production - being printed
+  [OrderStatus.InProduction]: [
+    OrderStatus.Completed,
+    OrderStatus.Cancelled
+  ],
+  
+  // Completed - ready for next step
   [OrderStatus.Completed]: [
+    OrderStatus.ReadyForShipping,
     OrderStatus.AwaitingFinalPayment,
-    OrderStatus.Shipped,
     OrderStatus.Delivered,
   ],
+  
+  // Awaiting final payment - balance due
   [OrderStatus.AwaitingFinalPayment]: [
     OrderStatus.FinalPaid,
     OrderStatus.Cancelled,
   ],
-  [OrderStatus.FinalPaid]: [OrderStatus.Shipped, OrderStatus.Delivered],
+  
+  // Final paid - all payments complete
+  [OrderStatus.FinalPaid]: [
+    OrderStatus.ReadyForShipping,
+    OrderStatus.Shipped,
+    OrderStatus.Delivered,
+  ],
+  
+  // Ready for shipping - admin can create shipping
+  [OrderStatus.ReadyForShipping]: [
+    OrderStatus.Shipped,
+    OrderStatus.Delivered
+  ],
+  
+  // Shipped - on the way
   [OrderStatus.Shipped]: [OrderStatus.Delivered],
+  
+  // Cancelled - terminal state
   [OrderStatus.Cancelled]: [],
+  
+  // Delivered - terminal state
   [OrderStatus.Delivered]: [],
 };
 
+// ==================== CREATE ORDER (Customer) ====================
 export const createOrder = async (
   userId: string,
   data: OrderData,
@@ -138,7 +180,6 @@ export const createOrder = async (
     totalAmount: totalAmount,
     amountPaid: 0,
     remainingBalance: totalAmount,
-    isDepositPaid: false,
     status: OrderStatus.OrderReceived,
     paymentStatus: PaymentStatus.Pending,
     createdAt: new Date(),
@@ -147,10 +188,11 @@ export const createOrder = async (
   const profile = await Profile.findOne({ userId: user._id }).exec();
   if (!profile) throw new Error("Profile not found");
 
+  // Socket notifications
   io.to("superadmin-room").emit("new-order", {
     orderId: order._id,
     orderNumber: order.orderNumber,
-    message: "New order requires invoice generation",
+    message: "New order created - requires invoice",
   });
 
   io.to("admin-room").emit("new-order", {
@@ -158,14 +200,13 @@ export const createOrder = async (
     orderNumber: order.orderNumber,
   });
 
-  // ✅ UPDATED: Use emailService.sendOrderConfirmation
+  // Email notification
   await emailService.sendOrderConfirmation(
     user.email,
     profile.firstName,
     order.orderNumber,
     orderItems,
     totalAmount,
-    true // Deposit required
   ).catch((err) =>
     console.error("Error sending order confirmation email", err),
   );
@@ -173,6 +214,7 @@ export const createOrder = async (
   return order;
 };
 
+// ==================== SUPER ADMIN CREATE ORDER ====================
 export const superAdminCreateOrder = async (
   customerId: string,
   data: OrderData,
@@ -231,7 +273,6 @@ export const superAdminCreateOrder = async (
     totalAmount: totalAmount,
     amountPaid: 0,
     remainingBalance: totalAmount,
-    isDepositPaid: false,
     status: OrderStatus.OrderReceived,
     paymentStatus: PaymentStatus.Pending,
     createdBy: new Types.ObjectId(superAdminId),
@@ -240,14 +281,12 @@ export const superAdminCreateOrder = async (
 
   const profile = await Profile.findOne({ userId: customer._id });
   if (profile) {
-    // ✅ UPDATED: Use emailService.sendOrderConfirmation
     await emailService.sendOrderConfirmation(
       customer.email,
       profile.firstName,
       order.orderNumber,
       orderItems,
       totalAmount,
-      true
     ).catch((err) => console.error("Error sending email", err));
   }
 
@@ -260,6 +299,7 @@ export const superAdminCreateOrder = async (
   return order;
 };
 
+// ==================== UPDATE ORDER ====================
 export const updateOrder = async (
   orderId: string,
   data: Partial<IOrderModel>,
@@ -270,7 +310,7 @@ export const updateOrder = async (
   if (!order) throw new Error("Order not found");
 
   const isOwner = order.userId.toString() === userId;
-  const isAdmin = userRole === UserRole.SuperAdmin;
+  const isAdmin = userRole === UserRole.SuperAdmin || userRole === UserRole.Admin;
 
   if (!isOwner && !isAdmin) {
     throw new Error("Unauthorized to update this order");
@@ -298,6 +338,7 @@ export const updateOrder = async (
   return updatedOrder;
 };
 
+// ==================== DELETE ORDER ====================
 export const deleteOrder = async (
   orderId: string,
   userId: string,
@@ -306,7 +347,6 @@ export const deleteOrder = async (
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
 
-  // Check authorization
   const isOwner = order.userId.toString() === userId;
   const isSuperAdmin = userRole === UserRole.SuperAdmin;
 
@@ -328,6 +368,7 @@ export const deleteOrder = async (
   return "Order deleted successfully";
 };
 
+// ==================== GET ORDER BY ID ====================
 export const getOrderById = async (
   id: string,
   userId: string,
@@ -336,11 +377,12 @@ export const getOrderById = async (
   const order = await Order.findById(id)
     .populate("userId", "email")
     .populate("items.productId", "name images dimensions")
+    .populate("invoiceId")
+    .populate("shippingId")
     .exec();
 
   if (!order) throw new Error("Order not found");
 
-  // Check authorization
   if (userRole === UserRole.Customer && order.userId.toString() !== userId) {
     throw new Error("Unauthorized to view this order");
   }
@@ -361,7 +403,9 @@ export const getUserOrders = async (
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 })
-      .populate("items.productId", "name images"),
+      .populate("items.productId", "name images")
+      .populate("invoiceId")
+      .populate("shippingId"),
     Order.countDocuments({ userId: userId }),
   ]);
 
@@ -381,7 +425,6 @@ export const updateOrderStatus = async (
   userRole: string,
   io: Server,
 ): Promise<IOrderModel> => {
-  // Only admins can update status
   if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
     throw new Error("Unauthorized to update order status");
   }
@@ -389,7 +432,6 @@ export const updateOrderStatus = async (
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
 
-  // Validate status transition
   const allowedTransitions = validStatusTransitions[order.status];
   if (!allowedTransitions.includes(newStatus)) {
     throw new Error(`Cannot transition from ${order.status} to ${newStatus}`);
@@ -398,22 +440,25 @@ export const updateOrderStatus = async (
   order.status = newStatus;
   await order.save();
 
-  // Handle status-specific actions
-  if (newStatus === OrderStatus.Completed) {
-    order.paymentStatus = PaymentStatus.Completed;
-    await order.save();
+  // Handle status-specific notifications
+  if (newStatus === OrderStatus.ReadyForShipping) {
+    io.to("admin-room").emit("order-ready-for-shipping", {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+    });
+  }
 
+  if (newStatus === OrderStatus.Delivered) {
     const user = await User.findById(order.userId);
     const profile = await Profile.findOne({ userId: order.userId });
 
     if (user && profile) {
-      // ✅ UPDATED: Use emailService.sendOrderDelivered
       await emailService.sendOrderDelivered(
         user.email,
         profile.firstName,
         order.orderNumber
       ).catch((err) =>
-        console.error("Error sending order completion email", err),
+        console.error("Error sending order delivered email", err),
       );
     }
   }
@@ -444,6 +489,8 @@ export const getAllOrders = async (
     Order.find()
       .populate("userId", "email fullname")
       .populate("items.productId", "name")
+      .populate("invoiceId")
+      .populate("shippingId")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -470,7 +517,9 @@ export const searchByOrderNumber = async (
 
   const order = await Order.findOne({ orderNumber })
     .populate("userId", "email fullname")
-    .populate("items.productId", "name");
+    .populate("items.productId", "name")
+    .populate("invoiceId")
+    .populate("shippingId");
 
   if (!order) throw new Error("Order not found");
 
@@ -487,6 +536,8 @@ export const filterOrders = async (
     minAmount?: number;
     maxAmount?: number;
     userId?: string;
+    hasInvoice?: boolean;
+    hasShipping?: boolean;
     page?: number;
     limit?: number;
   },
@@ -501,6 +552,22 @@ export const filterOrders = async (
   if (filters.status) query.status = filters.status;
   if (filters.paymentStatus) query.paymentStatus = filters.paymentStatus;
   if (filters.userId) query.userId = filters.userId;
+
+  if (filters.hasInvoice !== undefined) {
+    if (filters.hasInvoice) {
+      query.invoiceId = { $ne: null };
+    } else {
+      query.invoiceId = null;
+    }
+  }
+
+  if (filters.hasShipping !== undefined) {
+    if (filters.hasShipping) {
+      query.shippingId = { $ne: null };
+    } else {
+      query.shippingId = null;
+    }
+  }
 
   if (filters.startDate || filters.endDate) {
     query.createdAt = {};
@@ -522,6 +589,8 @@ export const filterOrders = async (
     Order.find(query)
       .populate("userId", "email fullname")
       .populate("items.productId", "name")
+      .populate("invoiceId")
+      .populate("shippingId")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -537,16 +606,17 @@ export const filterOrders = async (
   };
 };
 
-// ==================== GET ORDERS NEEDING INVOICE ====================
-export const getOrdersNeedingInvoice = async (
+// ==================== GET ORDERS READY FOR INVOICE ====================
+export const getOrdersReadyForInvoice = async (
   userRole: string,
 ): Promise<IOrderModel[]> => {
-  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
-    throw new Error("Unauthorized");
+  if (userRole !== UserRole.SuperAdmin) {
+    throw new Error("Unauthorized - Only super admin can view orders ready for invoice");
   }
 
   return Order.find({
     status: OrderStatus.OrderReceived,
+    invoiceId: { $exists: false }
   })
     .populate("userId", "email fullname")
     .populate("items.productId", "name price")
@@ -554,50 +624,195 @@ export const getOrdersNeedingInvoice = async (
     .exec();
 };
 
-// ==================== UPDATE PAYMENT DETAILS ====================
+// ==================== GET PAID ORDERS ====================
+export const getPaidOrders = async (
+  userRole: string,
+  page: number = 1,
+  limit: number = 10,
+): Promise<PaginatedOrder> => {
+  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
+    throw new Error("Unauthorized");
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [orders, total] = await Promise.all([
+    Order.find({ 
+      paymentStatus: PaymentStatus.Completed,
+      invoiceId: { $ne: null }
+    })
+      .populate("userId", "email fullname")
+      .populate("items.productId", "name")
+      .populate("invoiceId")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .exec(),
+    Order.countDocuments({ 
+      paymentStatus: PaymentStatus.Completed,
+      invoiceId: { $ne: null }
+    }),
+  ]);
+
+  return {
+    order: orders,
+    total,
+    page,
+    limit,
+  };
+};
+
+// ==================== GET PARTIALLY PAID ORDERS ====================
+export const getPartiallyPaidOrders = async (
+  userRole: string,
+  page: number = 1,
+  limit: number = 10,
+): Promise<PaginatedOrder> => {
+  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
+    throw new Error("Unauthorized");
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [orders, total] = await Promise.all([
+    Order.find({ 
+      paymentStatus: PaymentStatus.PartPayment,
+      invoiceId: { $ne: null }
+    })
+      .populate("userId", "email fullname")
+      .populate("items.productId", "name")
+      .populate("invoiceId")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .exec(),
+    Order.countDocuments({ 
+      paymentStatus: PaymentStatus.PartPayment,
+      invoiceId: { $ne: null }
+    }),
+  ]);
+
+  return {
+    order: orders,
+    total,
+    page,
+    limit,
+  };
+};
+
+// ==================== GET PENDING PAYMENT ORDERS ====================
+export const getPendingPaymentOrders = async (
+  userRole: string,
+  page: number = 1,
+  limit: number = 10,
+): Promise<PaginatedOrder> => {
+  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
+    throw new Error("Unauthorized");
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [orders, total] = await Promise.all([
+    Order.find({ 
+      paymentStatus: PaymentStatus.Pending,
+      invoiceId: { $ne: null }
+    })
+      .populate("userId", "email fullname")
+      .populate("items.productId", "name")
+      .populate("invoiceId")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .exec(),
+    Order.countDocuments({ 
+      paymentStatus: PaymentStatus.Pending,
+      invoiceId: { $ne: null }
+    }),
+  ]);
+
+  return {
+    order: orders,
+    total,
+    page,
+    limit,
+  };
+};
+
+// ==================== GET ORDERS READY FOR SHIPPING ====================
+export const getOrdersReadyForShipping = async (
+  userRole: string,
+  page: number = 1,
+  limit: number = 10,
+): Promise<PaginatedOrder> => {
+  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
+    throw new Error("Unauthorized");
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [orders, total] = await Promise.all([
+    Order.find({
+      status: OrderStatus.ReadyForShipping,
+      shippingId: { $exists: false }
+    })
+      .populate("userId", "email fullname")
+      .populate("items.productId", "name")
+      .populate("invoiceId")
+      .sort({ createdAt: 1 })
+      .skip(skip)
+      .limit(limit)
+      .exec(),
+    Order.countDocuments({
+      status: OrderStatus.ReadyForShipping,
+      shippingId: { $exists: false }
+    }),
+  ]);
+
+  return {
+    order: orders,
+    total,
+    page,
+    limit,
+  };
+};
+
+// ==================== UPDATE PAYMENT AFTER TRANSACTION ====================
 export const updateOrderPayment = async (
   orderId: string,
   paymentData: {
     amountPaid: number;
-    depositAmount?: number;
     paymentStatus: PaymentStatus;
-    isDepositPaid?: boolean;
+    remainingBalance: number;
   },
 ): Promise<IOrderModel> => {
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
 
-  // Update payment fields
-  if (paymentData.depositAmount !== undefined) {
-    order.deposit = paymentData.depositAmount;
-  }
-
   order.amountPaid = paymentData.amountPaid;
-  order.remainingBalance = order.totalAmount - paymentData.amountPaid;
   order.paymentStatus = paymentData.paymentStatus;
+  order.remainingBalance = paymentData.remainingBalance;
 
-  if (paymentData.isDepositPaid !== undefined) {
-    order.isDepositPaid = paymentData.isDepositPaid;
+  await order.save();
+  return order;
+};
+
+// ==================== LINK INVOICE TO ORDER ====================
+export const linkInvoiceToOrder = async (
+  orderId: string,
+  invoiceId: Types.ObjectId,
+  paymentType: "full" | "part",
+  depositAmount?: number,
+): Promise<IOrderModel> => {
+  const order = await Order.findById(orderId);
+  if (!order) throw new Error("Order not found");
+
+  order.invoiceId = invoiceId;
+  order.requiredPaymentType = paymentType;
+  if (depositAmount) {
+    order.requiredDeposit = depositAmount;
   }
-
-  // If fully paid, update status
-  if (order.remainingBalance <= 0) {
-    order.paymentStatus = PaymentStatus.Completed;
-    order.status = OrderStatus.Completed;
-    
-    // ✅ ADDED: Send notification for completed payment
-    const user = await User.findById(order.userId);
-    const profile = await Profile.findOne({ userId: order.userId });
-    
-    if (user && profile) {
-      await emailService.sendOrderDelivered(
-        user.email,
-        profile.firstName,
-        order.orderNumber
-      ).catch(err => console.error("Error sending payment complete email:", err));
-    }
-  }
-
+  order.status = OrderStatus.InvoiceSent;
+  
   await order.save();
   return order;
 };

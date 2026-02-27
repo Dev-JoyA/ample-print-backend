@@ -279,15 +279,13 @@ export const filterOrders = async (req: Request, res: Response) => {
     const filters = {
       status: req.query.status as OrderStatus,
       paymentStatus: req.query.paymentStatus as PaymentStatus,
-      startDate: req.query.startDate
-        ? new Date(req.query.startDate as string)
-        : undefined,
-      endDate: req.query.endDate
-        ? new Date(req.query.endDate as string)
-        : undefined,
+      startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
+      endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
       minAmount: req.query.minAmount ? Number(req.query.minAmount) : undefined,
       maxAmount: req.query.maxAmount ? Number(req.query.maxAmount) : undefined,
       userId: req.query.userId as string,
+      hasInvoice: req.query.hasInvoice === 'true',
+      hasShipping: req.query.hasShipping === 'true',
       page: req.query.page ? parseInt(req.query.page as string) : 1,
       limit: req.query.limit ? parseInt(req.query.limit as string) : 10,
     };
@@ -306,8 +304,8 @@ export const filterOrders = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET ORDERS NEEDING INVOICE ====================
-export const getOrdersNeedingInvoice = async (req: Request, res: Response) => {
+// ==================== GET ORDERS READY FOR INVOICE ====================
+export const getOrdersReadyForInvoice = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
 
@@ -318,11 +316,123 @@ export const getOrdersNeedingInvoice = async (req: Request, res: Response) => {
       });
     }
 
-    const orders = await orderService.getOrdersNeedingInvoice(user.role);
+    const orders = await orderService.getOrdersReadyForInvoice(user.role);
 
     res.status(200).json({
       success: true,
       orders,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+// ==================== GET PAID ORDERS ====================
+export const getPaidOrders = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: string };
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const result = await orderService.getPaidOrders(user.role, page, limit);
+
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+// ==================== GET PARTIALLY PAID ORDERS ====================
+export const getPartiallyPaidOrders = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: string };
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const result = await orderService.getPartiallyPaidOrders(user.role, page, limit);
+
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+// ==================== GET PENDING PAYMENT ORDERS ====================
+export const getPendingPaymentOrders = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: string };
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const result = await orderService.getPendingPaymentOrders(user.role, page, limit);
+
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+// ==================== GET ORDERS READY FOR SHIPPING ====================
+export const getOrdersReadyForShipping = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: string };
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const result = await orderService.getOrdersReadyForShipping(user.role, page, limit);
+
+    res.status(200).json({
+      success: true,
+      ...result,
     });
   } catch (err: any) {
     res.status(400).json({

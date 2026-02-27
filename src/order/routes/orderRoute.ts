@@ -9,7 +9,11 @@ import {
   getAllOrders,
   updateOrderStatus,
   filterOrders,
-  getOrdersNeedingInvoice,
+  getOrdersReadyForInvoice,
+  getPaidOrders,
+  getPartiallyPaidOrders,
+  getPendingPaymentOrders,
+  getOrdersReadyForShipping,
   superAdminCreateOrder,
 } from "../controller/orderController.js";
 import { authMiddleware } from "../../middleware/authMiddleware.js";
@@ -50,6 +54,13 @@ router.post(
   superAdminCreateOrder,
 );
 
+// Get orders ready for invoice (super admin only)
+router.get(
+  "/ready-for-invoice",
+  checkSuperAdmin,
+  getOrdersReadyForInvoice
+);
+
 // ==================== ADMIN ONLY ROUTES ====================
 // Get all orders (admin only)
 router.get("/", checkAdmin, getAllOrders);
@@ -60,10 +71,15 @@ router.patch("/:id/status", checkAdmin, updateOrderStatus);
 // Filter orders (admin only)
 router.get("/filter", checkAdmin, filterOrders);
 
-// Get orders needing invoice (admin only)
-router.get("/needing-invoice", checkAdmin, getOrdersNeedingInvoice);
-
 // Search by order number (admin only)
 router.get("/search/:orderNumber", checkAdmin, searchByOrderNumber);
+
+// Payment status routes (admin only)
+router.get("/payment/paid", checkAdmin, getPaidOrders);
+router.get("/payment/part-paid", checkAdmin, getPartiallyPaidOrders);
+router.get("/payment/pending", checkAdmin, getPendingPaymentOrders);
+
+// Shipping ready routes (admin only)
+router.get("/ready-for-shipping", checkAdmin, getOrdersReadyForShipping);
 
 export default router;
