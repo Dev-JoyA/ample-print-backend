@@ -16,6 +16,8 @@ export interface IShipping extends Document {
   shippingMethod: ShippingMethod;
   trackingNumber: string;
   status: ShippingStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const ShippingSchema = new Schema<IShipping>(
@@ -24,6 +26,8 @@ const ShippingSchema = new Schema<IShipping>(
       type: Schema.Types.ObjectId,
       ref: "Order",
       required: true,
+      unique: true, // ✅ One shipping record per order
+      index: true,
     },
     shippingMethod: {
       type: String,
@@ -39,9 +43,13 @@ const ShippingSchema = new Schema<IShipping>(
       enum: Object.values(ShippingStatus),
       default: ShippingStatus.Pending,
       required: true,
+      index: true,
     },
   },
   { timestamps: true },
 );
+
+// Index for status queries
+ShippingSchema.index({ status: 1, createdAt: -1 });
 
 export const Shipping = model<IShipping>("Shipping", ShippingSchema);

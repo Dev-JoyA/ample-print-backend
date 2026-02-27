@@ -3,7 +3,6 @@ import { v4 as uuid } from "uuid";
 
 export enum PaymentStatus {
   Pending = "Pending",
-  DepositPaid = "DepositPaid",
   PartPayment = "PartPayment",
   Completed = "Completed",
   Failed = "Failed",
@@ -15,8 +14,6 @@ export enum OrderStatus {
   OrderReceived = "OrderReceived",
   FilesUploaded = "FilesUploaded",
   InvoiceSent = "InvoiceSent",
-  AwaitingDeposit = "AwaitingDeposit",
-  DepositPaid = "DepositPaid",
   DesignUploaded = "DesignUploaded",
   UnderReview = "UnderReview",
   Approved = "Approved",
@@ -26,6 +23,7 @@ export enum OrderStatus {
   Completed = "Completed",
   AwaitingFinalPayment = "AwaitingFinalPayment",
   FinalPaid = "FinalPaid",
+  ReadyForShipping = "ReadyForShipping",
   Shipped = "Shipped",
   Cancelled = "Cancelled",
   Delivered = "Delivered",
@@ -39,15 +37,23 @@ export interface IOrderModel extends Document {
     productName: string;
     quantity: number;
     price: number;
+    productSnapshot: any; // ✅ Keep this for price history
   }[];
-  deposit: number;
   totalAmount: number;
-  filename: string;
   amountPaid: number;
   remainingBalance: number;
-  isDepositPaid: boolean;
+  
+  // ✅ Add these to track invoice requirements
+  requiredPaymentType?: "full" | "part"; // What super admin decided
+  requiredDeposit?: number; // If part payment, how much deposit needed
+  
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  
+  // ✅ Track which invoice applies to this order
+  invoiceId?: Types.ObjectId;
+  shippingId?: Types.ObjectId;
+  
   createdAt: Date;
   updatedAt: Date;
 }
@@ -100,26 +106,45 @@ const OrderSchema = new Schema<IOrderModel>(
           type: Number,
           required: true,
         },
+        productSnapshot: {
+          type: Schema.Types.Mixed, // Store product details at time of order
+        },
       },
     ],
-
-    deposit: { type: Number, default: 0 },
     totalAmount: { type: Number, required: true },
-    amountPaid: { type: Number, required: true },
+    amountPaid: { type: Number, default: 0 },
     remainingBalance: { type: Number, required: true },
-    isDepositPaid: {
-      type: Boolean,
-      default: false,
+    
+    // New fields
+    requiredPaymentType: {
+      type: String,
+      enum: ["full", "part"],
     },
+    requiredDeposit: {
+      type: Number,
+      min: 0,
+    },
+    
     status: {
       type: String,
       enum: Object.values(OrderStatus),
       default: OrderStatus.Pending,
+      index: true,
     },
     paymentStatus: {
       type: String,
       enum: Object.values(PaymentStatus),
       default: PaymentStatus.Pending,
+      index: true,
+    },
+    
+    invoiceId: {
+      type: Schema.Types.ObjectId,
+      ref: "Invoice",
+    },
+    shippingId: {
+      type: Schema.Types.ObjectId,
+      ref: "Shipping",
     },
   },
   {
@@ -127,8 +152,10 @@ const OrderSchema = new Schema<IOrderModel>(
   },
 );
 
-OrderSchema.index({ status: 1, createdAt: -1 }); // For dashboard queries
-OrderSchema.index({ paymentStatus: 1, userId: 1 }); // For user payment queries
-//filter by status:
+// Indexes
+OrderSchema.index({ status: 1, createdAt: -1 });
+OrderSchema.index({ paymentStatus: 1, userId: 1 });
+OrderSchema.index({ invoiceId: 1 });
+OrderSchema.index({ shippingId: 1 });
 
 export const Order = model<IOrderModel>("Order", OrderSchema);
