@@ -60,8 +60,28 @@ router.post(
   resetPasswordController,
 );
 
-router.get("/verify-token", verifyToken, (req: Request, res: Response) => {
-  res.json({ valid: true, user: req.user });
+router.get("/verify-token", (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  
+  console.log("Verify token request received");
+  console.log("Authorization header:", authHeader);
+  
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.log("No token provided");
+    return res.status(401).json({ message: "Unauthorized: No token provided" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  console.log("Token extracted:", token.substring(0, 20) + "...");
+  
+  try {
+    const decoded = verifyToken(token);
+    console.log("Token verified successfully:", decoded);
+    res.json({ valid: true, user: decoded });
+  } catch (error: any) {
+    console.error("Token verification failed:", error.message);
+    res.status(401).json({ valid: false, message: "Invalid token" });
+  }
 });
 
 router.get(

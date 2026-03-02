@@ -15,7 +15,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const FRONTEND_BASE = process.env.FRONTEND_URL ?? "http://localhost:4001";
+const FRONTEND_BASE = process.env.FRONTEND_URL ?? "http://localhost:3000";
 const RESET_PATH =
   process.env.PASSWORD_RESET_PATH ?? "api/v1/auth/effect-forgot-password";
 const RESET_TOKEN_TTL_MS =

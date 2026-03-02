@@ -31,7 +31,19 @@ startServer().catch((err) => console.log(err));
 
 const app = express();
 const server = http.createServer(app);
-app.use(cors());
+
+
+const corsOptions = {
+  origin: ['http://localhost:3000', 'http://localhost:3001'], // Your frontend URLs
+  credentials: true, // Allow cookies to be sent
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+};
+
+app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
 
 const PORT = process.env.PORT || 8000;
 const io = new Server(server, { cors: { origin: "*" } });

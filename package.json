@@ -10,7 +10,8 @@
     "build": "tsc && cp -R swagger dist/swagger",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "seed:superadmin": "node --loader ts-node/esm src/seeders/seedSuperAdmin.ts"
   },
   "author": "Joy Aruku",
   "license": "ISC",
