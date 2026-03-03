@@ -57,10 +57,6 @@ router.put(
   approveDesignController,
 );
 
-// ==================== GET DESIGN BY ID ====================
-// GET /api/v1/design/:designId
-router.get("/:designId", getDesignByIdController);
-
 // ==================== GET USER DESIGNS ====================
 // GET /api/v1/design/users/:userId
 router.get(
@@ -87,5 +83,7 @@ router.get("/all", checkAdmin, getAllDesignsController);
 // ==================== FILTER DESIGNS (Admin) ====================
 // GET /api/v1/design/filter?userId=&orderId=&isApproved=
 router.get("/filter", checkAdmin, filterDesignController);
+
+router.get("/:designId", getDesignByIdController);
 
 export default router;
