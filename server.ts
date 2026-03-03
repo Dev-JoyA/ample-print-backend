@@ -48,8 +48,8 @@ app.options('*', cors(corsOptions));
 const PORT = process.env.PORT || 8000;
 const io = new Server(server, { cors: { origin: "*" } });
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(passport.initialize());
 
 // Swagger setup BEFORE other routes

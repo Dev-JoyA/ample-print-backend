@@ -12,7 +12,6 @@ import {
 export async function createCollection(name: string): Promise<ICollection> {
   const existing = await Collection.findOne({ name });
   if (existing) throw new Error("Collection already exists");
-
   return await Collection.create({ name });
 }
 
@@ -21,30 +20,25 @@ export async function updateCollection(
   name: string,
 ): Promise<ICollection> {
   const updated = await Collection.findById(id);
-
   if (!updated) throw new Error("Collection does not exist");
 
   const nameExists = await Collection.findOne({ name });
-
   if (nameExists) throw new Error("Collection name already exist");
 
   updated.name = name;
   await updated.save();
-
   return updated;
 }
 
 export async function deleteCollection(id: string): Promise<string> {
   const deleted = await Collection.findByIdAndDelete(id);
   if (!deleted) throw new Error("Collection not found");
-
   return "Collection successfully deleted";
 }
 
 export async function getCollectionById(id: string): Promise<ICollection> {
   const collection = await Collection.findById(id);
   if (!collection) throw new Error("Collection not found");
-
   return collection;
 }
 
@@ -52,9 +46,7 @@ export async function getAllCollections(): Promise<ICollection[]> {
   return await Collection.find();
 }
 
-export async function searchCollections(
-  search: string,
-): Promise<ICollection[]> {
+export async function searchCollections(search: string): Promise<ICollection[]> {
   if (!search) return [];
   return await Collection.find({
     name: { $regex: `.*${search}.*`, $options: "i" },
@@ -74,14 +66,14 @@ export async function getCollectionsPaginated(
   return { collections, total, page, limit };
 }
 
+// -------------------- PRODUCT SERVICES -------------------- //
+
 export interface PaginatedProducts {
   products: IProduct[];
   total: number;
   page: number;
   limit: number;
 }
-
-// -------------------- PRODUCT SERVICES -------------------- //
 
 export async function createProduct(
   collectionId: string,
@@ -96,7 +88,7 @@ export async function createProduct(
   if (!data.name || !data.price || !data.image)
     throw new Error("Missing required fields");
 
-  const newProduct = await Product.create({
+  return await Product.create({
     collectionId: collection._id,
     name: data.name,
     description: data.description,
@@ -114,35 +106,29 @@ export async function createProduct(
     deliveryDay: data.deliveryDay,
     status: ProductStatus.Active,
   });
-
-  return newProduct;
 }
 
 export async function updateProduct(
   id: string,
   data: Partial<ProductData>,
 ): Promise<IProduct> {
-  const updated = await Product.findByIdAndUpdate(
-    id,
-    { ...data },
-    { new: true, runValidators: true },
-  );
+  const updated = await Product.findByIdAndUpdate(id, data, {
+    new: true,
+    runValidators: true,
+  });
   if (!updated) throw new Error("Product not found");
-
   return updated;
 }
 
 export async function deleteProduct(id: string): Promise<string> {
   const deleted = await Product.findByIdAndDelete(id);
   if (!deleted) throw new Error("Product not found");
-
   return "Product successfully deleted";
 }
 
 export async function getProductById(id: string): Promise<IProduct> {
   const product = await Product.findById(id).populate("collectionId", "name");
   if (!product) throw new Error("Product not found");
-
   return product;
 }
 
@@ -170,7 +156,6 @@ export async function getProductsPaginated(
       .populate("collectionId", "name"),
     Product.countDocuments(),
   ]);
-
   return { products, total, page, limit };
 }
 
@@ -220,7 +205,6 @@ export async function searchProductsByName(
   if (!search) return { products: [], total: 0, page, limit };
 
   const sanitized = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
   const skip = (page - 1) * limit;
   const query = { name: { $regex: sanitized, $options: "i" } };
 
