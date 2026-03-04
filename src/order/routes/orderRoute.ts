@@ -33,49 +33,49 @@ router.use(authMiddleware);
 // Create order (Customer only)
 router.post("/create", checkRole([UserRole.Customer]), createOrder);
 
-// Get logged-in user's orders
+// Get logged-in customer's orders
 router.get("/my-orders", checkRole([UserRole.Customer]), getUserOrders);
 
-// ==================== ORDER OWNER + ADMIN ROUTES ====================
-// Get order by ID (owner or admin)
-router.get("/:id", getOrderById);
-
-// Update order (owner or admin - with restrictions)
-router.put("/:id", updateOrder);
-
 // ==================== SUPER ADMIN ONLY ROUTES ====================
-// Delete order (owner or super admin - but we handle in service)
-router.delete("/:id", deleteOrder);
-
-// Super admin creates order for customer
+// Super admin creates order for a customer
 router.post(
   "/super-admin/create/:customerId",
   checkSuperAdmin,
-  superAdminCreateOrder,
+  superAdminCreateOrder
 );
 
-// Get orders ready for invoice (super admin only)
+// Get orders ready for invoice
 router.get("/ready-for-invoice", checkSuperAdmin, getOrdersReadyForInvoice);
 
+// Delete order (owner or super admin handled in service)
+router.delete("/:id", deleteOrder);
+
 // ==================== ADMIN ONLY ROUTES ====================
-// Get all orders (admin only)
+// Get all orders
 router.get("/", checkAdmin, getAllOrders);
 
-// Update order status (admin only)
+// Update order status
 router.patch("/:id/status", checkAdmin, updateOrderStatus);
 
-// Filter orders (admin only)
+// Filter orders
 router.get("/filter", checkAdmin, filterOrders);
 
-// Search by order number (admin only)
+// Search by order number
 router.get("/search/:orderNumber", checkAdmin, searchByOrderNumber);
 
-// Payment status routes (admin only)
+// Payment status routes
 router.get("/payment/paid", checkAdmin, getPaidOrders);
 router.get("/payment/part-paid", checkAdmin, getPartiallyPaidOrders);
 router.get("/payment/pending", checkAdmin, getPendingPaymentOrders);
 
-// Shipping ready routes (admin only)
+// Shipping ready routes
 router.get("/ready-for-shipping", checkAdmin, getOrdersReadyForShipping);
+
+// ==================== ORDER OWNER + ADMIN ROUTES ====================
+// Update order (owner or admin)
+router.put("/:id", updateOrder);
+
+// Get order by ID (owner or admin)
+router.get("/:id", getOrderById);
 
 export default router;

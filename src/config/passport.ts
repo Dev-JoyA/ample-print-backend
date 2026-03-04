@@ -8,8 +8,13 @@ import {
 } from "passport-jwt";
 import { User, IUser, UserRole } from "../users/model/userModel.js";
 import { Profile } from "../users/model/profileModel.js";
+import { Request } from "express";
 
 dotenv.config();
+
+/* =========================
+   ENV CHECK
+========================= */
 
 if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET) {
   throw new Error(
@@ -17,27 +22,45 @@ if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET) {
   );
 }
 
+if (!process.env.JWT_SECRET_KEY) {
+  throw new Error("JWT_SECRET_KEY is missing in environment variables");
+}
+
+/* =========================
+   GOOGLE STRATEGY
+========================= */
+
 passport.use(
   new GoogleStrategy(
     {
-      clientID: process.env.CLIENT_ID,
-      clientSecret: process.env.CLIENT_SECRET,
+      clientID: process.env.CLIENT_ID!,
+      clientSecret: process.env.CLIENT_SECRET!,
       callbackURL: "http://localhost:4001/api/v1/auth/google/callback",
       passReqToCallback: true,
     },
     async (
-      req: Express.Request,
+      req: Request,
       accessToken: string,
       refreshToken: string,
       profile: any,
       done: (error: any, user?: any) => void,
     ) => {
       try {
-        let user = await User.findOne({ googleId: profile.id }).exec();
+        const email = profile.emails?.[0]?.value;
+
+        if (!email) {
+          return done(new Error("Google account has no email"), null);
+        }
+
+        // 🔍 Find user by googleId OR email
+        let user = await User.findOne({
+          $or: [{ googleId: profile.id }, { email }],
+        });
+
+        // 🆕 Create user if not exists
         if (!user) {
           user = await User.create({
-            email: profile.emails[0].value,
-            password: "",
+            email,
             role: UserRole.Customer,
             isActive: true,
             googleId: profile.id,
@@ -51,6 +74,11 @@ passport.use(
             phoneNumber: "",
           });
         }
+        // 🔗 Link Google account if user exists but has no googleId
+        else if (!user.googleId) {
+          user.googleId = profile.id;
+          await user.save();
+        }
 
         return done(null, user);
       } catch (error) {
@@ -61,7 +89,10 @@ passport.use(
   ),
 );
 
-// Serialize / deserialize for sessions
+/* =========================
+   SESSION SERIALIZATION
+========================= */
+
 passport.serializeUser((user: any, done) => {
   done(null, user._id);
 });
@@ -75,13 +106,13 @@ passport.deserializeUser(async (_id: string, done) => {
   }
 });
 
-if (!process.env.JWT_SECRET_KEY) {
-  throw new Error("JWT_SECRET_KEY is missing in environment variables");
-}
+/* =========================
+   JWT STRATEGY
+========================= */
 
 const jwtOptions: StrategyOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: process.env.JWT_SECRET_KEY,
+  secretOrKey: process.env.JWT_SECRET_KEY!,
 };
 
 passport.use(

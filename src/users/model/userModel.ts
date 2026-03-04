@@ -11,6 +11,7 @@ export interface IUser extends Document {
   password: string;
   role: UserRole;
   isActive: boolean;
+  googleId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,7 +26,9 @@ const UserSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: true,
+      required:  function (): boolean {
+        return !this.googleId; 
+        },
     },
     role: {
       type: String,
@@ -37,6 +40,10 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       index: true,
       required: true,
+    },
+    googleId: {
+      type: String,
+      sparse: true,
     },
   },
   {
