@@ -91,11 +91,11 @@ export async function createProduct(
   return await Product.create({
     collectionId: collection._id,
     name: data.name,
-    description: data.description,
+    description: data.description || "",
     price: data.price,
     dimension: {
-      width: data.dimension.width,
-      height: data.dimension.height,
+      width: data.dimension?.width || null,
+      height: data.dimension?.height || null,
     },
     minOrder: data.minOrder,
     image: data.image,

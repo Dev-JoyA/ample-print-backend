@@ -35,9 +35,9 @@ export interface IProduct extends Document {
 
 export interface ProductData {
   name: string;
-  description: string;
+  description?: string;
   price: number;
-  dimension: {
+  dimension?: {
     width: string;
     height: string;
   };
@@ -58,9 +58,9 @@ export interface CollectionWithProducts {
   products: {
     _id: Types.ObjectId;
     name: string;
-    description: string;
+    description?: string;
     price: number;
-    dimension: {
+    dimension?: {
       width: string;
       height: string;
     };

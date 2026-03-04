@@ -20,77 +20,79 @@ import { UserRole } from "../../users/model/userModel.js";
 
 const router = Router();
 
-// All routes require authentication
+// ==================== ALL ROUTES REQUIRE AUTHENTICATION ====================
 router.use(authMiddleware);
 
+// ==================== CUSTOMER ROUTES ====================
+// Submit or update a brief for an order/product
 router.post(
   "/customer/orders/:orderId/products/:productId/brief",
   checkRole([UserRole.Customer]),
   uploadBriefFiles,
-  submitCustomerBrief,
+  submitCustomerBrief
 );
 
 router.put(
   "/customer/orders/:orderId/products/:productId/brief",
   checkRole([UserRole.Customer]),
   uploadBriefFiles,
-  submitCustomerBrief,
+  submitCustomerBrief
 );
 
+// Get all briefs submitted by the logged-in customer
 router.get(
   "/customer/briefs",
   checkRole([UserRole.Customer]),
-  getUserCustomerBriefs,
+  getUserCustomerBriefs
 );
 
-// ===== ADMIN ROUTES =====
-// Admin responds to a customer brief
+// ==================== ADMIN ROUTES ====================
+// Respond to a customer's brief
 router.post(
   "/admin/orders/:orderId/products/:productId/respond",
   checkAdmin,
   uploadBriefFiles,
-  adminRespondToBrief,
+  adminRespondToBrief
 );
 
-// Admin updates their response
 router.put(
   "/admin/orders/:orderId/products/:productId/respond",
   checkAdmin,
   uploadBriefFiles,
-  adminRespondToBrief,
+  adminRespondToBrief
 );
 
-// Get all briefs needing admin attention (dashboard)
+// Get all briefs that need admin attention
 router.get("/admin/briefs", checkAdmin, getAdminCustomerBriefs);
 
-// ===== SHARED ROUTES (accessible by multiple roles) =====
-// Get full conversation for an order (all roles' briefs)
+// ==================== SHARED ROUTES (MULTI-ROLE) ====================
+// Get full conversation for an order/product (all roles)
 router.get(
   "/briefs/orders/:orderId/products/:productId",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
-  getBriefByOrderAndProduct,
+  getBriefByOrderAndProduct
 );
 
 // Get a specific brief by ID
 router.get(
   "/briefs/:briefId",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
-  getCustomerBriefById,
+  getCustomerBriefById
 );
 
-// Check if admin has responded to a brief
+// Check admin response status for a brief
 router.get(
   "/briefs/status/:orderId/:productId",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
-  checkAdminResponseStatus,
+  checkAdminResponseStatus
 );
 
-// ===== SUPER ADMIN ONLY ROUTES =====
-// Delete any brief (super admin only)
+// ==================== SUPER ADMIN ONLY ROUTES ====================
+// Delete any brief
 router.delete(
   "/briefs/:briefId",
-  checkSuperAdmin, // SuperAdmin only
-  deleteCustomerBrief,
+  checkSuperAdmin,
+  deleteCustomerBrief
 );
 
 export default router;

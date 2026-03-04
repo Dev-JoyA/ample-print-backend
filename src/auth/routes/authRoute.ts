@@ -88,8 +88,17 @@ router.get(
   "/verify-refresh-token",
   verifyRefreshToken,
   (req: Request, res: Response) => {
-    const token = generateToken(req.user!);
-    const refreshToken = generateRefreshToken(req.user!);
+    const user = req.user as any;
+
+    const payload = {
+      userId: user._id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const token = generateToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
     res.json({ token, refreshToken });
   },
 );
@@ -108,26 +117,57 @@ router.post(
 // ----------------------
 router.get(
   "/google",
-  passport.authenticate("google", { scope: ["email", "profile"] }),
+  passport.authenticate("google", { 
+    scope: ["email", "profile"],
+    session: false, 
+}),
 );
 
 router.get(
   "/google/callback",
-  passport.authenticate("google", {
-    successRedirect: "/api/v1/auth/google/success",
-    failureRedirect: "/api/v1/auth/google/failure",
-  }),
+  passport.authenticate("google", { session: false }),
+  (req: Request, res: Response) => {
+    const user = req.user as any;
+
+    if (!user) {
+      return res.status(401).json({ message: "Google authentication failed" });
+    }
+
+    const payload = {
+      userId: user._id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const token = generateToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+    const role = user.role.toLowerCase();
+    const redirectUrl = `${process.env.FRONTEND_URL}/auth/google/callback?token=${token}&refresh=${refreshToken}&role=${role}`;
+
+    return res.redirect(302, redirectUrl);
+
+  }
 );
 
-router.get("/google/success", (req: Request, res: Response) => {
-  const user = req.user;
-  const token = generateToken(user);
-  const refreshToken = generateRefreshToken(user);
+// router.get("/google/success", (req: Request, res: Response) => {
+//   const user = req.user as any;
 
-  res
-    .status(200)
-    .json({ message: "Google OAuth successful", token, refreshToken, user });
-});
+//   const payload = {
+//     userId: user._id,
+//     email: user.email,
+//     role: user.role,
+//   };
+
+//   const token = generateToken(payload);
+//   const refreshToken = generateRefreshToken(payload);
+
+//   res.status(200).json({
+//     message: "Google OAuth successful",
+//     token,
+//     refreshToken,
+//     user,
+//   });
+// });
 
 router.get("/google/failure", (req: Request, res: Response) => {
   res.status(401).json({ message: "Google OAuth failed" });
