@@ -15,6 +15,8 @@ import {
   getPendingPaymentOrders,
   getOrdersReadyForShipping,
   superAdminCreateOrder,
+  addItemToOrder,
+  getUserActiveOrders,
 } from "../controller/orderController.js";
 import { authMiddleware } from "../../middleware/authMiddleware.js";
 import {
@@ -32,6 +34,12 @@ router.use(authMiddleware);
 // ==================== CUSTOMER ROUTES ====================
 // Create order (Customer only)
 router.post("/create", checkRole([UserRole.Customer]), createOrder);
+
+router.post(
+  "/:orderId/items",
+  checkRole([UserRole.Customer]),
+  addItemToOrder
+);
 
 // Get logged-in customer's orders
 router.get("/my-orders", checkRole([UserRole.Customer]), getUserOrders);
@@ -59,6 +67,9 @@ router.patch("/:id/status", checkAdmin, updateOrderStatus);
 
 // Filter orders
 router.get("/filter", checkAdmin, filterOrders);
+
+// Get user's active orders (orders that can still accept items)
+router.get("/my-active-orders", checkRole([UserRole.Customer]), getUserActiveOrders);
 
 // Search by order number
 router.get("/search/:orderNumber", checkAdmin, searchByOrderNumber);

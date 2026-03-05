@@ -29,16 +29,62 @@ export enum OrderStatus {
   Delivered = "Delivered",
 }
 
+export interface IOrderItem {
+  productId: Types.ObjectId;
+  productName: string;
+  quantity: number;
+  price: number;
+  productSnapshot?: {
+    name?: string;
+    description?: string;
+    dimension?: { width: string; height: string };
+    minOrder?: number;
+    material?: string;
+  };
+}
+
+const OrderItemSchema = new Schema(
+  {
+    productId: {
+      type: Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+
+    productName: {
+      type: String,
+      required: true,
+    },
+
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
+    price: {
+      type: Number,
+      required: true,
+    },
+
+    productSnapshot: {
+      name: String,
+      description: String,
+      dimension: {
+        width: String,
+        height: String,
+      },
+      minOrder: Number,
+      material: String,
+    },
+  },
+  { _id: true }
+);
+
 export interface IOrderModel extends Document {
   userId: Types.ObjectId;
   orderNumber: string;
-  items: {
-    productId: Types.ObjectId;
-    productName: string;
-    quantity: number;
-    price: number;
-    productSnapshot: any; // ✅ Keep this for price history
-  }[];
+  items: IOrderItem[];
   totalAmount: number;
   amountPaid: number;
   remainingBalance: number;
@@ -83,34 +129,12 @@ const OrderSchema = new Schema<IOrderModel>(
     orderNumber: {
       type: String,
       required: true,
-      unique: true,
-      index: true,
-      default: () => uuid(),
+      index: true
     },
-    items: [
-      {
-        productId: {
-          type: Schema.Types.ObjectId,
-          ref: "Product",
-          required: true,
-        },
-        productName: {
-          type: String,
-          required: true,
-        },
-        quantity: {
-          type: Number,
-          required: true,
-        },
-        price: {
-          type: Number,
-          required: true,
-        },
-        productSnapshot: {
-          type: Schema.Types.Mixed, // Store product details at time of order
-        },
-      },
-    ],
+    items: {
+        type: [OrderItemSchema],
+        default: [],
+    },
     totalAmount: { type: Number, required: true },
     amountPaid: { type: Number, default: 0 },
     remainingBalance: { type: Number, required: true },
