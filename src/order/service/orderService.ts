@@ -11,6 +11,8 @@ import { Product } from "../../product/model/productModel.js";
 import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
 import emailService from "../../utils/email.js";
+import { generateOrderNumber } from "../../utils/orderUtils.js";
+import { startServer } from "../../config/db.js";
 import { Types } from "mongoose";
 
 const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
@@ -105,6 +107,7 @@ const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.Delivered]: [],
 };
 
+await startServer();
 // ==================== CREATE ORDER (Customer) ====================
 export const createOrder = async (
   userId: string,
@@ -167,13 +170,14 @@ export const createOrder = async (
 
     totalAmount += product.price * item.quantity;
   }
-
+  const orderNumber = await generateOrderNumber();
   const order = await Order.create({
     userId: user._id,
     items: orderItems,
     totalAmount: totalAmount,
     amountPaid: 0,
     remainingBalance: totalAmount,
+    orderNumber,
     status: OrderStatus.OrderReceived,
     paymentStatus: PaymentStatus.Pending,
     createdAt: new Date(),
@@ -540,9 +544,9 @@ export const filterOrders = async (
   },
   userRole: string,
 ): Promise<PaginatedOrder> => {
-  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
-    throw new Error("Unauthorized");
-  }
+//   if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
+//     throw new Error("Unauthorized");
+//   }
 
   const query: any = {};
 
@@ -815,3 +819,86 @@ export const linkInvoiceToOrder = async (
   await order.save();
   return order;
 };
+
+export const addItemToOrderService = async (
+  orderId: string,
+  userId: string,
+  productId: string,
+  quantity: number
+) => {
+
+  const order = await Order.findOne({ _id: orderId, userId });
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  const allowedStatuses = [
+    OrderStatus.Pending,
+    OrderStatus.OrderReceived,
+  ];
+
+  if (!allowedStatuses.includes(order.status)) {
+    throw new Error("Cannot add items to order in current status");
+  }
+
+  const product = await Product.findById(productId);
+
+  if (!product) {
+    throw new Error("Product not found");
+  }
+
+  const newItem = {
+    productId: new Types.ObjectId(productId),
+    productName: product.name,
+    quantity,
+    price: product.price,
+
+    productSnapshot: {
+      name: product.name,
+      description: product.description,
+      dimension: product.dimension,
+      minOrder: product.minOrder,
+      material: product.material,
+    },
+  };
+
+  const existingItem = order.items.find(
+  (item) => item.productId.toString() === productId
+  );
+
+    if (existingItem) {
+    existingItem.quantity += quantity;
+    } else {
+    order.items.push(newItem);
+    }
+
+
+  const itemTotal = product.price * quantity;
+
+  order.totalAmount += itemTotal;
+  order.remainingBalance += itemTotal;
+
+  await order.save();
+
+  return order;
+};
+
+
+// ==================== GET USER ACTIVE ORDERS ====================
+export const getUserActiveOrders = async (
+  userId: string,
+  statuses: OrderStatus[] = [OrderStatus.OrderReceived, OrderStatus.Pending, OrderStatus.FilesUploaded]
+): Promise<IOrderModel[]> => {
+  const orders = await Order.find({ 
+    userId: userId,
+    status: { $in: statuses }
+  })
+    .sort({ createdAt: -1 })
+    .populate("items.productId", "name images")
+    .exec();
+
+  return orders;
+};
+
+

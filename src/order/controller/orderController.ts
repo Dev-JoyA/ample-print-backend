@@ -503,3 +503,69 @@ export const superAdminCreateOrder = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+export const addItemToOrder = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: string };
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const { orderId } = req.params;
+    const { productId, quantity } = req.body;
+
+    const userId = user._id;
+
+    const order = await orderService.addItemToOrderService(
+      orderId,
+      userId,
+      productId,
+      quantity
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Item added to order successfully",
+      order,
+    });
+
+  } catch (error: any) {
+
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+};
+
+
+// ==================== GET USER ACTIVE ORDERS ====================
+export const getUserActiveOrders = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: string };
+    const { statuses } = req.query;
+    
+    let statusArray = [OrderStatus.OrderReceived, OrderStatus.Pending, OrderStatus.FilesUploaded];
+    if (statuses) {
+      statusArray = (statuses as string).split(',') as OrderStatus[];
+    }
+
+    const orders = await orderService.getUserActiveOrders(user._id, statusArray);
+
+    res.status(200).json({
+      success: true,
+      orders,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
