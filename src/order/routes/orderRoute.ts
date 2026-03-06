@@ -42,7 +42,7 @@ router.post(
 );
 
 // Get logged-in customer's orders
-router.get("/my-orders", checkRole([UserRole.Customer]), getUserOrders);
+router.get("/my-orders", authMiddleware, getUserOrders);
 
 // ==================== SUPER ADMIN ONLY ROUTES ====================
 // Super admin creates order for a customer

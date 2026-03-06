@@ -141,6 +141,8 @@ export const getUserOrders = async (req: Request, res: Response) => {
     const user = req.user as { _id: string; role: string };
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const search = req.query.search as string;
+    const status = req.query.status as OrderStatus;
 
     if (!user) {
       return res.status(401).json({
@@ -149,7 +151,13 @@ export const getUserOrders = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await orderService.getUserOrders(user._id, page, limit);
+    const result = await orderService.getUserOrders(
+      user._id, 
+      page, 
+      limit, 
+      search,
+      status
+    );
 
     res.status(200).json({
       success: true,
@@ -169,6 +177,9 @@ export const getAllOrders = async (req: Request, res: Response) => {
     const user = req.user as { _id: string; role: string };
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as OrderStatus;
+    const paymentStatus = req.query.paymentStatus as PaymentStatus;
+    const search = req.query.search as string;
 
     if (!user) {
       return res.status(401).json({
@@ -177,7 +188,11 @@ export const getAllOrders = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await orderService.getAllOrders(user.role, page, limit);
+    const result = await orderService.getAllOrders(user.role, page, limit, {
+      status,
+      paymentStatus,
+      search
+    });
 
     res.status(200).json({
       success: true,
