@@ -15,6 +15,8 @@ export interface ICustomerBrief extends Document {
   video?: string;
   description?: string;
   logo?: string;
+  viewed: boolean; 
+  viewedAt?: Date; 
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,6 +66,14 @@ const CustomerBriefSchema = new Schema<ICustomerBrief>(
     image: String,
     voiceNote: String,
     video: String,
+     viewed: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    viewedAt: {
+      type: Date,
+    },
   },
   { timestamps: true },
 );

@@ -258,21 +258,18 @@ export const getUserCustomerBriefs = async (req: Request, res: Response) => {
 // GET /api/admin/briefs
 export const getAdminCustomerBriefs = async (req: Request, res: Response) => {
   try {
-    const user = req.user as { _id: string; role: UserRole };
+    const user = req.user as { _id: string; role: string };
 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const status = req.query.status as string;
-    const hasResponded =
-      req.query.hasResponded === "true"
-        ? true
-        : req.query.hasResponded === "false"
-          ? false
-          : undefined;
+    const hasFiles = req.query.hasFiles === "true";
+    const search = req.query.search as string;
 
     const result = await customerBriefService.getAdminCustomerBriefs(user._id, {
       status: status as any,
-      hasResponded,
+      hasFiles,
+      search,
       page,
       limit,
     });
@@ -302,6 +299,37 @@ export const checkAdminResponseStatus = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const markBriefAsViewed = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: string };
+    const { briefId } = req.params;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const brief = await customerBriefService.markBriefAsViewed(
+      briefId,
+      user._id,
+      user.role
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Brief marked as viewed",
+      data: brief,
     });
   } catch (error: any) {
     res.status(400).json({
