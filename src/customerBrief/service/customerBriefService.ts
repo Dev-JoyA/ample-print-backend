@@ -44,10 +44,11 @@ export const createOrUpdateCustomerBrief = async (
 
     if (
       order.status !== OrderStatus.Pending &&
-      order.status !== OrderStatus.OrderReceived
+      order.status !== OrderStatus.OrderReceived &&
+      order.status !== OrderStatus.FilesUploaded
     ) {
       throw new Error(
-        "Customer brief can only be created for orders that are Pending or Order Received",
+        "Customer brief can only be created for orders that are Pending, Order Received, or Files Uploaded",
       );
     }
   } else if (userRole === UserRole.Admin) {

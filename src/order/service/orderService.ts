@@ -378,7 +378,7 @@ export const getOrderById = async (
   userRole: string,
 ): Promise<IOrderModel> => {
   const order = await Order.findById(id)
-    .populate("userId", "email")
+   // .populate("userId", "email")
     .populate("items.productId", "name images dimensions")
     .populate("invoiceId")
     .populate("shippingId")
@@ -398,18 +398,33 @@ export const getUserOrders = async (
   userId: string,
   page: number = 1,
   limit: number = 10,
+  search?: string,
+  status?: OrderStatus
 ): Promise<PaginatedOrder> => {
+  const query: any = { userId: userId };
+  
+  if (status) {
+    query.status = status;
+  }
+  
+  if (search) {
+    query.$or = [
+      { orderNumber: { $regex: search, $options: 'i' } },
+      { 'items.productName': { $regex: search, $options: 'i' } }
+    ];
+  }
+  
   const skip = (page - 1) * limit;
 
   const [orders, total] = await Promise.all([
-    Order.find({ userId: userId })
+    Order.find(query)
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 })
       .populate("items.productId", "name images")
       .populate("invoiceId")
       .populate("shippingId"),
-    Order.countDocuments({ userId: userId }),
+    Order.countDocuments(query),
   ]);
 
   return {
@@ -479,16 +494,78 @@ export const getAllOrders = async (
   userRole: string,
   page: number = 1,
   limit: number = 10,
+  filters?: {
+    status?: OrderStatus;
+    paymentStatus?: PaymentStatus;
+    search?: string;
+  }
 ): Promise<PaginatedOrder> => {
   if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
     throw new Error("Unauthorized");
   }
 
+  const query: any = {};
+
+  // Apply status filter
+  if (filters?.status) {
+    query.status = filters.status;
+  }
+
+  // Apply payment status filter
+  if (filters?.paymentStatus) {
+    query.paymentStatus = filters.paymentStatus;
+  }
+
+  // Apply search filter (order number, customer email, product name)
+  if (filters?.search && filters.search.trim() !== '') {
+    const searchRegex = new RegExp(filters.search, 'i');
+    
+    // Find users that match the search (for customer email)
+    const matchingUsers = await User.find({
+      email: searchRegex
+    }).select('_id');
+    
+    // Find profiles that match the search (for customer name)
+    const matchingProfiles = await Profile.find({
+      $or: [
+        { firstName: searchRegex },
+        { lastName: searchRegex },
+        { userName: searchRegex }
+      ]
+    }).select('userId');
+    
+    const userIds = [
+      ...matchingUsers.map(u => u._id),
+      ...matchingProfiles.map(p => p.userId)
+    ];
+
+    // Build the search query
+    query.$or = [
+      { orderNumber: searchRegex },
+      { 'items.productName': searchRegex }
+    ];
+
+    // Add userIds to the OR array if any users matched
+    if (userIds.length > 0) {
+      query.$or.push({ userId: { $in: userIds } });
+    }
+  }
+
+  console.log('Final query:', JSON.stringify(query, null, 2));
+
   const skip = (page - 1) * limit;
 
   const [orders, total] = await Promise.all([
-    Order.find()
-      .populate("userId", "email fullname")
+    Order.find(query)
+      .populate("userId", "email") // Get email from User
+      .populate({
+        path: "userId",
+        populate: {
+          path: "profile",
+          model: "Profile",
+          select: "firstName lastName userName"
+        }
+      })
       .populate("items.productId", "name")
       .populate("invoiceId")
       .populate("shippingId")
@@ -496,7 +573,7 @@ export const getAllOrders = async (
       .skip(skip)
       .limit(limit)
       .exec(),
-    Order.countDocuments(),
+    Order.countDocuments(query),
   ]);
 
   return {
@@ -836,6 +913,7 @@ export const addItemToOrderService = async (
   const allowedStatuses = [
     OrderStatus.Pending,
     OrderStatus.OrderReceived,
+    OrderStatus.FilesUploaded
   ];
 
   if (!allowedStatuses.includes(order.status)) {

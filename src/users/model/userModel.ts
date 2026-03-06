@@ -48,7 +48,15 @@ const UserSchema = new Schema<IUser>(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   },
 );
 
+UserSchema.virtual('profile', {
+  ref: 'Profile',
+  localField: '_id',
+  foreignField: 'userId',
+  justOne: true
+});
 export const User = model<IUser>("User", UserSchema);
