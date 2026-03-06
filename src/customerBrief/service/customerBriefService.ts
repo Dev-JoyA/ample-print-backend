@@ -316,8 +316,9 @@ export const getCustomerBriefByOrderId = async (
 export const getAdminCustomerBriefs = async (
   adminId: string,
   filters: {
-    status?: OrderStatus;
-    hasResponded?: boolean;
+    status?: 'pending' | 'responded' | 'viewed' | 'all';
+    hasFiles?: boolean;
+    search?: string;
     page?: number;
     limit?: number;
   } = {},
@@ -327,83 +328,206 @@ export const getAdminCustomerBriefs = async (
   page: number;
   pages: number;
 }> => {
-  const { status, hasResponded, page = 1, limit = 10 } = filters;
+  const { status, hasFiles, search, page = 1, limit = 10 } = filters;
 
-  const orderQuery: any = {};
-  if (status) {
-    orderQuery.status = status;
+  // Build the query for customer briefs
+  const query: any = {
+    role: CustomerBriefRole.Customer, // We want customer briefs
+  };
+
+  // Apply hasFiles filter
+  if (hasFiles) {
+    query.$or = [
+      { image: { $exists: true, $ne: null } },
+      { voiceNote: { $exists: true, $ne: null } },
+      { video: { $exists: true, $ne: null } },
+      { logo: { $exists: true, $ne: null } }
+    ];
   }
 
-  const orders = await Order.find(orderQuery).select("_id userId");
-  const orderIds = orders.map((o) => o._id);
+  // Apply search filter
+  if (search && search.trim()) {
+    const searchRegex = new RegExp(search, 'i');
+    
+    // Find matching orders by order number
+    const matchingOrders = await Order.find({
+      orderNumber: searchRegex
+    }).select('_id');
+    
+    const orderIds = matchingOrders.map(o => o._id);
 
-  const customerBriefs = await CustomerBrief.find({
-    orderId: { $in: orderIds },
-    role: CustomerBriefRole.Customer,
-  }).select("orderId");
+    // Find matching products by name
+    const matchingProducts = await Product.find({
+      name: searchRegex
+    }).select('_id');
+    
+    const productIds = matchingProducts.map(p => p._id);
 
-  const orderIdsWithCustomerBrief = customerBriefs.map((cb) => cb.orderId);
+    // Build search query
+    query.$and = [
+      {
+        $or: [
+          { description: searchRegex },
+          { orderId: { $in: orderIds } },
+          { productId: { $in: productIds } }
+        ]
+      }
+    ];
+  }
 
-  const adminBriefs = await CustomerBrief.find({
-    orderId: { $in: orderIdsWithCustomerBrief },
-    role: CustomerBriefRole.Admin,
-  }).select("orderId");
+  // Get all customer briefs with the base query
+  const customerBriefs = await CustomerBrief.find(query)
+    .populate({
+      path: "orderId",
+      select: "orderNumber userId status",
+      populate: { path: "userId", select: "email" }
+    })
+    .populate("productId", "name")
+    .sort({ createdAt: -1 })
+    .lean();
 
-  const orderIdsWithAdminResponse = adminBriefs.map((ab) =>
-    ab.orderId.toString(),
+  // For each brief, check if there's an admin response
+  const briefsWithStatus = await Promise.all(
+    customerBriefs.map(async (brief) => {
+      // Check if there's an admin response for this order/product
+      const adminResponse = await CustomerBrief.findOne({
+        orderId: brief.orderId._id,
+        productId: brief.productId._id,
+        role: { $in: [CustomerBriefRole.Admin, CustomerBriefRole.SuperAdmin] }
+      }).sort({ createdAt: -1 });
+
+      // Determine status
+      let briefStatus = 'pending';
+      if (brief.viewed) {
+        briefStatus = 'viewed';
+      } else if (adminResponse) {
+        // Check if admin response is the most recent
+        const lastAdminDate = adminResponse.createdAt;
+        const lastCustomerDate = brief.createdAt;
+        
+        if (lastAdminDate > lastCustomerDate) {
+          briefStatus = 'responded';
+        }
+      }
+
+      return {
+        ...brief,
+        hasAdminResponse: !!adminResponse,
+        lastAdminResponse: adminResponse,
+        status: briefStatus
+      };
+    })
   );
 
-  let finalOrderIds = orderIdsWithCustomerBrief.map((id) => id.toString());
-
-  if (hasResponded !== undefined) {
-    if (hasResponded) {
-      finalOrderIds = finalOrderIds.filter((id) =>
-        orderIdsWithAdminResponse.includes(id),
-      );
-    } else {
-      finalOrderIds = finalOrderIds.filter(
-        (id) => !orderIdsWithAdminResponse.includes(id),
-      );
-    }
+  // Filter by status
+  let filteredBriefs = briefsWithStatus;
+  if (status && status !== 'all') {
+    filteredBriefs = briefsWithStatus.filter(b => b.status === status);
   }
 
+  // Paginate
   const skip = (page - 1) * limit;
-
-  const [briefs, total] = await Promise.all([
-    CustomerBrief.find({
-      orderId: { $in: finalOrderIds.map((id) => new Types.ObjectId(id)) },
-      role: CustomerBriefRole.Customer,
-    })
-      .populate({
-        path: "orderId",
-        populate: { path: "userId", select: "fullname email" },
-      })
-      .populate("productId", "name price")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .exec(),
-    finalOrderIds.length,
-  ]);
-
-  const briefsWithStatus = briefs.map((brief) => {
-    const hasAdminResponse = orderIdsWithAdminResponse.includes(
-      brief.orderId.toString(),
-    );
-    return {
-      ...brief.toObject(),
-      needsAdminResponse: !hasAdminResponse,
-      hasAdminResponse,
-    };
-  });
+  const paginatedBriefs = filteredBriefs.slice(skip, skip + limit);
 
   return {
-    briefs: briefsWithStatus,
-    total,
+    briefs: paginatedBriefs,
+    total: filteredBriefs.length,
     page,
-    pages: Math.ceil(total / limit),
+    pages: Math.ceil(filteredBriefs.length / limit),
   };
 };
+
+// export const getAdminCustomerBriefs = async (
+//   adminId: string,
+//   filters: {
+//     status?: OrderStatus;
+//     hasResponded?: boolean;
+//     page?: number;
+//     limit?: number;
+//   } = {},
+// ): Promise<{
+//   briefs: any[];
+//   total: number;
+//   page: number;
+//   pages: number;
+// }> => {
+//   const { status, hasResponded, page = 1, limit = 10 } = filters;
+
+//   const orderQuery: any = {};
+//   if (status) {
+//     orderQuery.status = status;
+//   }
+
+//   const orders = await Order.find(orderQuery).select("_id userId");
+//   const orderIds = orders.map((o) => o._id);
+
+//   const customerBriefs = await CustomerBrief.find({
+//     orderId: { $in: orderIds },
+//     role: CustomerBriefRole.Customer,
+//   }).select("orderId");
+
+//   const orderIdsWithCustomerBrief = customerBriefs.map((cb) => cb.orderId);
+
+//   const adminBriefs = await CustomerBrief.find({
+//     orderId: { $in: orderIdsWithCustomerBrief },
+//     role: CustomerBriefRole.Admin,
+//   }).select("orderId");
+
+//   const orderIdsWithAdminResponse = adminBriefs.map((ab) =>
+//     ab.orderId.toString(),
+//   );
+
+//   let finalOrderIds = orderIdsWithCustomerBrief.map((id) => id.toString());
+
+//   if (hasResponded !== undefined) {
+//     if (hasResponded) {
+//       finalOrderIds = finalOrderIds.filter((id) =>
+//         orderIdsWithAdminResponse.includes(id),
+//       );
+//     } else {
+//       finalOrderIds = finalOrderIds.filter(
+//         (id) => !orderIdsWithAdminResponse.includes(id),
+//       );
+//     }
+//   }
+
+//   const skip = (page - 1) * limit;
+
+//   const [briefs, total] = await Promise.all([
+//     CustomerBrief.find({
+//       orderId: { $in: finalOrderIds.map((id) => new Types.ObjectId(id)) },
+//       role: CustomerBriefRole.Customer,
+//     })
+//       .populate({
+//         path: "orderId",
+//         populate: { path: "userId", select: "fullname email" },
+//       })
+//       .populate("productId", "name price")
+//       .sort({ createdAt: -1 })
+//       .skip(skip)
+//       .limit(limit)
+//       .exec(),
+//     finalOrderIds.length,
+//   ]);
+
+//   const briefsWithStatus = briefs.map((brief) => {
+//     const hasAdminResponse = orderIdsWithAdminResponse.includes(
+//       brief.orderId.toString(),
+//     );
+//     return {
+//       ...brief.toObject(),
+//       needsAdminResponse: !hasAdminResponse,
+//       hasAdminResponse,
+//     };
+//   });
+
+//   return {
+//     briefs: briefsWithStatus,
+//     total,
+//     page,
+//     pages: Math.ceil(total / limit),
+//   };
+// };
 
 export const filterCustomerBriefs = async (
   filters: {
@@ -572,4 +696,28 @@ export const getProductBriefAnalytics = async (
     completionRate:
       customerBriefs > 0 ? (adminResponses / customerBriefs) * 100 : 0,
   };
+};
+
+export const markBriefAsViewed = async (
+  briefId: string,
+  userId: string,
+  userRole: string
+): Promise<ICustomerBrief> => {
+  const brief = await CustomerBrief.findById(briefId);
+  
+  if (!brief) {
+    throw new Error("Brief not found");
+  }
+
+  // Only admins and super admins can mark as viewed
+  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
+    throw new Error("Unauthorized");
+  }
+
+  brief.viewed = true;
+  brief.viewedAt = new Date();
+  
+  await brief.save();
+  
+  return brief;
 };

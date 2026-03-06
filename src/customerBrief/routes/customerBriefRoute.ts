@@ -9,6 +9,7 @@ import {
   getUserCustomerBriefs,
   getAdminCustomerBriefs,
   checkAdminResponseStatus,
+  markBriefAsViewed,
 } from "../controller/customerBriefController.js";
 import { authMiddleware } from "../../middleware/authMiddleware.js";
 import {
@@ -93,6 +94,14 @@ router.delete(
   "/briefs/:briefId",
   checkSuperAdmin,
   deleteCustomerBrief
+);
+
+// Mark brief as viewed (admin only)
+router.patch(
+  "/briefs/:briefId/view",
+  authMiddleware,
+  checkAdmin,
+  markBriefAsViewed
 );
 
 export default router;
