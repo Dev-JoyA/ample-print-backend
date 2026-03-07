@@ -17,6 +17,7 @@ import {
   superAdminCreateOrder,
   addItemToOrder,
   getUserActiveOrders,
+  markOrderAsAwaitingInvoice, // NEW IMPORT
 } from "../controller/orderController.js";
 import { authMiddleware } from "../../middleware/authMiddleware.js";
 import {
@@ -43,6 +44,14 @@ router.post(
 
 // Get logged-in customer's orders
 router.get("/my-orders", authMiddleware, getUserOrders);
+
+// ==================== ADMIN/SUPER ADMIN ROUTES ====================
+// Mark order as awaiting invoice (after all briefs are processed)
+router.patch(
+  "/:orderId/mark-awaiting-invoice",
+  checkAdmin, // Admin or Super Admin can mark as awaiting invoice
+  markOrderAsAwaitingInvoice
+);
 
 // ==================== SUPER ADMIN ONLY ROUTES ====================
 // Super admin creates order for a customer

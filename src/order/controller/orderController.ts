@@ -206,6 +206,34 @@ export const getAllOrders = async (req: Request, res: Response) => {
   }
 };
 
+// ==================== MARK ORDER AS AWAITING INVOICE (NEW) ====================
+export const markOrderAsAwaitingInvoice = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: string };
+    const { orderId } = req.params;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const order = await orderService.markOrderAsAwaitingInvoice(orderId, user.role);
+
+    res.status(200).json({
+      success: true,
+      message: "Order marked as awaiting invoice",
+      order,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
 // ==================== SEARCH BY ORDER NUMBER ====================
 export const searchByOrderNumber = async (req: Request, res: Response) => {
   try {
@@ -519,7 +547,6 @@ export const superAdminCreateOrder = async (req: Request, res: Response) => {
   }
 };
 
-
 export const addItemToOrder = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -559,14 +586,19 @@ export const addItemToOrder = async (req: Request, res: Response) => {
   }
 };
 
-
 // ==================== GET USER ACTIVE ORDERS ====================
 export const getUserActiveOrders = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
     const { statuses } = req.query;
     
-    let statusArray = [OrderStatus.OrderReceived, OrderStatus.Pending, OrderStatus.FilesUploaded];
+    let statusArray = [
+      OrderStatus.OrderReceived, 
+      OrderStatus.Pending, 
+      OrderStatus.FilesUploaded,
+      OrderStatus.AwaitingInvoice // Added AwaitingInvoice
+    ];
+    
     if (statuses) {
       statusArray = (statuses as string).split(',') as OrderStatus[];
     }

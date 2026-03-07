@@ -10,6 +10,7 @@ import {
   getAdminCustomerBriefs,
   checkAdminResponseStatus,
   markBriefAsViewed,
+  getOrderBriefStatus,
 } from "../controller/customerBriefController.js";
 import { authMiddleware } from "../../middleware/authMiddleware.js";
 import {
@@ -66,6 +67,13 @@ router.put(
 // Get all briefs that need admin attention
 router.get("/admin/briefs", checkAdmin, getAdminCustomerBriefs);
 
+// Mark brief as viewed (admin only)
+router.patch(
+  "/briefs/:briefId/view",
+  checkAdmin,
+  markBriefAsViewed
+);
+
 // ==================== SHARED ROUTES (MULTI-ROLE) ====================
 // Get full conversation for an order/product (all roles)
 router.get(
@@ -88,20 +96,19 @@ router.get(
   checkAdminResponseStatus
 );
 
+// Get order brief status (check if all products are ready for invoice)
+router.get(
+  "/briefs/order/:orderId/status",
+  checkRole([UserRole.Admin, UserRole.SuperAdmin]),
+  getOrderBriefStatus
+);
+
 // ==================== SUPER ADMIN ONLY ROUTES ====================
 // Delete any brief
 router.delete(
   "/briefs/:briefId",
   checkSuperAdmin,
   deleteCustomerBrief
-);
-
-// Mark brief as viewed (admin only)
-router.patch(
-  "/briefs/:briefId/view",
-  authMiddleware,
-  checkAdmin,
-  markBriefAsViewed
 );
 
 export default router;
