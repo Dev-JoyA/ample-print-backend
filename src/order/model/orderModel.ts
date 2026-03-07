@@ -13,6 +13,7 @@ export enum OrderStatus {
   Pending = "Pending",
   OrderReceived = "OrderReceived",
   FilesUploaded = "FilesUploaded",
+  AwaitingInvoice = "AwaitingInvoice",
   InvoiceSent = "InvoiceSent",
   DesignUploaded = "DesignUploaded",
   UnderReview = "UnderReview",

@@ -67,6 +67,7 @@ export const submitCustomerBrief = async (req: Request, res: Response) => {
       data: brief,
     });
   } catch (error: any) {
+    console.error("Error submitting customer brief:", error);
     res.status(400).json({
       success: false,
       message: error.message,
@@ -117,6 +118,7 @@ export const adminRespondToBrief = async (req: Request, res: Response) => {
       data: brief,
     });
   } catch (error: any) {
+    console.error("Error submitting admin response:", error);
     res.status(400).json({
       success: false,
       message: error.message,
@@ -151,6 +153,7 @@ export const getBriefByOrderAndProduct = async (
       data: briefs,
     });
   } catch (error: any) {
+    console.error("Error fetching brief by order and product:", error);
     res.status(400).json({
       success: false,
       message: error.message,
@@ -189,6 +192,7 @@ export const getCustomerBriefById = async (req: Request, res: Response) => {
       data: brief,
     });
   } catch (error: any) {
+    console.error("Error fetching brief by ID:", error);
     res.status(400).json({
       success: false,
       message: error.message,
@@ -222,6 +226,7 @@ export const deleteCustomerBrief = async (req: Request, res: Response) => {
       message: result.message,
     });
   } catch (error: any) {
+    console.error("Error deleting brief:", error);
     res.status(400).json({
       success: false,
       message: error.message,
@@ -248,6 +253,7 @@ export const getUserCustomerBriefs = async (req: Request, res: Response) => {
       ...result,
     });
   } catch (error: any) {
+    console.error("Error fetching user briefs:", error);
     res.status(400).json({
       success: false,
       message: error.message,
@@ -266,6 +272,8 @@ export const getAdminCustomerBriefs = async (req: Request, res: Response) => {
     const hasFiles = req.query.hasFiles === "true";
     const search = req.query.search as string;
 
+    console.log("Admin briefs request:", { page, limit, status, hasFiles, search });
+
     const result = await customerBriefService.getAdminCustomerBriefs(user._id, {
       status: status as any,
       hasFiles,
@@ -279,6 +287,7 @@ export const getAdminCustomerBriefs = async (req: Request, res: Response) => {
       ...result,
     });
   } catch (error: any) {
+    console.error("Error fetching admin briefs:", error);
     res.status(400).json({
       success: false,
       message: error.message,
@@ -301,6 +310,7 @@ export const checkAdminResponseStatus = async (req: Request, res: Response) => {
       data: result,
     });
   } catch (error: any) {
+    console.error("Error checking admin response status:", error);
     res.status(400).json({
       success: false,
       message: error.message,
@@ -308,10 +318,12 @@ export const checkAdminResponseStatus = async (req: Request, res: Response) => {
   }
 };
 
+// PATCH /api/briefs/:briefId/view
 export const markBriefAsViewed = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
     const { briefId } = req.params;
+    const io = getIO(req);
 
     if (!user) {
       return res.status(401).json({
@@ -323,7 +335,8 @@ export const markBriefAsViewed = async (req: Request, res: Response) => {
     const brief = await customerBriefService.markBriefAsViewed(
       briefId,
       user._id,
-      user.role
+      user.role,
+      io,
     );
 
     res.status(200).json({
@@ -332,6 +345,27 @@ export const markBriefAsViewed = async (req: Request, res: Response) => {
       data: brief,
     });
   } catch (error: any) {
+    console.error("Error marking brief as viewed:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// GET /api/briefs/order/:orderId/status
+export const getOrderBriefStatus = async (req: Request, res: Response) => {
+  try {
+    const { orderId } = req.params;
+
+    const status = await customerBriefService.getOrderBriefStatus(orderId);
+
+    res.status(200).json({
+      success: true,
+      data: status,
+    });
+  } catch (error: any) {
+    console.error("Error getting order brief status:", error);
     res.status(400).json({
       success: false,
       message: error.message,
