@@ -249,6 +249,7 @@ export const searchByOrderNumber = async (req: Request, res: Response) => {
 
     const order = await orderService.searchByOrderNumber(
       orderNumber,
+        user._id,
       user.role,
     );
 

@@ -634,12 +634,10 @@ export const markOrderAsAwaitingInvoice = async (
 // ==================== SEARCH BY ORDER NUMBER ====================
 export const searchByOrderNumber = async (
   orderNumber: string,
+  userId: string,
   userRole: string,
 ): Promise<IOrderModel> => {
-  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
-    throw new Error("Unauthorized");
-  }
-
+    
   const order = await Order.findOne({ orderNumber })
     .populate("userId", "email fullname")
     .populate("items.productId", "name")
@@ -647,6 +645,15 @@ export const searchByOrderNumber = async (
     .populate("shippingId");
 
   if (!order) throw new Error("Order not found");
+
+  // Check authorization:
+  // - Admins and SuperAdmins can view any order
+  // - Customers can only view their own orders
+  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
+    if (order.userId.toString() !== userId) {
+      throw new Error("Unauthorized: You can only view your own orders");
+    }
+  }
 
   return order;
 };
