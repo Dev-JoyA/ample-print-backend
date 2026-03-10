@@ -45,10 +45,11 @@ export const createOrUpdateCustomerBrief = async (
     // Customer can only submit briefs when order is in these statuses
     if (
       order.status !== OrderStatus.Pending &&
-      order.status !== OrderStatus.OrderReceived
+      order.status !== OrderStatus.OrderReceived &&
+      order.status !== OrderStatus.FilesUploaded
     ) {
       throw new Error(
-        "Customer brief can only be created for orders that are Pending or Order Received",
+        "Customer brief can only be created for orders that are Pending or Order Received or Files Uploaded",
       );
     }
 
@@ -436,7 +437,6 @@ export const getAdminCustomerBriefs = async (
   };
 };
 
-// ==================== MARK BRIEF AS VIEWED ====================
 export const markBriefAsViewed = async (
   briefId: string,
   userId: string,
@@ -449,8 +449,18 @@ export const markBriefAsViewed = async (
     throw new Error("Brief not found");
   }
 
-  // Only admins and super admins can mark as viewed
-  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
+  // Check if already viewed
+  if (brief.viewed) {
+    return brief; // Already viewed, just return it
+  }
+
+  // Allow customers to mark admin responses as viewed
+  if (userRole === UserRole.Customer) {
+    // Customers can only mark admin/superadmin briefs
+    if (brief.role !== CustomerBriefRole.Admin && brief.role !== CustomerBriefRole.SuperAdmin) {
+      throw new Error("Customers can only mark admin responses as viewed");
+    }
+  } else if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
     throw new Error("Unauthorized");
   }
 
@@ -798,4 +808,38 @@ export const getProductBriefAnalytics = async (
     completionRate:
       customerBriefs > 0 ? (adminResponses / customerBriefs) * 100 : 0,
   };
+};
+
+// Add this to your customerBriefService.js
+
+// ==================== GET ALL BRIEFS FOR AN ORDER ====================
+export const getAllBriefsByOrderId = async (
+  orderId: string,
+  userId: string,
+  userRole: string,
+): Promise<ICustomerBrief[]> => {
+  if (!Types.ObjectId.isValid(orderId)) {
+    throw new Error("Invalid order ID format");
+  }
+
+  const order = await Order.findById(orderId);
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  // Check authorization
+  if (userRole === UserRole.Customer && order.userId.toString() !== userId) {
+    throw new Error("Unauthorized to view this order's briefs");
+  }
+
+  // Get ALL briefs for this order (both customer and admin/superadmin)
+  const briefs = await CustomerBrief.find({
+    orderId: new Types.ObjectId(orderId),
+  })
+    .populate("productId", "name price mainImage")
+    .populate("designId", "designUrl filename status")
+    .sort({ createdAt: -1 }) 
+    .exec();
+
+  return briefs;
 };

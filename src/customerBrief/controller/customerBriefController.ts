@@ -372,3 +372,37 @@ export const getOrderBriefStatus = async (req: Request, res: Response) => {
     });
   }
 };
+
+// Add this to your customerBriefController.js
+
+// GET /api/briefs/order/:orderId/all
+export const getAllBriefsByOrderId = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: UserRole };
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID is required",
+      });
+    }
+
+    const briefs = await customerBriefService.getAllBriefsByOrderId(
+      orderId,
+      user._id,
+      user.role,
+    );
+
+    res.status(200).json({
+      success: true,
+      data: briefs,
+    });
+  } catch (error: any) {
+    console.error("Error fetching all briefs by order:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
