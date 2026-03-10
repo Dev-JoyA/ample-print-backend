@@ -81,7 +81,7 @@ router.get("/filter", checkAdmin, filterOrders);
 router.get("/my-active-orders", checkRole([UserRole.Customer]), getUserActiveOrders);
 
 // Search by order number
-router.get("/search/:orderNumber", checkAdmin, searchByOrderNumber);
+router.get("/search/:orderNumber", authMiddleware, searchByOrderNumber);
 
 // Payment status routes
 router.get("/payment/paid", checkAdmin, getPaidOrders);
