@@ -20,7 +20,7 @@ const router = Router();
 
 router.get("/", getAllUsersController);
 
-router.get("/:userId", authMiddleware, checkAdmin, getUserByIdController);
+router.get("/:userId", authMiddleware, getUserByIdController);
 
 router.get(
   "/:userId/address",

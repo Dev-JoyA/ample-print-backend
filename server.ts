@@ -20,6 +20,7 @@ import { Server } from "socket.io";
 import { UserRole } from "./src/users/model/userModel.js";
 import http from "http";
 import Api from "twilio/lib/rest/Api.js";
+import notificationRoutes from "./src/notification/routes/notificationRoutes.js";
 
 dotenv.config();
 
@@ -94,27 +95,44 @@ app.use("/api/v1/design", designRoute);
 app.use("/api/v1/orders", orderRoute);
 app.use("/api/v1", feedbackRoute);
 app.use("/api/v1/customer-briefs", customerBriefRoute);
+app.use("/api/v1/notifications", notificationRoutes);
 
 io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
+  console.log("✅ Client connected:", socket.id);
+  console.log("   Query params:", socket.handshake.query);
 
-  socket.on("joinRoom", (role: string) => {
-    if (role === UserRole.SuperAdmin) {
+  // Handle joining rooms
+  socket.on("joinRoom", (room: string) => {
+    socket.join(room);
+    console.log(`📡 Socket ${socket.id} joined room: ${room}`);
+    
+    // Also handle role-based rooms if the room is a role
+    if (room === UserRole.SuperAdmin) {
       socket.join("superadmin-room");
-      console.log(`${socket.id} joined superadmin-room`);
-    }
-    if (role === UserRole.Admin) {
+      console.log(`${socket.id} also joined superadmin-room`);
+    } else if (room === UserRole.Admin) {
       socket.join("admin-room");
-      console.log(`${socket.id} joined admin-room`);
-    }
-    if (role === UserRole.Customer) {
+      console.log(`${socket.id} also joined admin-room`);
+    } else if (room === UserRole.Customer) {
       socket.join("customer-room");
-      console.log(`${socket.id} joined customer-room`);
+      console.log(`${socket.id} also joined customer-room`);
     }
   });
 
+  // Allow joining user-specific room directly
+  const token = socket.handshake.query.token;
+  if (token) {
+    try {
+      // You might want to decode the token here to get the userId
+      // For now, we'll assume the frontend will emit joinRoom for user-${userId}
+      console.log("Token present in connection");
+    } catch (error) {
+      console.error("Error decoding token:", error);
+    }
+  }
+
   socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
+    console.log("❌ Client disconnected:", socket.id);
   });
 });
 

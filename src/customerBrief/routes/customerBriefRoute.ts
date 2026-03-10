@@ -3,6 +3,7 @@ import {
   uploadBriefFiles,
   submitCustomerBrief,
   adminRespondToBrief,
+  getAllBriefsByOrderId,
   getBriefByOrderAndProduct,
   getCustomerBriefById,
   deleteCustomerBrief,
@@ -41,6 +42,12 @@ router.put(
   submitCustomerBrief
 );
 
+router.get(
+  "/briefs/order/:orderId/all",
+  checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
+  getAllBriefsByOrderId
+);
+
 // Get all briefs submitted by the logged-in customer
 router.get(
   "/customer/briefs",
@@ -70,7 +77,7 @@ router.get("/admin/briefs", checkAdmin, getAdminCustomerBriefs);
 // Mark brief as viewed (admin only)
 router.patch(
   "/briefs/:briefId/view",
-  checkAdmin,
+  authMiddleware,
   markBriefAsViewed
 );
 
