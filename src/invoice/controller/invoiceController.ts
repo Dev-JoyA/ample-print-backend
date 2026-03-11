@@ -6,7 +6,6 @@ const getIO = (req: Request) => {
   return (req as any).io || req.app.get("io");
 };
 
-// ==================== CREATE INVOICE (Super Admin only) ====================
 export const createInvoice = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
@@ -19,6 +18,7 @@ export const createInvoice = async (req: Request, res: Response) => {
       dueDate,
       notes,
       paymentInstructions,
+      items, // Add this
     } = req.body;
 
     // Validate required fields
@@ -45,6 +45,7 @@ export const createInvoice = async (req: Request, res: Response) => {
         dueDate: new Date(dueDate),
         notes,
         paymentInstructions,
+        items, // Pass items to service
       },
       user._id,
       io,
@@ -62,6 +63,63 @@ export const createInvoice = async (req: Request, res: Response) => {
     });
   }
 };
+
+// ==================== CREATE INVOICE (Super Admin only) ====================
+// export const createInvoice = async (req: Request, res: Response) => {
+//   try {
+//     const io = getIO(req);
+//     const user = req.user as { _id: string; role: string };
+//     const { orderId } = req.params;
+//     const {
+//       paymentType,
+//       depositAmount,
+//       discount,
+//       dueDate,
+//       notes,
+//       paymentInstructions,
+//     } = req.body;
+
+//     // Validate required fields
+//     if (!paymentType || !dueDate) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "paymentType and dueDate are required",
+//       });
+//     }
+
+//     if (!["full", "part"].includes(paymentType)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "paymentType must be 'full' or 'part'",
+//       });
+//     }
+
+//     const invoice = await invoiceService.createInvoice(
+//       orderId,
+//       {
+//         paymentType,
+//         depositAmount,
+//         discount,
+//         dueDate: new Date(dueDate),
+//         notes,
+//         paymentInstructions,
+//       },
+//       user._id,
+//       io,
+//     );
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Invoice created successfully",
+//       data: invoice,
+//     });
+//   } catch (error: any) {
+//     res.status(400).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
 
 // ==================== CREATE SHIPPING INVOICE (Admin only) ====================
 export const createShippingInvoice = async (req: Request, res: Response) => {

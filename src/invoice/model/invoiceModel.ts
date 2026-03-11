@@ -1,4 +1,5 @@
 import { Document, Schema, Types, model } from "mongoose";
+import { Transaction } from "../../payments/model/transactionModel.js";
 import { v4 as uuid } from "uuid";
 
 export enum InvoiceStatus {
@@ -73,7 +74,6 @@ const InvoiceSchema = new Schema<IInvoice>(
     invoiceNumber: {
       type: String,
       required: true,
-      default: () => uuid(), // ✅ UUID auto-generation
       unique: true,
       index: true,
     },
