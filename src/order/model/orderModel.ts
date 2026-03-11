@@ -130,7 +130,8 @@ const OrderSchema = new Schema<IOrderModel>(
     orderNumber: {
       type: String,
       required: true,
-      index: true
+      index: true,
+      unique: true
     },
     items: {
         type: [OrderItemSchema],
