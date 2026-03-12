@@ -5,10 +5,11 @@ import {
   ShippingStatus,
 } from "../model/shippingModel.js";
 import { Order, OrderStatus } from "../../order/model/orderModel.js";
-import { User } from "../../users/model/userModel.js";
+import { User, UserRole } from "../../users/model/userModel.js";
 import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
 import emailService from "../../utils/email.js";
+import { notificationService } from "../../notification/service/notificationService.js";
 import mongoose from "mongoose";
 
 export interface IShippingFilter {
@@ -149,6 +150,28 @@ export const createShipping = async (
         recipientPhone: profile.phoneNumber,
       });
 
+      // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
+      try {
+        await notificationService.createForUser(order.userId, {
+          type: 'shipping-created',
+          title: 'Shipping Created',
+          message: `Shipping has been set up for your order #${order.orderNumber}. Delivery cost: ₦${data.shippingCost.toLocaleString()}`,
+          data: {
+            shippingId: shipping._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            method: 'delivery',
+            cost: data.shippingCost,
+            address: data.address,
+            recipientName: `${profile.firstName} ${profile.lastName}`,
+            recipientPhone: profile.phoneNumber
+          },
+          link: `/orders/${order._id}/shipping`
+        });
+      } catch (notifErr) {
+        console.error('Failed to create shipping notification:', notifErr);
+      }
+
       // Email to customer about shipping setup
       if (user && profile) {
         const addressStr = data.address
@@ -178,6 +201,27 @@ export const createShipping = async (
         storeAddress: process.env.STORE_ADDRESS || "123 Main Street, Lagos",
         storeHours: process.env.STORE_HOURS || "Mon-Fri 9am-5pm",
       });
+
+      // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
+      try {
+        await notificationService.createForUser(order.userId, {
+          type: 'pickup-ready',
+          title: 'Order Ready for Pickup',
+          message: `Your order #${order.orderNumber} is ready for pickup at our store.`,
+          data: {
+            shippingId: shipping._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            method: 'pickup',
+            storeAddress: process.env.STORE_ADDRESS || "123 Main Street, Lagos",
+            storeHours: process.env.STORE_HOURS || "Mon-Fri 9am-5pm",
+            pickupNotes: data.pickupNotes
+          },
+          link: `/orders/${order._id}`
+        });
+      } catch (notifErr) {
+        console.error('Failed to create pickup notification:', notifErr);
+      }
     }
 
     io.to("admin-room").emit("shipping-created", {
@@ -185,7 +229,31 @@ export const createShipping = async (
       orderId: order._id,
       orderNumber: order.orderNumber,
       method: data.shippingMethod,
+      cost: data.shippingCost,
     });
+
+    // ✅ CREATE DATABASE NOTIFICATION FOR ADMINS
+    try {
+      await notificationService.createForAdmins({
+        type: 'admin-shipping-created',
+        title: 'Shipping Created',
+        message: `Shipping created for order #${order.orderNumber} (${data.shippingMethod})`,
+        data: {
+          shippingId: shipping._id,
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          method: data.shippingMethod,
+          cost: data.shippingCost,
+          createdBy: adminId,
+          customerId: order.userId,
+          customerName: `${profile.firstName} ${profile.lastName}`
+        },
+        link: `/dashboards/admin/orders/${order._id}/shipping`
+      }); // Exclude the creator
+      
+    } catch (notifErr) {
+      console.error('Failed to create admin shipping notification:', notifErr);
+    }
 
     return shipping;
   } catch (error) {
@@ -266,6 +334,26 @@ export const updateShippingTracking = async (
       status: ShippingStatus.Shipped,
     });
 
+    // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
+    try {
+      await notificationService.createForUser(user._id, {
+        type: 'tracking-updated',
+        title: 'Tracking Information Added',
+        message: `Your order #${order.orderNumber} has been shipped. Tracking number: ${data.trackingNumber}`,
+        data: {
+          shippingId: shipping._id,
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          trackingNumber: data.trackingNumber,
+          carrier: data.carrier,
+          estimatedDelivery: data.estimatedDelivery
+        },
+        link: `/orders/${order._id}/tracking`
+      });
+    } catch (notifErr) {
+      console.error('Failed to create tracking notification:', notifErr);
+    }
+
     const addressStr = shipping.address
       ? `${shipping.address.street}, ${shipping.address.city}, ${shipping.address.state}`
       : "Your address";
@@ -289,8 +377,34 @@ export const updateShippingTracking = async (
     orderId: shipping.orderId,
     orderNumber: order?.orderNumber,
     trackingNumber: data.trackingNumber,
+    carrier: data.carrier,
+    estimatedDelivery: data.estimatedDelivery,
     status: ShippingStatus.Shipped,
   });
+
+  // ✅ CREATE DATABASE NOTIFICATION FOR ADMINS
+  try {
+    await notificationService.createForAdmins({
+      type: 'admin-tracking-updated',
+      title: 'Tracking Information Updated',
+      message: `Tracking #${data.trackingNumber} added for order #${order?.orderNumber}`,
+      data: {
+        shippingId: shipping._id,
+        orderId: shipping.orderId,
+        orderNumber: order?.orderNumber,
+        trackingNumber: data.trackingNumber,
+        carrier: data.carrier,
+        estimatedDelivery: data.estimatedDelivery,
+        updatedBy: adminId,
+        customerId: user?._id,
+        customerName: profile ? `${profile.firstName} ${profile.lastName}` : 'Customer'
+      },
+      link: `/dashboards/admin/orders/${order?._id}/shipping`
+    }); // Exclude the updater
+    
+  } catch (notifErr) {
+    console.error('Failed to create admin tracking notification:', notifErr);
+  }
 
   return shipping;
 };
@@ -353,7 +467,39 @@ export const updateShippingStatus = async (
       orderNumber: order.orderNumber,
       status,
       trackingNumber: shipping.trackingNumber,
+      oldStatus,
     });
+
+    // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
+    try {
+      let title = 'Shipping Status Updated';
+      let message = `Your order #${order.orderNumber} shipping status changed from ${oldStatus} to ${status}`;
+      
+      if (status === ShippingStatus.Delivered) {
+        title = 'Order Delivered';
+        message = `Your order #${order.orderNumber} has been delivered!`;
+      } else if (status === ShippingStatus.Shipped) {
+        title = 'Order Shipped';
+        message = `Your order #${order.orderNumber} has been shipped!`;
+      }
+
+      await notificationService.createForUser(user._id, {
+        type: 'shipping-status-updated',
+        title,
+        message,
+        data: {
+          shippingId: shipping._id,
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          oldStatus,
+          newStatus: status,
+          trackingNumber: shipping.trackingNumber
+        },
+        link: `/orders/${order._id}/tracking`
+      });
+    } catch (notifErr) {
+      console.error('Failed to create shipping status notification:', notifErr);
+    }
 
     if (status === ShippingStatus.Delivered) {
       await emailService
@@ -367,7 +513,32 @@ export const updateShippingStatus = async (
     orderId: shipping.orderId,
     orderNumber: order?.orderNumber,
     status,
+    oldStatus,
   });
+
+  // ✅ CREATE DATABASE NOTIFICATION FOR ADMINS
+  try {
+    await notificationService.createForAdmins({
+      type: 'admin-shipping-status-updated',
+      title: 'Shipping Status Updated',
+      message: `Shipping status for order #${order?.orderNumber} changed from ${oldStatus} to ${status}`,
+      data: {
+        shippingId: shipping._id,
+        orderId: shipping.orderId,
+        orderNumber: order?.orderNumber,
+        oldStatus,
+        newStatus: status,
+        trackingNumber: shipping.trackingNumber,
+        updatedBy: adminId,
+        customerId: user?._id,
+        customerName: profile ? `${profile.firstName} ${profile.lastName}` : 'Customer'
+      },
+      link: `/dashboards/admin/orders/${order?._id}/shipping`
+    }); // Exclude the updater
+    
+  } catch (notifErr) {
+    console.error('Failed to create admin shipping status notification:', notifErr);
+  }
 
   return shipping;
 };
@@ -385,6 +556,49 @@ export const markShippingAsPaid = async (
   shipping.isPaid = true;
   shipping.shippingInvoiceId = new mongoose.Types.ObjectId(invoiceId);
   await shipping.save();
+
+  // Get order and user for notifications
+  const order = await Order.findById(shipping.orderId);
+  const user = await User.findById(order?.userId);
+  const profile = await Profile.findOne({ userId: order?.userId });
+
+  if (user && order) {
+    try {
+      await notificationService.createForUser(user._id, {
+        type: 'shipping-paid',
+        title: 'Shipping Payment Received',
+        message: `Your shipping payment for order #${order.orderNumber} has been received.`,
+        data: {
+          shippingId: shipping._id,
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          invoiceId,
+          cost: shipping.shippingCost
+        },
+        link: `/orders/${order._id}`
+      });
+
+      // Also notify admins about payment
+      await notificationService.createForAdmins({
+        type: 'admin-shipping-paid',
+        title: 'Shipping Payment Received',
+        message: `Shipping payment of ₦${shipping.shippingCost.toLocaleString()} received for order #${order.orderNumber}`,
+        data: {
+          shippingId: shipping._id,
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          invoiceId,
+          cost: shipping.shippingCost,
+          customerId: user._id,
+          customerName: profile ? `${profile.firstName} ${profile.lastName}` : 'Customer'
+        },
+        link: `/dashboards/admin/orders/${order._id}/shipping`
+      });
+      
+    } catch (notifErr) {
+      console.error('Failed to create shipping paid notifications:', notifErr);
+    }
+  }
 
   return shipping;
 };
