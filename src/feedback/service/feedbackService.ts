@@ -2,7 +2,10 @@ import { Feedback, IFeedback, FeedBackStatus } from "../model/feedback.js";
 import { Types } from "mongoose";
 import { Order } from "../../order/model/orderModel.js";
 import { Design } from "../../design/model/designModel.js";
+import { User, UserRole } from "../../users/model/userModel.js";
+import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
+import { notificationService } from "../../notification/service/notificationService.js";
 
 // ==================== CREATE CUSTOMER FEEDBACK ====================
 export const createCustomerFeedback = async (
@@ -61,6 +64,9 @@ export const createCustomerFeedback = async (
     { path: "designId", select: "designUrl" },
   ]);
 
+  // Get user profile for customer name
+  const profile = await Profile.findOne({ userId });
+
   // ===== SOCKET NOTIFICATIONS =====
   const notificationData = {
     feedbackId: feedback._id,
@@ -69,13 +75,45 @@ export const createCustomerFeedback = async (
     ...(data.designId && { designId: data.designId }),
     message:
       data.message.substring(0, 50) + (data.message.length > 50 ? "..." : ""),
-    customerName: (feedback.userId as any)?.fullname,
+    customerName: (feedback.userId as any)?.fullname || profile?.firstName || "Customer",
     priority: "high",
     timestamp: new Date(),
   };
 
   io.to("admin-room").emit("new-feedback", notificationData);
   io.to("superadmin-room").emit("new-feedback", notificationData);
+
+  // ✅ CREATE DATABASE NOTIFICATIONS FOR ADMINS
+  try {
+    await notificationService.createForAdmins({
+      type: 'new-feedback',
+      title: 'New Feedback Received',
+      message: `Customer ${profile?.firstName || 'Customer'} submitted feedback for order #${(feedback.orderId as any).orderNumber}`,
+      data: {
+        feedbackId: feedback._id,
+        orderId: feedback.orderId,
+        orderNumber: (feedback.orderId as any).orderNumber,
+        designId: data.designId,
+        messagePreview: notificationData.message,
+        customerId: userId,
+        customerName: profile?.firstName || 'Customer',
+        hasAttachments: !!(data.attachments && data.attachments.length > 0)
+      },
+      link: `/dashboards/admin/feedback/${feedback._id}`
+    });
+    
+  } catch (notifErr) {
+    console.error('Failed to create admin feedback notification:', notifErr);
+  }
+
+  // Update pending count for admin badges
+  const pendingCount = await Feedback.countDocuments({
+    status: FeedBackStatus.Pending,
+  });
+  io.to("admin-room").emit("pending-feedback-count", {
+    count: pendingCount,
+    timestamp: new Date(),
+  });
 
   return feedback;
 };
@@ -108,6 +146,10 @@ export const adminRespondToFeedback = async (
     throw new Error("Order not found");
   }
 
+  // Get admin details for notification
+  const admin = await User.findById(adminId);
+  const adminProfile = await Profile.findOne({ userId: adminId });
+
   // Update feedback
   feedback.adminResponse = response;
   feedback.respondedBy = new Types.ObjectId(adminId);
@@ -135,6 +177,27 @@ export const adminRespondToFeedback = async (
     timestamp: new Date(),
   });
 
+  // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
+  try {
+    await notificationService.createForUser(feedback.userId, {
+      type: 'feedback-response',
+      title: 'Response to Your Feedback',
+      message: `Admin has responded to your feedback for order #${order.orderNumber}`,
+      data: {
+        feedbackId: feedback._id,
+        orderId: feedback.orderId,
+        orderNumber: order.orderNumber,
+        designId: feedback.designId,
+        response: response.substring(0, 100) + (response.length > 100 ? '...' : ''),
+        adminName: adminProfile?.firstName || admin?.email || 'Admin',
+        adminId
+      },
+      link: `/orders/${order._id}/feedback`
+    });
+  } catch (notifErr) {
+    console.error('Failed to create feedback response notification:', notifErr);
+  }
+
   // Notify admin room that this feedback is resolved (for badge updates)
   io.to("admin-room").emit("feedback-resolved", {
     feedbackId: feedback._id,
@@ -143,6 +206,26 @@ export const adminRespondToFeedback = async (
     resolvedBy: adminId,
     timestamp: new Date(),
   });
+
+  // ✅ CREATE DATABASE NOTIFICATION FOR OTHER ADMINS (excluding the responder)
+  try {
+    await notificationService.createForAdmins({
+      type: 'admin-feedback-resolved',
+      title: 'Feedback Resolved',
+      message: `Feedback #${feedback._id.toString().slice(-6)} for order #${order.orderNumber} was resolved by ${adminProfile?.firstName || admin?.email || 'Admin'}`,
+      data: {
+        feedbackId: feedback._id,
+        orderId: feedback.orderId,
+        orderNumber: order.orderNumber,
+        customerId: feedback.userId,
+        resolvedBy: adminId,
+        resolverName: adminProfile?.firstName || admin?.email || 'Admin'
+      },
+      link: `/dashboards/admin/feedback/${feedback._id}`
+    }); // Exclude the responder
+  } catch (notifErr) {
+    console.error('Failed to create admin feedback resolved notification:', notifErr);
+  }
 
   // Update pending count for admin badges
   const pendingCount = await Feedback.countDocuments({
@@ -156,6 +239,7 @@ export const adminRespondToFeedback = async (
   return feedback;
 };
 
+// ==================== UPDATE FEEDBACK STATUS ====================
 export const updateFeedbackStatus = async (
   feedbackId: string,
   status: FeedBackStatus,
@@ -183,17 +267,21 @@ export const updateFeedbackStatus = async (
     throw new Error("Cannot change status of resolved feedback");
   }
 
+  const oldStatus = feedback.status;
   feedback.status = status;
   await feedback.save();
 
   const order = await Order.findById(feedback.orderId).select("orderNumber");
+  const user = await User.findById(feedback.userId);
+  const profile = await Profile.findOne({ userId: feedback.userId });
 
   // ===== SOCKET NOTIFICATIONS =====
   const statusData = {
     feedbackId: feedback._id,
     orderId: feedback.orderId,
     orderNumber: order?.orderNumber,
-    status: status,
+    oldStatus,
+    newStatus: status,
     updatedBy: userRole,
     timestamp: new Date(),
   };
@@ -201,9 +289,67 @@ export const updateFeedbackStatus = async (
   io.to(`user-${feedback.userId}`).emit("feedback-status-updated", statusData);
   io.to("admin-room").emit("feedback-status-updated", statusData);
 
+  // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
+  if (user && order) {
+    try {
+      let title = 'Feedback Status Updated';
+      let message = `Your feedback for order #${order.orderNumber} status changed from ${oldStatus} to ${status}`;
+      
+      if (status === FeedBackStatus.Resolved) {
+        title = 'Feedback Resolved';
+        message = `Your feedback for order #${order.orderNumber} has been marked as resolved`;
+      } else if (status === FeedBackStatus.Reviewed) {
+        title = 'Feedback Reviewed';
+        message = `Your feedback for order #${order.orderNumber} has been reviewed`;
+      }
+
+      await notificationService.createForUser(feedback.userId, {
+        type: 'feedback-status-updated',
+        title,
+        message,
+        data: {
+          feedbackId: feedback._id,
+          orderId: feedback.orderId,
+          orderNumber: order.orderNumber,
+          oldStatus,
+          newStatus: status,
+          updatedBy: userId,
+          updaterRole: userRole
+        },
+        link: `/orders/${order._id}/feedback`
+      });
+    } catch (notifErr) {
+      console.error('Failed to create feedback status notification:', notifErr);
+    }
+  }
+
+  // ✅ CREATE DATABASE NOTIFICATION FOR ADMINS (for significant status changes)
+  if (status === FeedBackStatus.Resolved || status === FeedBackStatus.Reviewed) {
+    try {
+      await notificationService.createForAdmins({
+        type: 'admin-feedback-status-updated',
+        title: 'Feedback Status Updated',
+        message: `Feedback for order #${order?.orderNumber} status changed from ${oldStatus} to ${status}`,
+        data: {
+          feedbackId: feedback._id,
+          orderId: feedback.orderId,
+          orderNumber: order?.orderNumber,
+          oldStatus,
+          newStatus: status,
+          customerId: feedback.userId,
+          updatedBy: userId,
+          updaterRole: userRole
+        },
+        link: `/dashboards/admin/feedback/${feedback._id}`
+      }); // Exclude the updater
+    } catch (notifErr) {
+      console.error('Failed to create admin feedback status notification:', notifErr);
+    }
+  }
+
   // Update pending count if status changed to/from pending
   if (
-    feedback.status === FeedBackStatus.Pending ||
+    oldStatus === FeedBackStatus.Pending ||
     status === FeedBackStatus.Pending
   ) {
     const pendingCount = await Feedback.countDocuments({
@@ -217,6 +363,7 @@ export const updateFeedbackStatus = async (
 
   return feedback;
 };
+
 // ==================== DELETE FEEDBACK ====================
 export const deleteFeedback = async (
   feedbackId: string,
@@ -243,6 +390,8 @@ export const deleteFeedback = async (
   }
 
   const order = await Order.findById(feedback.orderId).select("orderNumber");
+  const user = await User.findById(feedback.userId);
+  const profile = await Profile.findOne({ userId: feedback.userId });
 
   await Feedback.findByIdAndDelete(feedbackId);
 
@@ -261,6 +410,47 @@ export const deleteFeedback = async (
     orderNumber: order?.orderNumber,
     timestamp: new Date(),
   });
+
+  // ✅ CREATE DATABASE NOTIFICATIONS
+  try {
+    // 1. Notify customer if deleted by admin
+    if (userRole !== "customer" && user && order) {
+      await notificationService.createForUser(feedback.userId, {
+        type: 'feedback-deleted',
+        title: 'Feedback Deleted',
+        message: `Your feedback for order #${order.orderNumber} has been deleted by an administrator`,
+        data: {
+          feedbackId: feedback._id,
+          orderId: feedback.orderId,
+          orderNumber: order.orderNumber,
+          deletedBy: userId,
+          deleterRole: userRole
+        },
+        link: `/orders/${order._id}`
+      });
+    }
+
+    // 2. Notify other admins about deletion (if deleted by admin)
+    if (userRole !== "customer") {
+      await notificationService.createForAdmins({
+        type: 'admin-feedback-deleted',
+        title: 'Feedback Deleted',
+        message: `Feedback for order #${order?.orderNumber} was deleted by ${userRole === UserRole.SuperAdmin ? 'Super Admin' : 'Admin'}`,
+        data: {
+          feedbackId: feedback._id,
+          orderId: feedback.orderId,
+          orderNumber: order?.orderNumber,
+          customerId: feedback.userId,
+          customerName: profile?.firstName || 'Customer',
+          deletedBy: userId,
+          deleterRole: userRole
+        },
+        link: `/dashboards/admin/feedback`
+      }); // Exclude the deleter
+    }
+  } catch (notifErr) {
+    console.error('Failed to create feedback deletion notifications:', notifErr);
+  }
 
   // Update pending count for admin badges
   const pendingCount = await Feedback.countDocuments({

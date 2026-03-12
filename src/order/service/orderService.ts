@@ -14,6 +14,7 @@ import emailService from "../../utils/email.js";
 import { generateOrderNumber } from "../../utils/orderUtils.js";
 import { startServer } from "../../config/db.js";
 import { Types } from "mongoose";
+import { notificationService } from "../../notification/service/notificationService.js";
 
 const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
   // Initial states
@@ -218,6 +219,46 @@ export const createOrder = async (
       console.error("Error sending order confirmation email", err),
     );
 
+  // ✅ CREATE DATABASE NOTIFICATIONS
+  try {
+    // 1. Notify the customer
+    await notificationService.createForUser(user._id, {
+      type: 'order-created',
+      title: 'Order Created',
+      message: `Order #${order.orderNumber} has been created successfully`,
+      data: {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        totalAmount,
+        items: orderItems.map(item => ({
+          productName: item.productName,
+          quantity: item.quantity,
+          price: item.price
+        }))
+      },
+      link: `/dashboards/customer/orders/${order._id}`
+    });
+
+    // 2. Notify all admins about new order
+    await notificationService.createForAdmins({
+      type: 'admin-new-order',
+      title: 'New Order Received',
+      message: `New order #${order.orderNumber} has been placed by ${profile.firstName}`,
+      data: {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        customerId: user._id,
+        customerName: `${profile.firstName} ${profile.lastName}`,
+        totalAmount,
+        itemCount: orderItems.length
+      },
+      link: `/dashboards/admin/orders/${order._id}`
+    });
+    
+  } catch (notifErr) {
+    console.error('Failed to create order notifications:', notifErr);
+  }
+
   return order;
 };
 
@@ -305,6 +346,45 @@ export const superAdminCreateOrder = async (
     message: "New order created by super admin",
   });
 
+  // ✅ CREATE DATABASE NOTIFICATIONS
+  try {
+    // 1. Notify the customer
+    await notificationService.createForUser(customer._id, {
+      type: 'order-created',
+      title: 'Order Created for You',
+      message: `An order #${order.orderNumber} has been created for you by admin`,
+      data: {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        totalAmount,
+        items: orderItems,
+        createdBy: superAdminId
+      },
+      link: `/dashboards/customer/orders/${order._id}`
+    });
+
+    // 2. Notify all admins (excluding the creator)
+    const superAdmin = await User.findById(superAdminId);
+    await notificationService.createForAdmins({
+      type: 'admin-order-created',
+      title: 'Order Created by Admin',
+      message: `Order #${order.orderNumber} was created for customer by ${superAdmin?.email || 'admin'}`,
+      data: {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        customerId: customer._id,
+        customerName: profile?.firstName ? `${profile.firstName} ${profile.lastName}` : 'Customer',
+        totalAmount,
+        itemCount: orderItems.length,
+        createdBy: superAdminId
+      },
+      link: `/dashboards/admin/orders/${order._id}`
+    }); // Exclude the creator
+    
+  } catch (notifErr) {
+    console.error('Failed to create order notifications:', notifErr);
+  }
+
   return order;
 };
 
@@ -375,6 +455,41 @@ export const deleteOrder = async (
   }
 
   await Order.findByIdAndDelete(orderId);
+  
+  // ✅ CREATE DATABASE NOTIFICATIONS
+  try {
+    // Notify customer if deleted by admin
+    if (isSuperAdmin && !isOwner) {
+      await notificationService.createForUser(order.userId, {
+        type: 'order-deleted',
+        title: 'Order Deleted',
+        message: `Order #${order.orderNumber} has been deleted by admin`,
+        data: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          deletedBy: userId
+        },
+        link: `/dashboards/customer/orders`
+      });
+
+      // Notify other admins about deletion
+      await notificationService.createForAdmins({
+        type: 'admin-order-deleted',
+        title: 'Order Deleted',
+        message: `Order #${order.orderNumber} was deleted by admin`,
+        data: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          customerId: order.userId,
+          deletedBy: userId
+        },
+        link: `/dashboards/admin/orders`
+      }); // Exclude the deleter
+    }
+  } catch (notifErr) {
+    console.error('Failed to create order deletion notification:', notifErr);
+  }
+
   return "Order deleted successfully";
 };
 
@@ -461,6 +576,7 @@ export const updateOrderStatus = async (
     throw new Error(`Cannot transition from ${order.status} to ${newStatus}`);
   }
 
+  const oldStatus = order.status;
   order.status = newStatus;
   await order.save();
 
@@ -485,12 +601,81 @@ export const updateOrderStatus = async (
     }
   }
 
-  // Notify customer of status change
+  // Notify customer of status change via socket
   io.to(`user-${order.userId}`).emit("order-status-updated", {
     orderId: order._id,
     orderNumber: order.orderNumber,
     status: newStatus,
+    oldStatus,
   });
+
+  // ✅ CREATE DATABASE NOTIFICATIONS
+  try {
+    // 1. Notify the customer
+    let title = 'Order Status Updated';
+    let message = `Order #${order.orderNumber} status changed from ${oldStatus} to ${newStatus}`;
+    
+    // Custom messages for important statuses
+    if (newStatus === OrderStatus.Delivered) {
+      title = 'Order Delivered';
+      message = `Order #${order.orderNumber} has been delivered!`;
+    } else if (newStatus === OrderStatus.InProduction) {
+      title = 'Order In Production';
+      message = `Order #${order.orderNumber} is now in production`;
+    } else if (newStatus === OrderStatus.ReadyForShipping) {
+      title = 'Order Ready for Shipping';
+      message = `Order #${order.orderNumber} is ready for shipping`;
+    } else if (newStatus === OrderStatus.AwaitingInvoice) {
+      title = 'Order Awaiting Invoice';
+      message = `Order #${order.orderNumber} is awaiting invoice generation`;
+    } else if (newStatus === OrderStatus.FilesUploaded) {
+      title = 'Briefs Submitted';
+      message = `Customization briefs submitted for order #${order.orderNumber}`;
+    }
+    
+    await notificationService.createForUser(order.userId, {
+      type: 'order-status-updated',
+      title,
+      message,
+      data: {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        oldStatus,
+        newStatus,
+        updatedBy: userId
+      },
+      link: `/dashboards/customer/orders/${order._id}`
+    });
+
+    // 2. Notify admins about status change (for significant statuses)
+    const significantStatuses = [
+      OrderStatus.AwaitingInvoice,
+      OrderStatus.InProduction,
+      OrderStatus.ReadyForShipping,
+      OrderStatus.Delivered,
+      OrderStatus.Cancelled
+    ];
+
+    if (significantStatuses.includes(newStatus)) {
+      await notificationService.createForAdmins({
+        type: 'admin-order-status-updated',
+        title: 'Order Status Updated',
+        message: `Order #${order.orderNumber} status changed from ${oldStatus} to ${newStatus}`,
+        data: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          customerId: order.userId,
+          oldStatus,
+          newStatus,
+          updatedBy: userId
+        },
+        link: `/dashboards/admin/orders/${order._id}`
+      }); // Exclude the updater
+    }
+    
+  } catch (notifErr) {
+    console.error('Failed to create order status notification:', notifErr);
+  }
 
   return order;
 };
@@ -649,8 +834,11 @@ export const searchByOrderNumber = async (
   // Check authorization:
   // - Admins and SuperAdmins can view any order
   // - Customers can only view their own orders
-  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
-    if (order.userId.toString() !== userId) {
+   if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
+    // Get the actual ID from the populated user object
+    const orderUserId = order.userId._id?.toString() || order.userId.toString();
+    
+    if (orderUserId !== userId) {
       throw new Error("Unauthorized: You can only view your own orders");
     }
   }

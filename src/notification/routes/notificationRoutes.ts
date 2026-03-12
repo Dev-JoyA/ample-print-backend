@@ -1,6 +1,7 @@
 import { Router, RequestHandler } from "express";
 import { authMiddleware } from "../../middleware/authMiddleware.js";
 import { notificationController } from "../controller/notificationHistory.js";
+import { notificationService } from "../service/notificationService.js";
 
 const router = Router();
 
