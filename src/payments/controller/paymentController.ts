@@ -20,6 +20,16 @@ export const initializePaystackPayment = async (
   try {
     const user = req.user as { _id: string; email: string; role: string };
     const { orderId, invoiceId, amount, transactionType } = req.body;
+    
+    console.log('🔍 User from token:', user);
+    console.log('🔍 User email:', user.email);
+    console.log('🔍 Request body:', { 
+      orderId, 
+      invoiceId, 
+      amount, 
+      amountType: typeof amount,
+      transactionType 
+    });
 
     // Validate required fields
     if (!orderId || !invoiceId || !amount || !transactionType) {
@@ -51,6 +61,7 @@ export const initializePaystackPayment = async (
       data: result,
     });
   } catch (error: any) {
+    console.error('❌ Payment initialization error:', error);
     res.status(400).json({
       success: false,
       message: error.message,

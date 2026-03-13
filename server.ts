@@ -24,6 +24,8 @@ import notificationRoutes from "./src/notification/routes/notificationRoutes.js"
 import discountRoute from './src/discount/routes/discountRoutes.js';
 import invoiceRoute from "./src/invoice/routes/invoiceRoute.js";
 import paymentRoute from "./src/payments/routes/paymentRoute.js";
+import receiptRoute from "./src/shared/routes/receiptRoute.js";
+
 
 dotenv.config();
 
@@ -55,6 +57,7 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(passport.initialize());
+app.use("/uploads", express.static("uploads"));
 
 // Swagger setup BEFORE other routes
 try {
@@ -102,6 +105,7 @@ app.use("/api/v1/notifications", notificationRoutes);
 app.use('/api/v1/discounts', discountRoute);
 app.use("/api/v1/invoices", invoiceRoute);
 app.use("/api/v1/payments", paymentRoute);
+app.use("/api/v1/receipts", receiptRoute);
 
 io.on("connection", (socket) => {
   console.log("✅ Client connected:", socket.id);
