@@ -164,6 +164,7 @@ export async function signInService(data: SignInData): Promise<AuthResponse> {
   const refreshToken = generateRefreshToken({
     userId: user._id,
     role: user.role,
+    email: user.email
   });
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   await RefreshToken.create({
@@ -172,7 +173,11 @@ export async function signInService(data: SignInData): Promise<AuthResponse> {
     expiresAt,
   });
 
-  const accessToken = generateToken({ userId: user._id, role: user.role });
+  const accessToken = generateToken(
+    { userId: user._id, 
+        role: user.role,
+        email: user.email
+    });
 
   return {
     user: sanitizeUser(user)!,
@@ -200,6 +205,7 @@ export async function refreshTokenService(refreshToken: string) {
   const newRefreshToken = generateRefreshToken({
     userId: user._id,
     role: user.role,
+    email: user.email
   });
   const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   await RefreshToken.create({
@@ -208,7 +214,7 @@ export async function refreshTokenService(refreshToken: string) {
     expiresAt: newExpiry,
   });
 
-  const newAccessToken = generateToken({ userId: user._id, role: user.role });
+  const newAccessToken = generateToken({ userId: user._id, role: user.role, email: user.email });
   return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 }
 
