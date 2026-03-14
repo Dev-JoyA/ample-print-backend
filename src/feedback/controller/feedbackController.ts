@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Types } from "mongoose";
 import * as feedbackService from "../service/feedbackService.js";
+import { FeedBackStatus } from "../model/feedback.js";
 
 const getIO = (req: Request) => {
   return (req as any).io || req.app.get("io");
@@ -10,7 +11,7 @@ const getIO = (req: Request) => {
 export const createFeedback = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
-    const io = getIO(req); // Get socket instance
+    const io = getIO(req);
 
     const { orderId, designId, message } = req.body;
     const files = req.files as Express.Multer.File[];
@@ -57,13 +58,25 @@ export const createFeedback = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== ADMIN RESPOND TO FEEDBACK ====================
 export const respondToFeedback = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
     const io = getIO(req);
     const { feedbackId } = req.params;
-    const { response } = req.body;
+    
+    let response: string;
+    let attachments: string[] = [];
+    
+    if (req.is('multipart/form-data')) {
+      response = req.body.response;
+      
+      const files = req.files as Express.Multer.File[];
+      if (files && files.length > 0) {
+        attachments = files.map(file => `/uploads/${file.filename}`);
+      }
+    } else {
+      response = req.body.response;
+    }
 
     if (!response || response.trim().length === 0) {
       return res.status(400).json({
@@ -72,9 +85,11 @@ export const respondToFeedback = async (req: Request, res: Response) => {
       });
     }
 
+    // Now passing 5 arguments correctly
     const feedback = await feedbackService.adminRespondToFeedback(
       feedbackId,
       response,
+      attachments,
       user._id,
       io,
     );
@@ -104,6 +119,14 @@ export const updateStatus = async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: "Status is required",
+      });
+    }
+
+    // Validate status enum
+    if (!Object.values(FeedBackStatus).includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status value",
       });
     }
 
@@ -174,6 +197,66 @@ export const getPendingFeedback = async (req: Request, res: Response) => {
   }
 };
 
+// ==================== GET ALL FEEDBACK (NEW) ====================
+export const getAllFeedback = async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as FeedBackStatus;
+    const orderId = req.query.orderId as string;
+
+    const result = await feedbackService.getAllFeedback({
+      page,
+      limit,
+      status,
+      orderId,
+    });
+
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ==================== FILTER FEEDBACK (NEW) ====================
+export const filterFeedback = async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as FeedBackStatus;
+    const orderId = req.query.orderId as string;
+    const userId = req.query.userId as string;
+    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+
+    const result = await feedbackService.filterFeedback({
+      page,
+      limit,
+      status,
+      orderId,
+      userId,
+      startDate,
+      endDate,
+    });
+
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 // ==================== GET FEEDBACK BY ID ====================
 export const getFeedbackById = async (req: Request, res: Response) => {
   try {
@@ -213,6 +296,7 @@ export const getFeedbackByOrderId = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       data: feedback,
+      count: feedback.length,
     });
   } catch (error: any) {
     res.status(400).json({

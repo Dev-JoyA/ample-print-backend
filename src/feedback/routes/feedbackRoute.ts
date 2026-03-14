@@ -10,6 +10,8 @@ import {
   getFeedbackById,
   getFeedbackByOrderId,
   getUserFeedback,
+  getAllFeedback,
+  filterFeedback,
 } from "../controller/feedbackController.js";
 import { authMiddleware } from "../../middleware/authMiddleware.js";
 import { checkAdmin, checkRole } from "../../middleware/authorization.js";
@@ -39,6 +41,7 @@ const fileFilter = (
     );
   }
 };
+
 // Multer config for file uploads
 const upload = multer({
   storage: multer.diskStorage({
@@ -57,37 +60,46 @@ router.use(authMiddleware);
 
 // ===== CUSTOMER ROUTES =====
 router.post(
-  "/feedback",
+  "/",
   checkRole([UserRole.Customer]),
-  upload.array("attachments", 5), // Max 5 files
+  upload.array("attachments", 5),
   createFeedback,
 );
 
-router.get("/feedback/user", checkRole([UserRole.Customer]), getUserFeedback);
+router.get("/user", checkRole([UserRole.Customer]), getUserFeedback);
 
 // ===== ADMIN ROUTES =====
-router.get("/feedback/pending", checkAdmin, getPendingFeedback);
+router.get("/pending", checkAdmin, getPendingFeedback);
 
-router.post("/feedback/:feedbackId/respond", checkAdmin, respondToFeedback);
+// NEW: Get all feedback with pagination and filters
+router.get("/all", checkAdmin, getAllFeedback);
 
-router.patch("/feedback/:feedbackId/status", checkAdmin, updateStatus);
+// NEW: Advanced filtering
+router.get("/filter", checkAdmin, filterFeedback);
+
+router.post("/:feedbackId/respond", 
+    checkAdmin, 
+    upload.array("attachments", 5),
+    respondToFeedback);
+
+router.patch("/:feedbackId/status", checkAdmin, updateStatus);
 
 // ===== SHARED ROUTES =====
 router.get(
-  "/feedback/:feedbackId",
+  "/:feedbackId",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
   getFeedbackById,
 );
 
 router.get(
-  "/feedback/order/:orderId",
+  "/order/:orderId",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
   getFeedbackByOrderId,
 );
 
 // ===== SUPER ADMIN ONLY =====
 router.delete(
-  "/feedback/:feedbackId",
+  "/:feedbackId",
   checkRole([UserRole.SuperAdmin]),
   deleteFeedback,
 );

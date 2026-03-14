@@ -99,7 +99,7 @@ app.use("/api/v1", productRoute);
 app.use("/api/v1/attachments", attachmentRoute);
 app.use("/api/v1/design", designRoute);
 app.use("/api/v1/orders", orderRoute);
-app.use("/api/v1", feedbackRoute);
+app.use("/api/v1/feedback", feedbackRoute);
 app.use("/api/v1/customer-briefs", customerBriefRoute);
 app.use("/api/v1/notifications", notificationRoutes);
 app.use('/api/v1/discounts', discountRoute);
