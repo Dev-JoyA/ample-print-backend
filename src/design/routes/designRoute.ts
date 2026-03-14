@@ -16,7 +16,8 @@ import {
   checkSuperAdmin,
   checkAdmin,
   checkOwnership,
-  checkRole, // ✅ Add if needed
+  checkRole, 
+  checkDesignOwnership,
 } from "../../middleware/authorization.js";
 import { UserRole } from "../../users/model/userModel.js"; // ✅ Add if using checkRole
 import upload from "../../config/upload.js"; // ✅ Add multer upload
@@ -26,13 +27,10 @@ const router = Router();
 // All routes require authentication by default
 router.use(authMiddleware);
 
-// ==================== UPLOAD DESIGN ====================
-// POST /api/v1/design/orders/:orderId
-// Body: { productId, description } + files
 router.post(
-  "/orders/:orderId", // ✅ Changed from :productId to :orderId
+  "/orders/:orderId", 
   checkAdmin,
-  upload.array("images", 10), // ✅ Add multer for file uploads
+  upload.array("images", 10), 
   createDesignController,
 );
 
@@ -53,7 +51,7 @@ router.delete("/delete/:designId", checkSuperAdmin, deleteDesignController);
 // PUT /api/v1/design/:designId/approve
 router.put(
   "/:designId/approve",
-  checkOwnership, // Customer who owns the order
+  checkDesignOwnership,
   approveDesignController,
 );
 
@@ -82,7 +80,7 @@ router.get("/all", checkAdmin, getAllDesignsController);
 
 // ==================== FILTER DESIGNS (Admin) ====================
 // GET /api/v1/design/filter?userId=&orderId=&isApproved=
-router.get("/filter", checkAdmin, filterDesignController);
+router.get("/filter", filterDesignController);
 
 router.get("/:designId", getDesignByIdController);
 
