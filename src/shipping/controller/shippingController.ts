@@ -6,19 +6,18 @@ const getIO = (req: Request) => {
   return (req as any).io || req.app.get("io");
 };
 
-// ==================== CREATE SHIPPING (Admin only) ====================
 export const createShipping = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
     const admin = req.user as { _id: string; role: string };
     const { orderId } = req.params;
-    const { shippingMethod, shippingCost, address, pickupNotes } = req.body;
+    const { shippingMethod, address, pickupNotes } = req.body;
 
     // Validate required fields
-    if (!shippingMethod || !shippingCost) {
+    if (!shippingMethod) {
       return res.status(400).json({
         success: false,
-        message: "shippingMethod and shippingCost are required",
+        message: "shippingMethod is required",
       });
     }
 
@@ -33,7 +32,6 @@ export const createShipping = async (req: Request, res: Response) => {
       orderId,
       {
         shippingMethod,
-        shippingCost,
         address,
         pickupNotes,
       },

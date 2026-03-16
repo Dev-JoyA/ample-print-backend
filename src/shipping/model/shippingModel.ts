@@ -25,11 +25,10 @@ export interface IShipping extends Document {
     city: string;
     state: string;
     country: string;
-    postalCode?: string;
   };
 
   // Cost and invoice
-  shippingCost: number;
+  shippingCost?: number;
   shippingInvoiceId?: Types.ObjectId;
   isPaid: boolean;
 

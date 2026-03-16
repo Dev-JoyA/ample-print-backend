@@ -158,11 +158,15 @@ const getHeaderFromTemplate = (template: string): string => {
     "receipt-uploaded.ejs": "Receipt Received",
     "payment-verified.ejs": "Payment Verification",
     "shipping-created.ejs": "Shipping Update",
+    "final-payment-reminder.ejs": "Final Payment Required",
+    "shipping-selection-reminder.ejs": "Shipping Selection Required",
+    "order-cancelled.ejs": "Order Cancelled",
   };
   return headers[template] || "Notification from Ample Printhub";
 };
 
-// Export individual functions
+// ==================== CUSTOMER EMAILS ====================
+
 export const sendWelcomeEmail = (to: string, name: string) =>
   sendEmail({
     to,
@@ -267,122 +271,6 @@ export const sendDesignApproved = (
     },
   });
 
-export const sendOrderShipped = (
-  to: string,
-  name: string,
-  orderNumber: string,
-  carrier: string,
-  trackingNumber: string,
-  estimatedDelivery: string,
-  shippingAddress: string,
-  trackingUrl: string,
-) =>
-  sendEmail({
-    to,
-    subject: `Order Shipped: ${orderNumber}`,
-    template: "order-shipped.ejs",
-    data: {
-      name,
-      orderNumber,
-      carrier,
-      trackingNumber,
-      estimatedDelivery,
-      shippingAddress,
-      trackingUrl,
-      header: "Your Order is on the Way!",
-      buttonText: "Track Package",
-      buttonUrl: trackingUrl,
-    },
-  });
-
-export const sendOrderDelivered = (
-  to: string,
-  name: string,
-  orderNumber: string,
-) =>
-  sendEmail({
-    to,
-    subject: `Order Delivered: ${orderNumber}`,
-    template: "order-delivered.ejs",
-    data: {
-      name,
-      orderNumber,
-      header: "Order Delivered!",
-      buttonText: "Leave a Review",
-      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}/review`,
-    },
-  });
-
-export const sendPasswordReset = (
-  to: string,
-  name: string,
-  resetLink: string,
-) =>
-  sendEmail({
-    to,
-    subject: "Password Reset Request",
-    template: "password-reset.ejs",
-    data: {
-      name,
-      resetLink,
-      header: "Reset Your Password",
-      buttonText: "Reset Password",
-      buttonUrl: resetLink,
-    },
-  });
-
-// Admin notifications
-export const sendAdminNewOrder = (
-  to: string,
-  orderNumber: string,
-  customerName: string,
-  customerEmail: string,
-  total: number,
-  items: any[],
-) =>
-  sendEmail({
-    to,
-    subject: `New Order: ${orderNumber}`,
-    template: "admin-new-order.ejs",
-    data: {
-      orderNumber,
-      customerName,
-      customerEmail,
-      total,
-      items,
-      name: "Admin",
-      header: "New Order Received",
-      buttonText: "View Order",
-      buttonUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}`,
-    },
-  });
-
-export const sendAdminNewBrief = (
-  to: string,
-  orderNumber: string,
-  customerName: string,
-  productName: string,
-  briefDescription: string,
-  hasAttachments: boolean,
-) =>
-  sendEmail({
-    to,
-    subject: `New Brief: ${orderNumber}`,
-    template: "admin-new-brief.ejs",
-    data: {
-      orderNumber,
-      customerName,
-      productName,
-      briefDescription,
-      hasAttachments,
-      name: "Admin",
-      header: "New Customization Brief",
-      buttonText: "View Brief",
-      buttonUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}/brief`,
-    },
-  });
-
-// Add these new export functions BEFORE the default export object
 export const sendPaymentConfirmation = (
   to: string,
   name: string,
@@ -463,6 +351,111 @@ export const sendPaymentVerified = (
     },
   });
 
+// ==================== SHIPPING RELATED EMAILS ====================
+
+export const sendFinalPaymentReminder = (
+  to: string,
+  name: string,
+  orderNumber: string,
+  amount: number,
+) =>
+  sendEmail({
+    to,
+    subject: `Final Payment Required for Order #${orderNumber}`,
+    template: "final-payment-reminder.ejs",
+    data: {
+      name,
+      orderNumber,
+      amount: amount.toLocaleString(),
+      header: "Final Payment Required",
+      buttonText: "Make Payment",
+      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}/payment`,
+    },
+  });
+
+export const sendShippingSelectionReminder = (
+  to: string,
+  name: string,
+  orderNumber: string,
+  link: string,
+) =>
+  sendEmail({
+    to,
+    subject: `Order #${orderNumber} Ready for Shipping Selection`,
+    template: "shipping-selection-reminder.ejs",
+    data: {
+      name,
+      orderNumber,
+      header: "Shipping Selection Required",
+      buttonText: "Select Shipping Method",
+      buttonUrl: link,
+    },
+  });
+
+export const sendOrderShipped = (
+  to: string,
+  name: string,
+  orderNumber: string,
+  carrier?: string,
+  trackingNumber?: string,
+  estimatedDelivery?: string,
+  shippingAddress?: string,
+  trackingUrl?: string,
+) =>
+  sendEmail({
+    to,
+    subject: `Order #${orderNumber} Has Been Shipped!`,
+    template: "order-shipped.ejs",
+    data: {
+      name,
+      orderNumber,
+      carrier,
+      trackingNumber,
+      estimatedDelivery,
+      shippingAddress,
+      trackingUrl,
+      header: "Your Order is on the Way!",
+      buttonText: trackingUrl ? "Track Package" : "View Order",
+      buttonUrl: trackingUrl || `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}/tracking`,
+    },
+  });
+
+export const sendOrderDelivered = (
+  to: string,
+  name: string,
+  orderNumber: string,
+) =>
+  sendEmail({
+    to,
+    subject: `Order Delivered: ${orderNumber}`,
+    template: "order-delivered.ejs",
+    data: {
+      name,
+      orderNumber,
+      header: "Order Delivered!",
+      buttonText: "Leave a Review",
+      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}/review`,
+    },
+  });
+
+export const sendOrderCancelled = (
+  to: string,
+  name: string,
+  orderNumber: string,
+) =>
+  sendEmail({
+    to,
+    subject: `Order #${orderNumber} Has Been Cancelled`,
+    template: "order-cancelled.ejs",
+    data: {
+      name,
+      orderNumber,
+      header: "Order Cancelled",
+      buttonText: "Contact Support",
+      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/support`,
+    },
+  });
+
 export const sendShippingCreated = (
   to: string,
   name: string,
@@ -504,22 +497,98 @@ export const sendShippingCreated = (
     },
   });
 
-// Export default object
+// ==================== ACCOUNT EMAILS ====================
+
+export const sendPasswordReset = (
+  to: string,
+  name: string,
+  resetLink: string,
+) =>
+  sendEmail({
+    to,
+    subject: "Password Reset Request",
+    template: "password-reset.ejs",
+    data: {
+      name,
+      resetLink,
+      header: "Reset Your Password",
+      buttonText: "Reset Password",
+      buttonUrl: resetLink,
+    },
+  });
+
+// ==================== ADMIN NOTIFICATIONS ====================
+
+export const sendAdminNewOrder = (
+  to: string,
+  orderNumber: string,
+  customerName: string,
+  customerEmail: string,
+  total: number,
+  items: any[],
+) =>
+  sendEmail({
+    to,
+    subject: `New Order: ${orderNumber}`,
+    template: "admin-new-order.ejs",
+    data: {
+      orderNumber,
+      customerName,
+      customerEmail,
+      total,
+      items,
+      name: "Admin",
+      header: "New Order Received",
+      buttonText: "View Order",
+      buttonUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}`,
+    },
+  });
+
+export const sendAdminNewBrief = (
+  to: string,
+  orderNumber: string,
+  customerName: string,
+  productName: string,
+  briefDescription: string,
+  hasAttachments: boolean,
+) =>
+  sendEmail({
+    to,
+    subject: `New Brief: ${orderNumber}`,
+    template: "admin-new-brief.ejs",
+    data: {
+      orderNumber,
+      customerName,
+      productName,
+      briefDescription,
+      hasAttachments,
+      name: "Admin",
+      header: "New Customization Brief",
+      buttonText: "View Brief",
+      buttonUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}/brief`,
+    },
+  });
+
+// ==================== EXPORT DEFAULT OBJECT ====================
+
 const emailService = {
   sendWelcomeEmail,
   sendOrderConfirmation,
   sendInvoiceReady,
   sendDesignReady,
   sendDesignApproved,
-  sendOrderShipped,
-  sendOrderDelivered,
-  sendPasswordReset,
-  sendAdminNewOrder,
-  sendAdminNewBrief,
   sendPaymentConfirmation,
   sendReceiptUploaded,
   sendPaymentVerified,
+  sendFinalPaymentReminder,
+  sendShippingSelectionReminder,
+  sendOrderShipped,
+  sendOrderDelivered,
+  sendOrderCancelled,
   sendShippingCreated,
+  sendPasswordReset,
+  sendAdminNewOrder,
+  sendAdminNewBrief,
 };
 
 export default emailService;

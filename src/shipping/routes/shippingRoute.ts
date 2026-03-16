@@ -20,7 +20,7 @@ router.use(authMiddleware);
  * @desc Create shipping record for an order
  * @access Admin, SuperAdmin
  */
-router.post("/order/:orderId", checkAdmin, shippingController.createShipping);
+router.post("/order/:orderId", shippingController.createShipping);
 
 /**
  * @route PUT /api/v1/shipping/:shippingId/tracking

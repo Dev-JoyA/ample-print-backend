@@ -95,6 +95,7 @@ const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
 
   // Final paid - all payments complete
   [OrderStatus.FinalPaid]: [
+    OrderStatus.Completed,
     OrderStatus.ReadyForShipping,
     OrderStatus.Shipped,
     OrderStatus.Delivered,
@@ -580,7 +581,77 @@ export const updateOrderStatus = async (
   order.status = newStatus;
   await order.save();
 
-  // Handle status-specific notifications
+  // Get user and profile for notifications
+  const user = await User.findById(order.userId);
+  const profile = await Profile.findOne({ userId: order.userId });
+
+  // ==================== STATUS-SPECIFIC ACTIONS ====================
+
+  // ----- AWAITING FINAL PAYMENT (when part payment order is completed) -----
+  if (newStatus === OrderStatus.AwaitingFinalPayment) {
+    // Emit socket notification to customer
+    io.to(`user-${order.userId}`).emit("order-awaiting-final-payment", {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      amount: order.remainingBalance,
+      message: "Your order is complete! Please pay the remaining balance for shipping.",
+    });
+
+    // Send email to customer about final payment
+    if (user && profile) {
+      await emailService
+        .sendFinalPaymentReminder(
+          user.email,
+          profile.firstName,
+          order.orderNumber,
+          order.remainingBalance,
+        )
+        .catch((err: any) =>
+          console.error("Error sending final payment reminder email:", err),
+        );
+    }
+
+    // Notify admins
+    io.to("admin-room").emit("order-awaiting-final-payment", {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      customerName: profile?.firstName || "Customer",
+      amount: order.remainingBalance,
+    });
+  }
+
+  // ----- COMPLETED (production complete - ready to select shipping) -----
+  if (newStatus === OrderStatus.Completed) {
+    // Emit socket notification to customer
+    io.to(`user-${order.userId}`).emit("order-ready-for-shipping-selection", {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      message: "Your order is ready! Please log in to select a shipping method.",
+    });
+
+    // Send email to customer about shipping selection
+    if (user && profile) {
+      await emailService
+        .sendShippingSelectionReminder(
+          user.email,
+          profile.firstName,
+          order.orderNumber,
+          `${process.env.FRONTEND_URL}/orders/${order.orderNumber}/shipping`,
+        )
+        .catch((err: any) =>
+          console.error("Error sending shipping selection email:", err),
+        );
+    }
+
+    // Notify admins
+    io.to("admin-room").emit("order-ready-for-shipping-selection", {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      customerName: profile?.firstName || "Customer",
+    });
+  }
+
+  // ----- READY FOR SHIPPING (customer has selected shipping method) -----
   if (newStatus === OrderStatus.ReadyForShipping) {
     io.to("admin-room").emit("order-ready-for-shipping", {
       orderId: order._id,
@@ -588,10 +659,30 @@ export const updateOrderStatus = async (
     });
   }
 
-  if (newStatus === OrderStatus.Delivered) {
-    const user = await User.findById(order.userId);
-    const profile = await Profile.findOne({ userId: order.userId });
+  // ----- SHIPPED -----
+  if (newStatus === OrderStatus.Shipped) {
+    // Notify customer that order has been shipped
+    io.to(`user-${order.userId}`).emit("order-shipped", {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      message: "Your order has been shipped!",
+    });
 
+    if (user && profile) {
+      await emailService
+        .sendOrderShipped(
+          user.email,
+          profile.firstName,
+          order.orderNumber,
+        )
+        .catch((err) =>
+          console.error("Error sending order shipped email:", err),
+        );
+    }
+  }
+
+  // ----- DELIVERED -----
+  if (newStatus === OrderStatus.Delivered) {
     if (user && profile) {
       await emailService
         .sendOrderDelivered(user.email, profile.firstName, order.orderNumber)
@@ -601,7 +692,22 @@ export const updateOrderStatus = async (
     }
   }
 
-  // Notify customer of status change via socket
+  // ----- CANCELLED -----
+  if (newStatus === OrderStatus.Cancelled) {
+    if (user && profile) {
+      await emailService
+        .sendOrderCancelled(
+          user.email,
+          profile.firstName,
+          order.orderNumber,
+        )
+        .catch((err) =>
+          console.error("Error sending order cancelled email:", err),
+        );
+    }
+  }
+
+  // Notify customer of status change via socket (general)
   io.to(`user-${order.userId}`).emit("order-status-updated", {
     orderId: order._id,
     orderNumber: order.orderNumber,
@@ -611,7 +717,7 @@ export const updateOrderStatus = async (
 
   // ✅ CREATE DATABASE NOTIFICATIONS
   try {
-    // 1. Notify the customer
+    // Notify the customer
     let title = 'Order Status Updated';
     let message = `Order #${order.orderNumber} status changed from ${oldStatus} to ${newStatus}`;
     
@@ -631,6 +737,15 @@ export const updateOrderStatus = async (
     } else if (newStatus === OrderStatus.FilesUploaded) {
       title = 'Briefs Submitted';
       message = `Customization briefs submitted for order #${order.orderNumber}`;
+    } else if (newStatus === OrderStatus.AwaitingFinalPayment) {
+      title = 'Final Payment Required';
+      message = `Order #${order.orderNumber} is complete! Please pay the remaining balance of ${order.remainingBalance} to proceed with shipping.`;
+    } else if (newStatus === OrderStatus.Completed) {
+      title = 'Order Ready for Shipping Selection';
+      message = `Order #${order.orderNumber} is ready! Please log in to select a shipping method.`;
+    } else if (newStatus === OrderStatus.Shipped) {
+      title = 'Order Shipped';
+      message = `Order #${order.orderNumber} has been shipped!`;
     }
     
     await notificationService.createForUser(order.userId, {
@@ -642,18 +757,25 @@ export const updateOrderStatus = async (
         orderNumber: order.orderNumber,
         oldStatus,
         newStatus,
-        updatedBy: userId
+        updatedBy: userId,
+        ...(newStatus === OrderStatus.AwaitingFinalPayment && { amount: order.remainingBalance }),
+        ...(newStatus === OrderStatus.Completed && { shippingSelectionLink: `/orders/${order.orderNumber}/shipping` }),
       },
-      link: `/dashboards/customer/orders/${order._id}`
+      link: newStatus === OrderStatus.Completed 
+        ? `/orders/${order.orderNumber}/shipping`
+        : `/dashboards/customer/orders/${order._id}`
     });
 
-    // 2. Notify admins about status change (for significant statuses)
+    // Notify admins about status change (for significant statuses)
     const significantStatuses = [
       OrderStatus.AwaitingInvoice,
       OrderStatus.InProduction,
       OrderStatus.ReadyForShipping,
       OrderStatus.Delivered,
-      OrderStatus.Cancelled
+      OrderStatus.Cancelled,
+      OrderStatus.AwaitingFinalPayment,
+      OrderStatus.Completed,
+      OrderStatus.Shipped,
     ];
 
     if (significantStatuses.includes(newStatus)) {
@@ -667,10 +789,12 @@ export const updateOrderStatus = async (
           customerId: order.userId,
           oldStatus,
           newStatus,
-          updatedBy: userId
+          updatedBy: userId,
+          ...(newStatus === OrderStatus.AwaitingFinalPayment && { amount: order.remainingBalance }),
+          ...(newStatus === OrderStatus.Completed && { requiresShippingSelection: true }),
         },
         link: `/dashboards/admin/orders/${order._id}`
-      }); // Exclude the updater
+      });
     }
     
   } catch (notifErr) {

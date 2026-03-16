@@ -37,12 +37,10 @@ export interface ShippingAddress {
   city: string;
   state: string;
   country?: string;
-  postalCode?: string;
 }
 
 export interface CreateShippingData {
   shippingMethod: ShippingMethod;
-  shippingCost: number;
 
   // For delivery - customer provides address only
   // Name and phone come from profile (cannot be changed)
@@ -104,7 +102,7 @@ export const createShipping = async (
           orderId: order._id,
           orderNumber: order.orderNumber,
           shippingMethod: data.shippingMethod,
-          shippingCost: data.shippingCost,
+          shippingCost: 0,
           status: ShippingStatus.Pending,
           isPaid: false,
 
@@ -144,7 +142,7 @@ export const createShipping = async (
         orderId: order._id,
         orderNumber: order.orderNumber,
         method: "delivery",
-        cost: data.shippingCost,
+        cost: 0,
         address: data.address,
         recipientName: `${profile.firstName} ${profile.lastName}`,
         recipientPhone: profile.phoneNumber,
@@ -155,13 +153,13 @@ export const createShipping = async (
         await notificationService.createForUser(order.userId, {
           type: 'shipping-created',
           title: 'Shipping Created',
-          message: `Shipping has been set up for your order #${order.orderNumber}. Delivery cost: ₦${data.shippingCost.toLocaleString()}`,
+          message: `Shipping has been set up for your order #${order.orderNumber}. Delivery cost: ₦${(0).toLocaleString()}`,
           data: {
             shippingId: shipping._id,
             orderId: order._id,
             orderNumber: order.orderNumber,
             method: 'delivery',
-            cost: data.shippingCost,
+            cost: 0,
             address: data.address,
             recipientName: `${profile.firstName} ${profile.lastName}`,
             recipientPhone: profile.phoneNumber
@@ -229,7 +227,7 @@ export const createShipping = async (
       orderId: order._id,
       orderNumber: order.orderNumber,
       method: data.shippingMethod,
-      cost: data.shippingCost,
+      cost: 0,
     });
 
     // ✅ CREATE DATABASE NOTIFICATION FOR ADMINS
@@ -243,7 +241,7 @@ export const createShipping = async (
           orderId: order._id,
           orderNumber: order.orderNumber,
           method: data.shippingMethod,
-          cost: data.shippingCost,
+          cost: 0,
           createdBy: adminId,
           customerId: order.userId,
           customerName: `${profile.firstName} ${profile.lastName}`
@@ -582,7 +580,7 @@ export const markShippingAsPaid = async (
       await notificationService.createForAdmins({
         type: 'admin-shipping-paid',
         title: 'Shipping Payment Received',
-        message: `Shipping payment of ₦${shipping.shippingCost.toLocaleString()} received for order #${order.orderNumber}`,
+        message: `Shipping payment of ₦${(shipping.shippingCost ?? 0).toLocaleString()} received for order #${order.orderNumber}`,
         data: {
           shippingId: shipping._id,
           orderId: order._id,
@@ -609,17 +607,17 @@ export const getShippingById = async (
   userId: string,
   userRole: string,
 ): Promise<IShipping | null> => {
-  const shipping = await Shipping.findById(shippingId).populate({
-    path: "orderId",
-    populate: {
-      path: "userId",
-      model: "User",
+  const shipping = await Shipping.findById(shippingId)
+    .populate({
+      path: "orderId",
+      select: "orderNumber userId status totalAmount",
       populate: {
-        path: "profileId",
-        model: "Profile",
-      },
-    },
-  });
+        path: "userId",
+        select: "email",
+        // Remove the profileId population if it doesn't exist
+        // Or fix it to match your schema
+      }
+    });
 
   if (!shipping) {
     throw new Error("Shipping not found");
@@ -635,7 +633,8 @@ export const getShippingById = async (
   return shipping;
 };
 
-// ==================== GET SHIPPING BY ORDER ID ====================
+
+ // ==================== GET SHIPPING BY ORDER ID ====================
 export const getShippingByOrderId = async (
   orderId: string,
   userId: string,
@@ -656,11 +655,8 @@ export const getShippingByOrderId = async (
     populate: {
       path: "userId",
       model: "User",
-      populate: {
-        path: "profileId",
-        model: "Profile",
-      },
-    },
+      select: "email" // Just get email
+    }
   });
 
   return shipping;
@@ -680,12 +676,8 @@ export const getAllShipping = async (
         populate: {
           path: "userId",
           model: "User",
-          populate: {
-            path: "profileId",
-            model: "Profile",
-            select: "firstName lastName phoneNumber",
-          },
-        },
+          select: "email" // Just get email, don't try to populate profileId
+        }
       })
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -751,12 +743,8 @@ export const filterShipping = async (
         populate: {
           path: "userId",
           model: "User",
-          populate: {
-            path: "profileId",
-            model: "Profile",
-            select: "firstName lastName phoneNumber",
-          },
-        },
+          select: "email" // Just get email, don't try to populate profileId
+        }
       })
       .sort({ createdAt: -1 })
       .skip(skip)
