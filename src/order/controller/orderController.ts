@@ -258,6 +258,13 @@ export const searchByOrderNumber = async (req: Request, res: Response) => {
       order,
     });
   } catch (err: any) {
+     if (err.message === "Order not found") {
+      return res.status(404).json({
+        success: false,
+        message: err.message,
+      });
+    }
+    // For other errors, return 400
     res.status(400).json({
       success: false,
       message: err.message,

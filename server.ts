@@ -25,6 +25,7 @@ import discountRoute from './src/discount/routes/discountRoutes.js';
 import invoiceRoute from "./src/invoice/routes/invoiceRoute.js";
 import paymentRoute from "./src/payments/routes/paymentRoute.js";
 import receiptRoute from "./src/shared/routes/receiptRoute.js";
+import shippingRoute from "./src/shipping/routes/shippingRoute.js";
 
 
 dotenv.config();
@@ -106,6 +107,7 @@ app.use('/api/v1/discounts', discountRoute);
 app.use("/api/v1/invoices", invoiceRoute);
 app.use("/api/v1/payments", paymentRoute);
 app.use("/api/v1/receipts", receiptRoute);
+app.use("/api/v1/shipping", shippingRoute);
 
 io.on("connection", (socket) => {
   console.log("✅ Client connected:", socket.id);

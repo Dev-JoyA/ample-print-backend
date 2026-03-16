@@ -306,14 +306,19 @@ export const getFeedbackByOrderId = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET USER FEEDBACK ====================
 export const getUserFeedback = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as FeedBackStatus; // Get status from query
 
-    const result = await feedbackService.getUserFeedback(user._id, page, limit);
+    const result = await feedbackService.getUserFeedback(
+      user._id, 
+      page, 
+      limit,
+      status 
+    );
 
     res.status(200).json({
       success: true,

@@ -17,6 +17,7 @@ import { Server } from "socket.io";
 import mongoose from "mongoose"; 
 import { generateInvoiceNumber } from "../../utils/invoiceUtils.js";
 import { Transaction } from "../../payments/model/transactionModel.js";
+import { Shipping } from "../../shipping/model/shippingModel.js";
 
 export interface InvoiceFilter {
   status?: InvoiceStatus;
@@ -273,7 +274,7 @@ export const createInvoice = async (
 
 // ==================== CREATE SHIPPING INVOICE (Admin only) ====================
 export const createShippingInvoice = async (
-  orderId: string,
+   orderId: string,
   shippingId: string,
   data: {
     shippingCost: number;
@@ -292,12 +293,22 @@ export const createShippingInvoice = async (
       throw new Error("Order not found");
     }
 
+    // Get shipping record
+    const shipping = await Shipping.findById(shippingId).session(session);
+    if (!shipping) {
+      throw new Error("Shipping record not found");
+    }
+
+    // Generate invoice number
+    const invoiceNumber = await generateInvoiceNumber();
+
     // Create shipping invoice
     const [invoice] = await Invoice.create(
       [
         {
           orderId: order._id,
           orderNumber: order.orderNumber,
+          invoiceNumber,
           invoiceType: InvoiceType.Shipping,
           items: [
             {
@@ -326,8 +337,15 @@ export const createShippingInvoice = async (
       { session },
     );
 
-    // Update order with shipping invoice link
-    order.shippingId = new mongoose.Types.ObjectId(shippingId);
+    // Update shipping record with invoice ID and shipping cost
+    shipping.shippingInvoiceId = invoice._id;
+    shipping.shippingCost = data.shippingCost; // Update the shipping cost
+    await shipping.save({ session });
+
+    // Update order with shipping ID (if not already set)
+    if (!order.shippingId) {
+      order.shippingId = new mongoose.Types.ObjectId(shippingId);
+    }
     await order.save({ session });
 
     await session.commitTransaction();

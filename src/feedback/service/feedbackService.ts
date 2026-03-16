@@ -540,11 +540,11 @@ export const getFeedbackByOrderId = async (
     .exec();
 };
 
-// ==================== GET USER FEEDBACK ====================
 export const getUserFeedback = async (
   userId: string,
   page: number = 1,
   limit: number = 10,
+  status?: FeedBackStatus, // Add this parameter
 ): Promise<{
   feedback: IFeedback[];
   total: number;
@@ -552,9 +552,16 @@ export const getUserFeedback = async (
   pages: number;
 }> => {
   const skip = (page - 1) * limit;
+  
+  const query: any = { userId: new Types.ObjectId(userId) };
+  
+  // Add status filter if provided
+  if (status) {
+    query.status = status;
+  }
 
   const [feedback, total] = await Promise.all([
-    Feedback.find({ userId: new Types.ObjectId(userId) })
+    Feedback.find(query)
       .populate("orderId", "orderNumber")
       .populate({
         path: "designId",
@@ -565,7 +572,7 @@ export const getUserFeedback = async (
       .skip(skip)
       .limit(limit)
       .exec(),
-    Feedback.countDocuments({ userId: new Types.ObjectId(userId) }),
+    Feedback.countDocuments(query),
   ]);
 
   return {
