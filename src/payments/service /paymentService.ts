@@ -1,3 +1,4 @@
+import mongoose, { Types } from "mongoose";
 import {
   Transaction,
   ITransaction,
@@ -16,7 +17,6 @@ import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
 import emailService from "../../utils/email.js";
 import { notificationService } from "../../notification/service/notificationService.js";
-import { Types } from "mongoose";
 import crypto from "crypto";
 import axios from "axios";
 import dotenv from "dotenv";
@@ -26,18 +26,10 @@ dotenv.config();
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_API = "https://api.paystack.co";
 
-// ==================== UTILITY FUNCTIONS ====================
-
-/**
- * Generate unique transaction reference
- */
 const generateTransactionReference = (): string => {
   return `TXN-${Date.now()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 };
 
-/**
- * Get all super admin emails
- */
 const getSuperAdminEmails = async (): Promise<string[]> => {
   const superAdmins = await User.find({
     role: UserRole.SuperAdmin,
@@ -46,27 +38,23 @@ const getSuperAdminEmails = async (): Promise<string[]> => {
   return superAdmins.map((admin) => admin.email);
 };
 
-/**
- * Update order and invoice after successful payment
- */
 const updateOrderAndInvoiceAfterPayment = async (
   orderId: string,
   invoiceId: string,
   amount: number,
   transactionType: TransactionType,
   transactionId: string,
+  session?: mongoose.ClientSession,
 ): Promise<void> => {
-  const order = await Order.findById(orderId);
+  const order = await Order.findById(orderId).session(session || null);
   if (!order) throw new Error("Order not found");
 
-  const invoice = await Invoice.findById(invoiceId);
+  const invoice = await Invoice.findById(invoiceId).session(session || null);
   if (!invoice) throw new Error("Invoice not found");
 
-  // Update order payment fields
   order.amountPaid = (order.amountPaid || 0) + amount;
   order.remainingBalance = order.totalAmount - order.amountPaid;
 
-  // Update payment status based on transaction type and amount
   if (order.remainingBalance <= 0) {
     order.paymentStatus = PaymentStatus.Completed;
     order.status = OrderStatus.FinalPaid;
@@ -75,14 +63,12 @@ const updateOrderAndInvoiceAfterPayment = async (
     order.status = OrderStatus.PartPaymentMade;
   }
 
-  // Link invoice to order if not already linked
   if (!order.invoiceId) {
     order.invoiceId = new Types.ObjectId(invoiceId);
   }
 
-  await order.save();
+  await order.save({ session });
 
-  // Update invoice
   invoice.transactions = invoice.transactions || [];
   invoice.transactions.push(new Types.ObjectId(transactionId));
   invoice.amountPaid = (invoice.amountPaid || 0) + amount;
@@ -95,14 +81,9 @@ const updateOrderAndInvoiceAfterPayment = async (
     invoice.status = InvoiceStatus.PartiallyPaid;
   }
 
-  await invoice.save();
+  await invoice.save({ session });
 };
 
-// ==================== PAYSTACK PAYMENT ====================
-
-/**
- * Initialize Paystack payment
- */
 export const initializePaystackPayment = async (
   orderId: string,
   invoiceId: string,
@@ -114,14 +95,16 @@ export const initializePaystackPayment = async (
   accessCode: string;
   reference: string;
 }> => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const order = await Order.findById(orderId);
+    const order = await Order.findById(orderId).session(session);
     if (!order) throw new Error("Order not found");
 
-    const invoice = await Invoice.findById(invoiceId);
+    const invoice = await Invoice.findById(invoiceId).session(session);
     if (!invoice) throw new Error("Invoice not found");
 
-    // Calculate remaining amounts
     const amountPaid = invoice.amountPaid || 0;
     const remainingAmount = invoice.totalAmount - amountPaid;
 
@@ -134,9 +117,7 @@ export const initializePaystackPayment = async (
       remainingAmount,
     });
 
-    // Validate based on transaction type
     if (transactionType === TransactionType.Final) {
-      // Final payment should equal the remaining balance
       if (Math.abs(amount - remainingAmount) > 0.01) {
         throw new Error(
           `Final payment must be exactly ${remainingAmount}. ` +
@@ -144,7 +125,6 @@ export const initializePaystackPayment = async (
         );
       }
     } else if (transactionType === TransactionType.Part) {
-      // Part payment should only be allowed if no payment has been made yet
       if (amountPaid > 0) {
         throw new Error(
           `Deposit has already been paid (${amountPaid}). ` +
@@ -152,7 +132,6 @@ export const initializePaystackPayment = async (
         );
       }
       
-      // Part payment should equal the deposit amount
       if (Math.abs(amount - invoice.depositAmount) > 0.01) {
         throw new Error(
           `Deposit payment must be exactly ${invoice.depositAmount}. ` +
@@ -161,25 +140,26 @@ export const initializePaystackPayment = async (
       }
     }
 
-    // Generate unique reference
     const reference = generateTransactionReference();
 
-    // Create transaction record (pending)
-    const transaction = await Transaction.create({
-      orderId: new Types.ObjectId(orderId),
-      orderNumber: order.orderNumber,
-      invoiceId: new Types.ObjectId(invoiceId),
-      transactionId: reference,
-      transactionAmount: amount,
-      transactionStatus: TransactionStatus.Pending,
-      transactionType: transactionType,
-      paymentMethod: PaymentMethod.Paystack,
-      metadata: {
-        initializedAt: new Date(),
-        amountPaidBefore: amountPaid,
-        remainingAfterPayment: remainingAmount - amount,
-      },
-    });
+    const [transaction] = await Transaction.create(
+      [{
+        orderId: new Types.ObjectId(orderId),
+        orderNumber: order.orderNumber,
+        invoiceId: new Types.ObjectId(invoiceId),
+        transactionId: reference,
+        transactionAmount: amount,
+        transactionStatus: TransactionStatus.Pending,
+        transactionType: transactionType,
+        paymentMethod: PaymentMethod.Paystack,
+        metadata: {
+          initializedAt: new Date(),
+          amountPaidBefore: amountPaid,
+          remainingAfterPayment: remainingAmount - amount,
+        },
+      }],
+      { session },
+    );
 
     console.log('✅ Transaction created:', {
       transactionId: transaction._id,
@@ -187,12 +167,14 @@ export const initializePaystackPayment = async (
       amount,
     });
 
-    // Call Paystack API to initialize payment
+    await session.commitTransaction();
+    session.endSession();
+
     const response = await axios.post(
       `${PAYSTACK_API}/transaction/initialize`,
       {
         email,
-        amount: Math.round(amount * 100), // Paystack uses kobo (multiply by 100)
+        amount: Math.round(amount * 100),
         reference,
         metadata: {
           orderId,
@@ -228,28 +210,28 @@ export const initializePaystackPayment = async (
       reference,
     };
   } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("❌ Paystack initialization error:", error);
     throw new Error(`Payment initialization failed: ${error.message}`);
   }
 };
 
-/**
- * Verify Paystack payment
- */
 export const verifyPaystackPayment = async (
   reference: string,
   io: Server,
 ): Promise<ITransaction> => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    // Find transaction
-    const transaction = await Transaction.findOne({ transactionId: reference });
+    const transaction = await Transaction.findOne({ transactionId: reference }).session(session);
     if (!transaction) throw new Error("Transaction not found");
 
     if (transaction.transactionStatus !== TransactionStatus.Pending) {
       throw new Error("Transaction already processed");
     }
 
-    // Verify with Paystack
     const response = await axios.get(
       `${PAYSTACK_API}/transaction/verify/${reference}`,
       {
@@ -265,7 +247,6 @@ export const verifyPaystackPayment = async (
 
     const paystackData = response.data.data;
 
-    // Update transaction
     transaction.transactionStatus =
       paystackData.status === "success"
         ? TransactionStatus.Completed
@@ -278,14 +259,12 @@ export const verifyPaystackPayment = async (
     transaction.paidAt =
       paystackData.status === "success" ? new Date() : undefined;
 
-    await transaction.save();
+    await transaction.save({ session });
 
-    // Get order and user details for notifications
-    const order = await Order.findById(transaction.orderId);
+    const order = await Order.findById(transaction.orderId).session(session);
     const user = await User.findById(order?.userId);
     const profile = await Profile.findOne({ userId: user?._id });
 
-    // If payment successful, update order and invoice
     if (transaction.transactionStatus === TransactionStatus.Completed) {
       await updateOrderAndInvoiceAfterPayment(
         transaction.orderId.toString(),
@@ -293,10 +272,13 @@ export const verifyPaystackPayment = async (
         transaction.transactionAmount,
         transaction.transactionType,
         transaction._id.toString(),
+        session,
       );
 
+      await session.commitTransaction();
+      session.endSession();
+
       if (user && profile && order) {
-        // Send customer socket notification
         io.to(`user-${user._id}`).emit("payment-verified", {
           transactionId: transaction._id,
           orderId: transaction.orderId,
@@ -312,7 +294,6 @@ export const verifyPaystackPayment = async (
           timestamp: new Date(),
         });
 
-        // Create database notification for customer
         try {
           let title = 'Payment Successful';
           let message = `Your payment of ₦${transaction.transactionAmount.toLocaleString()} for order #${transaction.orderNumber} was successful`;
@@ -341,7 +322,6 @@ export const verifyPaystackPayment = async (
           console.error('Failed to create payment notification:', notifErr);
         }
 
-        // Send email to customer
         if (transaction.transactionType === TransactionType.Part) {
           await emailService
             .sendDesignReady(
@@ -363,7 +343,6 @@ export const verifyPaystackPayment = async (
         }
       }
 
-      // Notify super admins via email
       const superAdminEmails = await getSuperAdminEmails();
       for (const adminEmail of superAdminEmails) {
         await emailService
@@ -378,7 +357,6 @@ export const verifyPaystackPayment = async (
           .catch((err) => console.error("Error notifying super admin:", err));
       }
 
-      // Socket notifications for admins
       io.to("admin-room").emit("payment-received", {
         transactionId: transaction._id,
         orderId: transaction.orderId,
@@ -401,7 +379,6 @@ export const verifyPaystackPayment = async (
         timestamp: new Date(),
       });
 
-      // Create database notifications for admins
       try {
         await notificationService.createForAdmins({
           type: 'payment-received',
@@ -423,7 +400,9 @@ export const verifyPaystackPayment = async (
         console.error('Failed to create admin payment notification:', notifErr);
       }
     } else {
-      // Payment failed
+      await session.commitTransaction();
+      session.endSession();
+
       if (user && order) {
         io.to(`user-${user._id}`).emit("payment-failed", {
           transactionId: transaction._id,
@@ -434,7 +413,6 @@ export const verifyPaystackPayment = async (
           timestamp: new Date(),
         });
 
-        // Create database notification for customer
         try {
           await notificationService.createForUser(user._id, {
             type: 'payment-failed',
@@ -457,16 +435,13 @@ export const verifyPaystackPayment = async (
 
     return transaction;
   } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("Paystack verification error:", error);
     throw new Error(`Payment verification failed: ${error.message}`);
   }
 };
 
-// ==================== BANK TRANSFER PAYMENT ====================
-
-/**
- * Upload receipt for bank transfer
- */
 export const uploadBankTransferReceipt = async (
   orderId: string,
   invoiceId: string,
@@ -476,19 +451,20 @@ export const uploadBankTransferReceipt = async (
   transactionType: TransactionType,
   io: Server,
 ): Promise<ITransaction> => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const order = await Order.findById(orderId);
+    const order = await Order.findById(orderId).session(session);
     if (!order) throw new Error("Order not found");
 
-    // Verify user owns this order
     if (order.userId.toString() !== userId) {
       throw new Error("Unauthorized");
     }
 
-    const invoice = await Invoice.findById(invoiceId);
+    const invoice = await Invoice.findById(invoiceId).session(session);
     if (!invoice) throw new Error("Invoice not found");
 
-    // Calculate remaining amounts
     const amountPaid = invoice.amountPaid || 0;
     const remainingAmount = invoice.totalAmount - amountPaid;
 
@@ -501,9 +477,7 @@ export const uploadBankTransferReceipt = async (
       remainingAmount,
     });
 
-    // Validate based on transaction type
     if (transactionType === TransactionType.Final) {
-      // Final payment should equal the remaining balance
       if (Math.abs(amount - remainingAmount) > 0.01) {
         throw new Error(
           `Final payment must be exactly ${remainingAmount}. ` +
@@ -511,7 +485,6 @@ export const uploadBankTransferReceipt = async (
         );
       }
     } else if (transactionType === TransactionType.Part) {
-      // Part payment should only be allowed if no payment has been made yet
       if (amountPaid > 0) {
         throw new Error(
           `Deposit has already been paid (${amountPaid}). ` +
@@ -519,7 +492,6 @@ export const uploadBankTransferReceipt = async (
         );
       }
       
-      // Part payment should equal the deposit amount
       if (Math.abs(amount - invoice.depositAmount) > 0.01) {
         throw new Error(
           `Deposit payment must be exactly ${invoice.depositAmount}. ` +
@@ -528,12 +500,11 @@ export const uploadBankTransferReceipt = async (
       }
     }
 
-    // Check if there's already a pending transaction for this invoice
     const existingPending = await Transaction.findOne({
       invoiceId,
       transactionStatus: TransactionStatus.Pending,
       paymentMethod: PaymentMethod.BankTransfer,
-    });
+    }).session(session);
 
     if (existingPending) {
       throw new Error(
@@ -542,27 +513,31 @@ export const uploadBankTransferReceipt = async (
       );
     }
 
-    // Generate reference
     const reference = generateTransactionReference();
 
-    // Create transaction
-    const transaction = await Transaction.create({
-      orderId: new Types.ObjectId(orderId),
-      orderNumber: order.orderNumber,
-      invoiceId: new Types.ObjectId(invoiceId),
-      transactionId: reference,
-      transactionAmount: amount,
-      transactionStatus: TransactionStatus.Pending,
-      transactionType,
-      paymentMethod: PaymentMethod.BankTransfer,
-      receiptUrl,
-      metadata: {
-        uploadedBy: userId,
-        uploadedAt: new Date(),
-        amountPaidBefore: amountPaid,
-        remainingAfterPayment: remainingAmount - amount,
-      },
-    });
+    const [transaction] = await Transaction.create(
+      [{
+        orderId: new Types.ObjectId(orderId),
+        orderNumber: order.orderNumber,
+        invoiceId: new Types.ObjectId(invoiceId),
+        transactionId: reference,
+        transactionAmount: amount,
+        transactionStatus: TransactionStatus.Pending,
+        transactionType,
+        paymentMethod: PaymentMethod.BankTransfer,
+        receiptUrl,
+        metadata: {
+          uploadedBy: userId,
+          uploadedAt: new Date(),
+          amountPaidBefore: amountPaid,
+          remainingAfterPayment: remainingAmount - amount,
+        },
+      }],
+      { session },
+    );
+
+    await session.commitTransaction();
+    session.endSession();
 
     console.log('✅ Bank transfer transaction created:', {
       transactionId: transaction._id,
@@ -571,10 +546,8 @@ export const uploadBankTransferReceipt = async (
       pending: true
     });
 
-    // Get user profile for notifications
     const profile = await Profile.findOne({ userId });
 
-    // Notify customer that receipt was uploaded
     io.to(`user-${userId}`).emit("receipt-uploaded", {
       transactionId: transaction._id,
       orderId: transaction.orderId,
@@ -585,7 +558,6 @@ export const uploadBankTransferReceipt = async (
       timestamp: new Date(),
     });
 
-    // Create database notification for customer
     try {
       await notificationService.createForUser(userId, {
         type: 'receipt-uploaded',
@@ -606,14 +578,12 @@ export const uploadBankTransferReceipt = async (
       console.error('Failed to create receipt upload notification:', notifErr);
     }
 
-    // Notify super admins
     const superAdmins = await User.find({
       role: UserRole.SuperAdmin,
       isActive: true,
     });
     
     for (const admin of superAdmins) {
-      // Socket notification
       io.to("superadmin-room").emit("pending-bank-transfer", {
         transactionId: transaction._id,
         orderId: transaction.orderId,
@@ -625,18 +595,16 @@ export const uploadBankTransferReceipt = async (
         timestamp: new Date(),
       });
 
-      // Email notification
-      await emailService
-        .sendReceiptUploaded(
-          admin.email,
-          order.orderNumber,
-          remainingAmount.toLocaleString(),
-          Number(transaction.transactionId),
-          receiptUrl,
-        )
-        .catch((err) => console.error("Error notifying super admin:", err));
+    //   await emailService
+    //     .sendReceiptUploaded(
+    //       admin.email,
+    //       order.orderNumber,
+    //       remainingAmount.toLocaleString(),
+    //       Number(transaction.transactionId),
+    //       receiptUrl,
+    //     )
+    //     .catch((err) => console.error("Error notifying super admin:", err));
 
-      // Create database notification for super admins
       try {
         await notificationService.createNotification(admin._id, {
           type: 'pending-bank-transfer',
@@ -661,14 +629,13 @@ export const uploadBankTransferReceipt = async (
 
     return transaction;
   } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("❌ Bank transfer upload error:", error);
     throw error;
   }
 };
 
-/**
- * Verify bank transfer (Super Admin only)
- */
 export const verifyBankTransfer = async (
   transactionId: string,
   superAdminId: string,
@@ -676,8 +643,11 @@ export const verifyBankTransfer = async (
   notes?: string,
   io?: Server,
 ): Promise<ITransaction> => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const transaction = await Transaction.findById(transactionId);
+    const transaction = await Transaction.findById(transactionId).session(session);
     if (!transaction) throw new Error("Transaction not found");
 
     if (transaction.paymentMethod !== PaymentMethod.BankTransfer) {
@@ -688,7 +658,6 @@ export const verifyBankTransfer = async (
       throw new Error("Transaction already processed");
     }
 
-    // Update transaction
     transaction.transactionStatus =
       status === "approve"
         ? TransactionStatus.Completed
@@ -705,10 +674,9 @@ export const verifyBankTransfer = async (
       transaction.paidAt = new Date();
     }
 
-    await transaction.save();
+    await transaction.save({ session });
 
-    // Get order and user details
-    const order = await Order.findById(transaction.orderId);
+    const order = await Order.findById(transaction.orderId).session(session);
     const user = await User.findById(order?.userId);
     const profile = await Profile.findOne({ userId: user?._id });
     const superAdmin = await User.findById(superAdminId);
@@ -720,10 +688,13 @@ export const verifyBankTransfer = async (
         transaction.transactionAmount,
         transaction.transactionType,
         transaction._id.toString(),
+        session,
       );
 
+      await session.commitTransaction();
+      session.endSession();
+
       if (user && profile && order) {
-        // Notify customer (socket)
         io.to(`user-${user._id}`).emit("payment-verified", {
           transactionId: transaction._id,
           orderId: transaction.orderId,
@@ -739,7 +710,6 @@ export const verifyBankTransfer = async (
           timestamp: new Date(),
         });
 
-        // Create database notification for customer
         try {
           let title = 'Bank Transfer Approved';
           let message = `Your bank transfer of ₦${transaction.transactionAmount.toLocaleString()} for order #${transaction.orderNumber} has been verified and approved`;
@@ -764,7 +734,6 @@ export const verifyBankTransfer = async (
           console.error('Failed to create bank transfer approval notification:', notifErr);
         }
 
-        // Email to customer
         if (transaction.transactionType === TransactionType.Part) {
           await emailService
             .sendDesignReady(
@@ -781,7 +750,6 @@ export const verifyBankTransfer = async (
             .catch((err) => console.error("Error sending payment email:", err));
         }
 
-        // Notify admins about approval
         io.to("admin-room").emit("bank-transfer-approved", {
           transactionId: transaction._id,
           orderId: transaction.orderId,
@@ -792,7 +760,6 @@ export const verifyBankTransfer = async (
           timestamp: new Date(),
         });
 
-        // Notify other super admins
         await notificationService.createForSuperAdmins({
           type: 'bank-transfer-approved',
           title: 'Bank Transfer Approved',
@@ -808,7 +775,9 @@ export const verifyBankTransfer = async (
         });
       }
     } else if (status === "reject" && io) {
-      // Payment rejected
+      await session.commitTransaction();
+      session.endSession();
+
       if (user && profile && order) {
         io.to(`user-${user._id}`).emit("payment-rejected", {
           transactionId: transaction._id,
@@ -819,7 +788,6 @@ export const verifyBankTransfer = async (
           timestamp: new Date(),
         });
 
-        // Create database notification for customer
         try {
           await notificationService.createForUser(user._id, {
             type: 'bank-transfer-rejected',
@@ -839,7 +807,6 @@ export const verifyBankTransfer = async (
           console.error('Failed to create bank transfer rejection notification:', notifErr);
         }
 
-        // Email to customer about rejection
         await emailService
           .sendOrderConfirmation(
             user.email,
@@ -850,7 +817,6 @@ export const verifyBankTransfer = async (
           )
           .catch((err) => console.error("Error sending rejection email:", err));
 
-        // Notify other super admins about rejection
         await notificationService.createForSuperAdmins({
           type: 'bank-transfer-rejected',
           title: 'Bank Transfer Rejected',
@@ -866,20 +832,20 @@ export const verifyBankTransfer = async (
           link: `/dashboards/super-admin/payment-verification`
         });
       }
+    } else {
+      await session.commitTransaction();
+      session.endSession();
     }
 
     return transaction;
   } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("❌ Bank transfer verification error:", error);
     throw error;
   }
 };
 
-// ==================== TRANSACTION QUERIES ====================
-
-/**
- * Get pending bank transfers (Super Admin)
- */
 export const getPendingBankTransfers = async (
   page: number = 1,
   limit: number = 10,
@@ -922,9 +888,6 @@ export const getPendingBankTransfers = async (
   }
 };
 
-/**
- * Get transactions by order
- */
 export const getTransactionsByOrder = async (
   orderId: string,
   userRole: string,
@@ -934,7 +897,6 @@ export const getTransactionsByOrder = async (
     const order = await Order.findById(orderId);
     if (!order) throw new Error("Order not found");
 
-    // Check authorization
     if (userRole === UserRole.Customer && order.userId.toString() !== userId) {
       throw new Error("Unauthorized");
     }
@@ -949,9 +911,6 @@ export const getTransactionsByOrder = async (
   }
 };
 
-/**
- * Get transactions by invoice
- */
 export const getTransactionsByInvoice = async (
   invoiceId: string,
 ): Promise<ITransaction[]> => {
@@ -966,9 +925,6 @@ export const getTransactionsByInvoice = async (
   }
 };
 
-/**
- * Get user's transactions
- */
 export const getUserTransactions = async (
   userId: string,
   page: number = 1,
@@ -980,7 +936,6 @@ export const getUserTransactions = async (
   pages: number;
 }> => {
   try {
-    // Find user's orders first
     const orders = await Order.find({ userId }).select("_id orderNumber");
     const orderIds = orders.map((o) => o._id);
 

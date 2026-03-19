@@ -22,7 +22,7 @@ export interface ITransaction extends Document {
   orderId: Types.ObjectId;
   orderNumber: string;
   invoiceId?: Types.ObjectId;
-  transactionId: string; // Gateway reference
+  transactionId: string; 
   transactionAmount: number;
   transactionStatus: TransactionStatus;
   transactionType: TransactionType;

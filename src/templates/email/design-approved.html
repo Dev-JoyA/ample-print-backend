@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Design Approved - Ample Printhub</title>
+    <style>
+        /* Reset styles */
+        body, table, td, p, a {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            font-size: 100%;
+            font: inherit;
+            vertical-align: baseline;
+        }
+        
+        body {
+            background-color: #f4f7fb;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 20px;
+        }
+        
+        table {
+            border-collapse: collapse;
+            mso-table-lspace: 0;
+            mso-table-rspace: 0;
+        }
+        
+        /* Container */
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* Header */
+        .email-header {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .logo {
+            max-width: 180px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        
+        .header-title {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-badge {
+            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 15px;
+            backdrop-filter: blur(5px);
+        }
+        
+        /* Content */
+        .email-content {
+            padding: 40px 30px;
+            background-color: #ffffff;
+        }
+        
+        .greeting {
+            color: #1e293b;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            color: #475569;
+            font-size: 16px;
+            margin-bottom: 25px;
+        }
+        
+        /* Product highlight */
+        .product-highlight {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-radius: 12px;
+        }
+        
+        .product-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #059669;
+            margin: 10px 0;
+        }
+        
+        .approved-badge {
+            display: inline-block;
+            background-color: #059669;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        /* Celebration animation */
+        .celebration {
+            font-size: 48px;
+            margin: 20px 0;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        /* Info Box */
+        .info-box {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 16px;
+            padding: 30px;
+            margin: 30px 0;
+            color: #ffffff;
+        }
+        
+        .info-box p {
+            color: #e2e8f0;
+            margin: 10px 0;
+        }
+        
+        .info-box strong {
+            color: #ffffff;
+        }
+        
+        .info-box .highlight {
+            color: #fbbf24;
+            font-weight: 700;
+        }
+        
+        .order-number {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fbbf24;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+        
+        /* Timeline */
+        .timeline {
+            margin: 30px 0;
+            position: relative;
+        }
+        
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .timeline-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #f1f5f9;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        
+        .timeline-icon.completed {
+            background-color: #059669;
+            color: white;
+        }
+        
+        .timeline-content {
+            flex: 1;
+        }
+        
+        .timeline-title {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+        
+        .timeline-desc {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        .stat-card {
+            background-color: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            color: #1e293b;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .stat-value.production {
+            color: #059669;
+        }
+        
+        .stat-value.delivery {
+            color: #0284c7;
+        }
+        
+        /* Button */
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 16px 36px;
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .button:hover {
+            background: linear-gradient(135deg, #047857 0%, #059669 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(5, 150, 105, 0.3);
+        }
+        
+        /* Order Summary */
+        .order-summary {
+            background-color: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+        
+        .summary-label {
+            color: #64748b;
+        }
+        
+        .summary-value {
+            color: #1e293b;
+            font-weight: 600;
+        }
+        
+        /* Footer */
+        .email-footer {
+            background-color: #f8fafc;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .footer-text {
+            color: #64748b;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        .social-links {
+            margin: 20px 0;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            text-decoration: none;
+            font-size: 20px;
+        }
+        
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-content {
+                padding: 30px 20px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .product-name {
+                font-size: 20px;
+            }
+            
+            .timeline-item {
+                flex-direction: column;
+            }
+            
+            .timeline-icon {
+                margin-bottom: 10px;
+            }
+            
+            .button {
+                display: block;
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="email-header">
+            <img src="cid:ample_logo" alt="Ample Printhub" class="logo" width="180" height="auto">
+            <div class="celebration">🎉 ✨ 🎉</div>
+            <h1 class="header-title">Design Approved!</h1>
+            <span class="header-badge">Moving to Production</span>
+        </div>
+        
+        <!-- Content -->
+        <div class="email-content">
+            <p class="greeting">Hello {{name}},</p>
+            
+            <p class="message">
+                Fantastic news! Your design for 
+                <span style="color: #059669; font-weight: 600;">{{productName}}</span> 
+                has been approved and we're thrilled to move forward with your project!
+            </p>
+            
+            <!-- Product Highlight -->
+            <div class="product-highlight">
+                <span class="approved-badge">✓ APPROVED</span>
+                <div class="product-name">{{productName}}</div>
+            </div>
+            
+            <!-- Order Summary -->
+            <div class="order-summary">
+                <div class="summary-row">
+                    <span class="summary-label">Order Number:</span>
+                    <span class="summary-value" style="font-family: monospace;">#{{orderNumber}}</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Product:</span>
+                    <span class="summary-value">{{productName}}</span>
+                </div>
+            </div>
+            
+            <!-- What's Next Box -->
+            <div class="info-box">
+                <p style="font-size: 20px; font-weight: 700; margin-bottom: 15px;">🚀 What's Next?</p>
+                <p>Your order <span class="order-number">#{{orderNumber}}</span> is now moving to production. Our team will begin working on your project immediately.</p>
+                <p style="margin-top: 15px; color: #fbbf24;">✨ We'll keep you updated on the progress every step of the way!</p>
+            </div>
+            
+            <!-- Production Timeline -->
+            <div style="margin: 30px 0;">
+                <h3 style="color: #1e293b; margin-bottom: 20px; font-size: 18px;">📅 Production Timeline</h3>
+                
+                <div class="timeline">
+                    <!-- Design Approved (Completed) -->
+                    <div class="timeline-item">
+                        <div class="timeline-icon completed">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Design Approved</div>
+                            <div class="timeline-desc">Your design has been reviewed and approved</div>
+                        </div>
+                    </div>
+                    
+                    <!-- In Production (Current) -->
+                    <div class="timeline-item">
+                        <div class="timeline-icon" style="background-color: #059669; color: white;">⚙️</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">In Production</div>
+                            <div class="timeline-desc">Your order is currently being printed/produced</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quality Check -->
+                    <div class="timeline-item">
+                        <div class="timeline-icon">✓</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Quality Check</div>
+                            <div class="timeline-desc">Final quality assurance before shipping</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Ready for Shipping -->
+                    <div class="timeline-item">
+                        <div class="timeline-icon">📦</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Ready for Shipping</div>
+                            <div class="timeline-desc">Your order will be packed and prepared for delivery</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estimated Times -->
+            <!-- <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Estimated Production Time</div>
+                    <div class="stat-value production">{{productionTime}} business days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Estimated Delivery</div>
+                    <div class="stat-value delivery">{{estimatedDelivery}}</div>
+                </div>
+            </div> -->
+            
+            <!-- Action Buttons -->
+            <div class="button-container">
+                <a href="{{trackUrl}}" class="button">Track Order Progress</a>
+            </div>
+            
+            <!-- Note -->
+            <p style="color: #94a3b8; font-size: 14px; margin-top: 30px; text-align: center; font-style: italic; background-color: #f8fafc; padding: 15px; border-radius: 8px;">
+                💡 We'll notify you when your order is ready for shipping. If you have any questions, feel free to contact our support team.
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="email-footer">
+            <div class="social-links">
+                <a href="https://facebook.com/ampleprinthub">📘</a>
+                <a href="https://instagram.com/ampleprinthub">📷</a>
+                <a href="https://twitter.com/ampleprinthub">🐦</a>
+                <a href="https://tiktok.com/@ampleprinthub">🎵</a>
+            </div>
+            <p class="footer-text">© {{year}} Ample Printhub. All rights reserved.</p>
+            <p class="footer-text">5 Boyle Street, Shomolu, Lagos</p>
+            <p class="footer-text">
+                <a href="{{privacyUrl}}" style="color: #64748b; text-decoration: underline;">Privacy Policy</a> |
+                <a href="{{unsubscribeUrl}}" style="color: #64748b; text-decoration: underline;">Unsubscribe</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

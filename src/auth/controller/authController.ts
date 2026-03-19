@@ -19,157 +19,242 @@ export const signUpController = async (req: Request, res: Response) => {
   try {
     const data: SignUpData = req.body;
     const result = await signUpService(data);
-    res.status(201).json(result);
+    res.status(201).json({
+      success: true,
+      message: "Account created successfully",
+      data: result
+    });
   } catch (err: any) {
-    res.status(400).json({ error: err.message || "Failed to sign up" });
+    res.status(400).json({ 
+      success: false, 
+      error: err.message || "Failed to sign up" 
+    });
   }
 };
 
-// Sign in
 export const signInController = async (req: Request, res: Response) => {
   try {
     const data: SignInData = req.body;
     const result = await signInService(data);
-    res.status(200).json(result);
+    res.status(200).json({
+      success: true,
+      message: "Signed in successfully",
+      data: result
+    });
   } catch (err: any) {
     const status = err.message.includes("password") ? 401 : 400;
-    res.status(status).json({ error: err.message || "Failed to sign in" });
+    res.status(status).json({ 
+      success: false,
+      error: err.message || "Failed to sign in" 
+    });
   }
 };
 
-// Logout
 export const logoutController = async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken)
-      return res.status(400).json({ error: "Refresh token is required" });
+    if (!refreshToken) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Refresh token is required" 
+      });
+    }
 
     await logoutService(refreshToken);
-    res.status(200).json({ message: "Logged out successfully" });
+    res.status(200).json({ 
+      success: true,
+      message: "Logged out successfully" 
+    });
   } catch (err: any) {
-    res.status(400).json({ error: err.message || "Failed to logout" });
+    res.status(400).json({ 
+      success: false,
+      error: err.message || "Failed to logout" 
+    });
   }
 };
 
-// Refresh access token
 export const refreshTokenController = async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken)
-      return res.status(400).json({ error: "Refresh token is required" });
+    if (!refreshToken) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Refresh token is required" 
+      });
+    }
 
     const tokens = await refreshTokenService(refreshToken);
-    res.status(200).json(tokens);
+    res.status(200).json({
+      success: true,
+      message: "Token refreshed successfully",
+      data: tokens
+    });
   } catch (err: any) {
-    res.status(401).json({ error: err.message || "Failed to refresh token" });
+    res.status(401).json({ 
+      success: false,
+      error: err.message || "Failed to refresh token" 
+    });
   }
 };
 
-// Create admin (by superadmin)
 export const createAdminController = async (req: Request, res: Response) => {
   try {
-    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        error: "Unauthorized" 
+      });
+    }
+    
     const data: SignUpData = req.body;
     const superAdmin: AdminData = req.user as AdminData;
 
     const result = await createAdminService(data, superAdmin);
-    res.status(201).json(result);
+    res.status(201).json({
+      success: true,
+      message: "Admin created successfully",
+      data: result
+    });
   } catch (err: any) {
-    res.status(400).json({ error: err.message || "Failed to create admin" });
+    res.status(400).json({ 
+      success: false,
+      error: err.message || "Failed to create admin" 
+    });
   }
 };
 
-// Create superadmin (usually once)
-export const createSuperAdminController = async (
-  req: Request,
-  res: Response,
-) => {
+export const createSuperAdminController = async (req: Request, res: Response) => {
   try {
     const data: SignUpData = req.body;
     const result = await createSuperAdminService(data);
-    res.status(201).json(result);
+    res.status(201).json({
+      success: true,
+      message: "Super admin created successfully",
+      data: result
+    });
   } catch (err: any) {
-    res
-      .status(400)
-      .json({ error: err.message || "Failed to create superadmin" });
+    res.status(400).json({ 
+      success: false,
+      error: err.message || "Failed to create superadmin" 
+    });
   }
 };
 
-// Deactivate admin
-export const deactivateAdminController = async (
-  req: Request,
-  res: Response,
-) => {
+export const deactivateAdminController = async (req: Request, res: Response) => {
   try {
-    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        error: "Unauthorized" 
+      });
+    }
+    
     const { email } = req.body;
-    const superAdmin: AdminData = req.user as AdminData;
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: "Email is required"
+      });
+    }
 
     await deactivateAdminService(email);
-    res.status(200).json({ message: "Admin deactivated successfully" });
+    res.status(200).json({ 
+      success: true,
+      message: "Admin deactivated successfully" 
+    });
   } catch (err: any) {
     const status = err.message.includes("not found") ? 404 : 400;
-    res
-      .status(status)
-      .json({ error: err.message || "Failed to deactivate admin" });
+    res.status(status).json({ 
+      success: false,
+      error: err.message || "Failed to deactivate admin" 
+    });
   }
 };
 
-// Reactivate admin
-export const reactivateAdminController = async (
-  req: Request,
-  res: Response,
-) => {
+export const reactivateAdminController = async (req: Request, res: Response) => {
   try {
-    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        error: "Unauthorized" 
+      });
+    }
+    
     const { email } = req.body;
-    const superAdmin: AdminData = req.user as AdminData;
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: "Email is required"
+      });
+    }
 
     await reactivateAdminService(email);
-    res.status(200).json({ message: "Admin reactivated successfully" });
+    res.status(200).json({ 
+      success: true,
+      message: "Admin reactivated successfully" 
+    });
   } catch (err: any) {
     const status = err.message.includes("not found") ? 404 : 400;
-    res
-      .status(status)
-      .json({ error: err.message || "Failed to reactivate admin" });
+    res.status(status).json({ 
+      success: false,
+      error: err.message || "Failed to reactivate admin" 
+    });
   }
 };
 
-// Forgot password
 export const forgotPasswordController = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: "Email is required"
+      });
+    }
+
     const result = await forgotPasswordService(email);
-    res.status(200).json(result);
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
   } catch (err: any) {
-    res
-      .status(400)
-      .json({ error: err.message || "Failed to send password reset email" });
+    res.status(400).json({ 
+      success: false,
+      error: err.message || "Failed to send password reset email" 
+    });
   }
 };
 
-// Reset password
-export const effectForgotPasswordController = async (
-  req: Request,
-  res: Response,
-) => {
+export const effectForgotPasswordController = async (req: Request, res: Response) => {
   try {
     const token = req.query.token as string;
     const { newPassword, confirmPassword } = req.body;
-    const result = await effectForgotPassword(
-      token,
-      newPassword,
-      confirmPassword,
-    );
-    res.status(200).json(result);
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: "Reset token is required"
+      });
+    }
+
+    if (!newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "New password and confirm password are required"
+      });
+    }
+
+    const result = await effectForgotPassword(token, newPassword, confirmPassword);
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
   } catch (err: any) {
-    const status =
-      err.message.includes("expired") || err.message.includes("Invalid")
-        ? 400
-        : 400;
-    res
-      .status(status)
-      .json({ error: err.message || "Failed to effect password change" });
+    const status = err.message.includes("expired") || err.message.includes("Invalid") ? 400 : 400;
+    res.status(status).json({ 
+      success: false,
+      error: err.message || "Failed to reset password" 
+    });
   }
 };
 
@@ -177,13 +262,30 @@ export const resetPasswordController = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     const { newPassword, confirmPassword } = req.body;
-    const result = await resetPasswordService(
-      userId,
-      newPassword,
-      confirmPassword,
-    );
-    res.status(200).json(result);
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: "User ID is required"
+      });
+    }
+
+    if (!newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "New password and confirm password are required"
+      });
+    }
+
+    const result = await resetPasswordService(userId, newPassword, confirmPassword);
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
   } catch (err: any) {
-    res.status(400).json({ error: err.message || "failed to reset password" });
+    res.status(400).json({ 
+      success: false,
+      error: err.message || "Failed to reset password" 
+    });
   }
 };

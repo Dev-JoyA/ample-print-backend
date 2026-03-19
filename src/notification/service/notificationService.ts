@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { Notification, INotification } from "../models/notificationModel.js";
 import { User, UserRole } from "../../users/model/userModel.js";
 
@@ -17,22 +17,20 @@ export interface PaginatedNotifications {
   pages: number;
 }
 
-// Define recipient types
 export type NotificationRecipient = 
-  | string // Single user ID
-  | Types.ObjectId // Single user ID as ObjectId
-  | string[] // Array of user IDs
-  | { userId: string | Types.ObjectId } // Single user with options
+  | string
+  | Types.ObjectId
+  | string[]
+  | { userId: string | Types.ObjectId }
   | { 
-      customer?: string | Types.ObjectId; // Customer user ID
-      notifyAdmins?: boolean; // Whether to notify all admins
-      notifySuperAdmins?: boolean; // Whether to notify all super admins
-      specificAdmins?: (string | Types.ObjectId)[]; // Specific admin IDs
-      excludeUserId?: string | Types.ObjectId; // User to exclude (for self-actions)
+      customer?: string | Types.ObjectId;
+      notifyAdmins?: boolean;
+      notifySuperAdmins?: boolean;
+      specificAdmins?: (string | Types.ObjectId)[];
+      excludeUserId?: string | Types.ObjectId;
     };
 
 export const notificationService = {
-  // Get user notifications with pagination
   getUserNotifications: async (
     userId: string | Types.ObjectId,
     filters: NotificationFilter = {}
@@ -80,7 +78,60 @@ export const notificationService = {
     };
   },
 
-  // Enhanced create notification that can handle multiple recipients
+  resolveRecipients: async (recipients: NotificationRecipient): Promise<string[]> => {
+    let userIds: string[] = [];
+
+    if (typeof recipients === 'string') {
+      userIds = [recipients];
+    }
+    
+    else if (recipients instanceof Types.ObjectId) {
+      userIds = [recipients.toString()];
+    }
+    
+    else if (Array.isArray(recipients)) {
+      userIds = recipients.map(id => id.toString());
+    }
+    
+    else if ('userId' in recipients) {
+      userIds = [recipients.userId.toString()];
+    }
+    
+    else if ('customer' in recipients || 'notifyAdmins' in recipients || 'notifySuperAdmins' in recipients) {
+      const { customer, notifyAdmins, notifySuperAdmins, specificAdmins, excludeUserId } = recipients;
+      
+      if (customer) {
+        userIds.push(customer.toString());
+      }
+      
+      if (specificAdmins && specificAdmins.length > 0) {
+        userIds.push(...specificAdmins.map(id => id.toString()));
+      }
+      
+      if (notifyAdmins) {
+        const admins = await User.find({
+          role: UserRole.Admin,
+          isActive: true
+        }).select('_id').lean();
+        userIds.push(...admins.map(a => a._id.toString()));
+      }
+      
+      if (notifySuperAdmins) {
+        const superAdmins = await User.find({
+          role: UserRole.SuperAdmin,
+          isActive: true
+        }).select('_id').lean();
+        userIds.push(...superAdmins.map(sa => sa._id.toString()));
+      }
+      
+      if (excludeUserId) {
+        userIds = userIds.filter(id => id !== excludeUserId.toString());
+      }
+    }
+
+    return [...new Set(userIds)];
+  },
+
   createNotification: async (
     recipients: NotificationRecipient,
     data: {
@@ -91,30 +142,40 @@ export const notificationService = {
       link?: string;
     }
   ): Promise<any[]> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
-      // Resolve recipient user IDs
       const userIds = await notificationService.resolveRecipients(recipients);
       
       if (userIds.length === 0) {
         console.log('No recipients found for notification');
+        await session.commitTransaction();
+        session.endSession();
         return [];
       }
 
-      // Create notifications for all recipients
       const notifications = await Promise.all(
-        userIds.map(userId => 
-          Notification.create({
-            userId: new Types.ObjectId(userId.toString()),
-            type: data.type,
-            title: data.title,
-            message: data.message,
-            data: data.data || {},
-            link: data.link,
-            read: false,
-            createdAt: new Date()
-          })
-        )
+        userIds.map(async (userId) => {
+          const [notification] = await Notification.create(
+            [{
+              userId: new Types.ObjectId(userId.toString()),
+              type: data.type,
+              title: data.title,
+              message: data.message,
+              data: data.data || {},
+              link: data.link,
+              read: false,
+              createdAt: new Date()
+            }],
+            { session }
+          );
+          return notification;
+        })
       );
+
+      await session.commitTransaction();
+      session.endSession();
 
       return notifications.map(n => ({
         id: n._id.toString(),
@@ -127,78 +188,13 @@ export const notificationService = {
         link: n.link
       }));
     } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
       console.error('Error creating notifications:', error);
       throw error;
     }
   },
 
-  // Helper function to resolve recipients into array of user IDs
-  resolveRecipients: async (recipients: NotificationRecipient): Promise<string[]> => {
-    let userIds: string[] = [];
-
-    // Case 1: Direct string ID
-    if (typeof recipients === 'string') {
-      userIds = [recipients];
-    }
-    
-    // Case 2: ObjectId
-    else if (recipients instanceof Types.ObjectId) {
-      userIds = [recipients.toString()];
-    }
-    
-    // Case 3: Array of IDs
-    else if (Array.isArray(recipients)) {
-      userIds = recipients.map(id => id.toString());
-    }
-    
-    // Case 4: Object with userId
-    else if ('userId' in recipients) {
-      userIds = [recipients.userId.toString()];
-    }
-    
-    // Case 5: Complex object with roles
-    else if ('customer' in recipients || 'notifyAdmins' in recipients || 'notifySuperAdmins' in recipients) {
-      const { customer, notifyAdmins, notifySuperAdmins, specificAdmins, excludeUserId } = recipients;
-      
-      // Add customer if specified
-      if (customer) {
-        userIds.push(customer.toString());
-      }
-      
-      // Add specific admins if provided
-      if (specificAdmins && specificAdmins.length > 0) {
-        userIds.push(...specificAdmins.map(id => id.toString()));
-      }
-      
-      // Add all admins if requested
-      if (notifyAdmins) {
-        const admins = await User.find({
-          role: UserRole.Admin,
-          isActive: true
-        }).select('_id').lean();
-        userIds.push(...admins.map(a => a._id.toString()));
-      }
-      
-      // Add all super admins if requested
-      if (notifySuperAdmins) {
-        const superAdmins = await User.find({
-          role: UserRole.SuperAdmin,
-          isActive: true
-        }).select('_id').lean();
-        userIds.push(...superAdmins.map(sa => sa._id.toString()));
-      }
-      
-      // Remove excluded user if specified
-      if (excludeUserId) {
-        userIds = userIds.filter(id => id !== excludeUserId.toString());
-      }
-    }
-
-    // Remove duplicates and return
-    return [...new Set(userIds)];
-  },
-
-  // Create notification for a single user (backward compatibility)
   createForUser: async (
     userId: string | Types.ObjectId,
     data: {
@@ -213,7 +209,6 @@ export const notificationService = {
     return notifications[0] || null;
   },
 
-  // Create notification for all admins and super admins
   createForAdmins: async (
     data: {
       type: string;
@@ -230,7 +225,6 @@ export const notificationService = {
     );
   },
 
-  // Create notification for super admins only
   createForSuperAdmins: async (
     data: {
       type: string;
@@ -247,7 +241,6 @@ export const notificationService = {
     );
   },
 
-  // Create notification for customer and optionally admins
   createForCustomerAndAdmins: async (
     customerId: string | Types.ObjectId,
     data: {
@@ -265,65 +258,102 @@ export const notificationService = {
     );
   },
 
-  // Mark notification as read
   markAsRead: async (
     notificationId: string | Types.ObjectId,
     userId: string | Types.ObjectId
   ): Promise<any | null> => {
-    const notification = await Notification.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(notificationId.toString()),
-        userId: new Types.ObjectId(userId.toString())
-      },
-      {
-        read: true,
-        readAt: new Date()
-      },
-      { new: true }
-    ).lean();
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (!notification) return null;
+    try {
+      const notification = await Notification.findOneAndUpdate(
+        {
+          _id: new Types.ObjectId(notificationId.toString()),
+          userId: new Types.ObjectId(userId.toString())
+        },
+        {
+          read: true,
+          readAt: new Date()
+        },
+        { new: true, session }
+      ).lean();
 
-    return {
-      id: notification._id.toString(),
-      type: notification.type,
-      title: notification.title,
-      message: notification.message,
-      data: notification.data,
-      timestamp: notification.createdAt,
-      read: notification.read,
-      link: notification.link
-    };
-  },
-
-  // Mark all notifications as read for a user
-  markAllAsRead: async (userId: string | Types.ObjectId): Promise<void> => {
-    await Notification.updateMany(
-      {
-        userId: new Types.ObjectId(userId.toString()),
-        read: false
-      },
-      {
-        read: true,
-        readAt: new Date()
+      if (!notification) {
+        await session.commitTransaction();
+        session.endSession();
+        return null;
       }
-    );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return {
+        id: notification._id.toString(),
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        data: notification.data,
+        timestamp: notification.createdAt,
+        read: notification.read,
+        link: notification.link
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   },
 
-  // Delete a notification
+  markAllAsRead: async (userId: string | Types.ObjectId): Promise<void> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      await Notification.updateMany(
+        {
+          userId: new Types.ObjectId(userId.toString()),
+          read: false
+        },
+        {
+          read: true,
+          readAt: new Date()
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
+  },
+
   deleteNotification: async (
     notificationId: string | Types.ObjectId,
     userId: string | Types.ObjectId
   ): Promise<boolean> => {
-    const result = await Notification.deleteOne({
-      _id: new Types.ObjectId(notificationId.toString()),
-      userId: new Types.ObjectId(userId.toString())
-    });
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    return result.deletedCount > 0;
+    try {
+      const result = await Notification.deleteOne({
+        _id: new Types.ObjectId(notificationId.toString()),
+        userId: new Types.ObjectId(userId.toString())
+      }).session(session);
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return result.deletedCount > 0;
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   },
 
-  // Get unread count for a user
   getUnreadCount: async (userId: string | Types.ObjectId): Promise<number> => {
     return await Notification.countDocuments({
       userId: new Types.ObjectId(userId.toString()),
@@ -331,10 +361,21 @@ export const notificationService = {
     });
   },
 
-  // Delete all notifications for a user (cleanup)
   deleteAllUserNotifications: async (userId: string | Types.ObjectId): Promise<void> => {
-    await Notification.deleteMany({
-      userId: new Types.ObjectId(userId.toString())
-    });
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      await Notification.deleteMany({
+        userId: new Types.ObjectId(userId.toString())
+      }).session(session);
+
+      await session.commitTransaction();
+      session.endSession();
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   }
 };

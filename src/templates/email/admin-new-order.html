@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>New Order Received - Ample Printhub</title>
+    <style>
+        /* Reset styles */
+        body, table, td, p, a {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            font-size: 100%;
+            font: inherit;
+            vertical-align: baseline;
+        }
+        
+        body {
+            background-color: #f4f7fb;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 20px;
+        }
+        
+        table {
+            border-collapse: collapse;
+            mso-table-lspace: 0;
+            mso-table-rspace: 0;
+        }
+        
+        /* Container */
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* Header */
+        .email-header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .logo {
+            max-width: 180px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        
+        .header-title {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-subtitle {
+            color: #94a3b8;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        
+        /* Content */
+        .email-content {
+            padding: 40px 30px;
+            background-color: #ffffff;
+        }
+        
+        .greeting {
+            color: #1e293b;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            color: #475569;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        
+        /* Order Details Box */
+        .order-details {
+            background-color: #f8fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .order-details h3 {
+            color: #1e293b;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 20px 0;
+        }
+        
+        .details-table {
+            width: 100%;
+        }
+        
+        .details-table td {
+            padding: 10px 0;
+            vertical-align: top;
+        }
+        
+        .details-table td:first-child {
+            width: 35%;
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .details-table td:last-child {
+            width: 65%;
+            color: #1e293b;
+            font-weight: 500;
+        }
+        
+        /* Items Table */
+        .items-table {
+            width: 100%;
+            margin: 15px 0;
+            border-collapse: collapse;
+        }
+        
+        .items-table th {
+            text-align: left;
+            padding: 10px 0;
+            color: #64748b;
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .items-table td {
+            padding: 8px 0;
+            color: #1e293b;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .items-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .item-quantity {
+            background-color: #fee2e2;
+            color: #ef4444;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        /* Total Amount */
+        .total-amount {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .total-amount .label {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-right: 10px;
+        }
+        
+        .total-amount .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        
+        /* Next Steps Box */
+        .next-steps {
+            background-color: #f1f5f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        
+        .next-steps h4 {
+            color: #1e293b;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 15px 0;
+        }
+        
+        .step-item {
+            display: flex;
+            align-items: center;
+            margin: 12px 0;
+        }
+        
+        .step-icon {
+            background-color: #ef4444;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .step-text {
+            color: #475569;
+            font-size: 15px;
+        }
+        
+        /* Customer Info Card */
+        .customer-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .customer-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .customer-email {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+        
+        /* Button */
+        .button-container {
+            text-align: center;
+            margin: 30px 0 20px;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .button:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(239, 68, 68, 0.3);
+        }
+        
+        /* Footer */
+        .email-footer {
+            background-color: #f8fafc;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .footer-text {
+            color: #64748b;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        .social-links {
+            margin: 20px 0;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            text-decoration: none;
+            font-size: 20px;
+        }
+        
+        /* Divider */
+        .divider {
+            height: 1px;
+            background-color: #e2e8f0;
+            margin: 20px 0;
+        }
+        
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-content {
+                padding: 30px 20px;
+            }
+            
+            .order-details {
+                padding: 20px;
+            }
+            
+            .details-table td {
+                display: block;
+                width: 100% !important;
+                padding: 4px 0;
+            }
+            
+            .details-table td:first-child {
+                margin-bottom: 0;
+            }
+            
+            .total-amount .value {
+                font-size: 20px;
+            }
+            
+            .items-table {
+                font-size: 14px;
+            }
+            
+            .items-table th, 
+            .items-table td {
+                padding: 6px 4px;
+            }
+            
+            .button {
+                display: block;
+                margin: 0 20px;
+            }
+            
+            .step-item {
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="email-header">
+            <img src="cid:ample_logo" alt="Ample Printhub" class="logo" width="180" height="auto">
+            <h1 class="header-title">🛒 New Order Received!</h1>
+            <p class="header-subtitle">Action Required - Invoice Generation Needed</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="email-content">
+            <p class="greeting">Hello {{name}},</p>
+            
+            <p class="message">A new order has been placed and requires your immediate attention. Please review the order details below and generate an invoice.</p>
+            
+            <!-- Customer Info Card -->
+            <div class="customer-card">
+                <div class="customer-name">{{customerName}}</div>
+                <div class="customer-email">{{customerEmail}}</div>
+            </div>
+            
+            <!-- Order Details -->
+            <div class="order-details">
+                <h3>📋 Order Summary</h3>
+                <table class="details-table">
+                    <tr>
+                        <td><strong>Order Number:</strong></td>
+                        <td><span style="background-color: #f1f5f9; padding: 4px 10px; border-radius: 30px; font-family: monospace; font-weight: 600;">{{orderNumber}}</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Order Date:</strong></td>
+                        <td>{{orderDate}}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Payment Method:</strong></td>
+                        <td>{{paymentMethod}}</td>
+                    </tr>
+                </table>
+                
+                <!-- Items Table -->
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th style="text-align: center;">Qty</th>
+                            <th style="text-align: right;">Price</th>
+                            <th style="text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-body">
+                        <!-- Items will be populated here -->
+                    </tbody>
+                </table>
+                
+                <!-- Total Amount Box -->
+                <div class="total-amount">
+                    <span class="label">Total Order Amount:</span>
+                    <span class="value">₦{{total}}</span>
+                </div>
+            </div>
+            
+            <!-- Next Steps -->
+            <div class="next-steps">
+                <h4>📋 Required Actions:</h4>
+                <div class="step-item">
+                    <span class="step-icon">1</span>
+                    <span class="step-text">Review order details and verify customer information</span>
+                </div>
+                <div class="step-item">
+                    <span class="step-icon">2</span>
+                    <span class="step-text">Generate invoice (full or part payment)</span>
+                </div>
+                <div class="step-item">
+                    <span class="step-icon">3</span>
+                    <span class="step-text">Send invoice to customer for payment</span>
+                </div>
+                <div class="step-item">
+                    <span class="step-icon">4</span>
+                    <span class="step-text">Update order status once invoice is sent</span>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div style="display: flex; justify-content: space-around; margin: 25px 0; padding: 15px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #ef4444;">{{itemCount}}</div>
+                    <div style="font-size: 13px; color: #64748b;">Items</div>
+                </div>
+                <div style="width: 1px; background-color: #e2e8f0;"></div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #ef4444;">{{uniqueProducts}}</div>
+                    <div style="font-size: 13px; color: #64748b;">Products</div>
+                </div>
+                <div style="width: 1px; background-color: #e2e8f0;"></div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #ef4444;">{{priority}}</div>
+                    <div style="font-size: 13px; color: #64748b;">Priority</div>
+                </div>
+            </div>
+            
+            <!-- Action Button -->
+            <div class="button-container">
+                <a href="{{adminUrl}}" class="button">Generate Invoice Now</a>
+            </div>
+            
+            <!-- Note -->
+            <p style="color: #94a3b8; font-size: 14px; margin-top: 30px; text-align: center; background-color: #fff3cd; padding: 15px; border-radius: 8px; color: #856404;">
+                <strong>⏰ Time Sensitive:</strong> Please generate the invoice within 24 hours to avoid delays in order processing.
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="email-footer">
+            <div class="social-links">
+                <a href="https://facebook.com/ampleprinthub">📘</a>
+                <a href="https://instagram.com/ampleprinthub">📷</a>
+                <a href="https://twitter.com/ampleprinthub">🐦</a>
+                <a href="https://tiktok.com/@ampleprinthub">🎵</a>
+            </div>
+            <p class="footer-text">© {{year}} Ample Printhub. All rights reserved.</p>
+            <p class="footer-text">5 Boyle Street, Shomolu, Lagos</p>
+            <p class="footer-text">
+                <a href="{{privacyUrl}}" style="color: #64748b; text-decoration: underline;">Privacy Policy</a> |
+                <a href="{{unsubscribeUrl}}" style="color: #64748b; text-decoration: underline;">Unsubscribe</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Parse items from the data attribute and populate the table
+        document.addEventListener('DOMContentLoaded', function() {
+            const itemsBody = document.getElementById('items-body');
+            const items = JSON.parse('{{items}}'.replace(/&quot;/g, '"'));
+            
+            items.forEach(item => {
+                const row = document.createElement('tr');
+                const price = item.price || 0;
+                const quantity = item.quantity || 1;
+                const total = price * quantity;
+                
+                row.innerHTML = `
+                    <td>${item.productName || item.description || 'Product'}</td>
+                    <td style="text-align: center;"><span class="item-quantity">x${quantity}</span></td>
+                    <td style="text-align: right;">₦${price.toLocaleString()}</td>
+                    <td style="text-align: right; font-weight: 600;">₦${total.toLocaleString()}</td>
+                `;
+                itemsBody.appendChild(row);
+            });
+        });
+    </script>
+</body>
+</html>
