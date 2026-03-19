@@ -62,51 +62,6 @@ export const createDesignController = async (req: Request, res: Response) => {
   }
 };
 
-// export const createDesignController = async (req: Request, res: Response) => {
-//   try {
-//     const { orderId } = req.params; // This is orderId
-//     const admin = req.user as { _id: string; fullname: string };
-//     const files = req.files as Express.Multer.File[];
-//     const io = getIO(req);
-
-//     if (!files || files.length === 0) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "At least one image is required." });
-//     }
-
-//     const { productId } = req.body;
-//     if (!productId) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "productId is required." });
-//     }
-
-//     // ✅ FIX: Convert string IDs to ObjectId
-//     const data: Partial<IDesign> = {
-//       productId: new Types.ObjectId(productId), // Convert to ObjectId
-//       uploadedBy: new Types.ObjectId(admin._id), // Convert to ObjectId
-//       designUrl: `/uploads/${files[0].filename}`,
-//       filename: files[0].filename,
-//       otherImage: files.map((file) => `/uploads/${file.filename}`),
-//       filenames: files.map((file) => file.filename),
-//     };
-
-//     const design = await designService.uploadDesign(id, data as IDesign, io);
-//     const populatedDesign = await design.populate(
-//       "uploadedBy",
-//       "fullname email",
-//     );
-
-//     res.status(201).json({
-//       success: true,
-//       message: "Design uploaded successfully",
-//       data: populatedDesign,
-//     });
-//   } catch (error: any) {
-//     res.status(400).json({ success: false, message: error.message });
-//   }
-// };
 
 export const updatedDesignController = async (req: Request, res: Response) => {
   try {
@@ -179,8 +134,8 @@ export const approveDesignController = async (req: Request, res: Response) => {
 
 export const getDesignByIdController = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const design = await designService.getDesignById(id);
+    const { designId } = req.params;
+    const design = await designService.getDesignById(designId);
     res.status(200).json({
       success: true,
       data: design,
