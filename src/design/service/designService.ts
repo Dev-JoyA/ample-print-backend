@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import {
   Order,
   OrderStatus,
@@ -26,24 +27,22 @@ export interface IDesignFilter {
   endDate?: Date;
 }
 
-// ==================== HELPER: Validate Payment Before Design Upload ====================
-const validatePaymentForDesign = async (orderId: string): Promise<void> => {
-  const order = await Order.findById(orderId);
+const validatePaymentForDesign = async (
+  orderId: string,
+  session?: mongoose.ClientSession,
+): Promise<void> => {
+  const order = await Order.findById(orderId).session(session || null);
   if (!order) throw new Error("Order not found");
 
-  // Check if order has an invoice
   if (!order.invoiceId) {
-    throw new Error(
-      "No invoice created for this order yet. Please wait for invoice.",
-    );
+    throw new Error("No invoice created for this order yet. Please wait for invoice.");
   }
 
-  const invoice = await Invoice.findById(order.invoiceId);
+  const invoice = await Invoice.findById(order.invoiceId).session(session || null);
   if (!invoice) {
     throw new Error("Invoice not found");
   }
 
-  // If full payment required
   if (order.requiredPaymentType === "full") {
     if (order.paymentStatus !== PaymentStatus.Completed) {
       throw new Error("Full payment required before design can be uploaded");
@@ -51,13 +50,11 @@ const validatePaymentForDesign = async (orderId: string): Promise<void> => {
     return;
   }
 
-  // If part payment required
   if (order.requiredPaymentType === "part") {
     if (order.paymentStatus !== PaymentStatus.PartPayment) {
       throw new Error("Deposit payment required before design can be uploaded");
     }
 
-    // Verify deposit amount meets requirement
     if (order.amountPaid < (order.requiredDeposit || 0)) {
       throw new Error(
         `Deposit of at least ${order.requiredDeposit} required before design can be uploaded`,
@@ -69,25 +66,23 @@ const validatePaymentForDesign = async (orderId: string): Promise<void> => {
   throw new Error("Payment requirements not set for this order");
 };
 
-// ==================== HELPER: Check if all products in order have approved designs ====================
-const areAllProductsApproved = async (orderId: string): Promise<boolean> => {
-  const order = await Order.findById(orderId);
+const areAllProductsApproved = async (
+  orderId: string,
+  session?: mongoose.ClientSession,
+): Promise<boolean> => {
+  const order = await Order.findById(orderId).session(session || null);
   if (!order) return false;
 
-  // Get all designs for this order
-  const designs = await Design.find({ orderId });
+  const designs = await Design.find({ orderId }).session(session || null);
 
-  // Create a map of productId -> isApproved
   const approvedProducts = new Map();
   designs.forEach(design => {
     const productId = design.productId.toString();
-    // If any design is approved for this product, mark it
     if (design.isApproved) {
       approvedProducts.set(productId, true);
     }
   });
 
-  // Check if every product in the order has at least one approved design
   const allApproved = order.items.every(item => {
     const productId = item.productId.toString();
     return approvedProducts.has(productId);
@@ -96,531 +91,568 @@ const areAllProductsApproved = async (orderId: string): Promise<boolean> => {
   return allApproved;
 };
 
-// ==================== HELPER: Check if any designs exist for order ====================
-const hasAnyDesigns = async (orderId: string): Promise<boolean> => {
-  const count = await Design.countDocuments({ orderId });
+const hasAnyDesigns = async (
+  orderId: string,
+  session?: mongoose.ClientSession,
+): Promise<boolean> => {
+  const count = await Design.countDocuments({ orderId }).session(session || null);
   return count > 0;
 };
 
-// ==================== UPLOAD DESIGN ====================
 export const uploadDesign = async (
   id: string,
   data: IDesign,
   io: Server,
 ): Promise<IDesign> => {
-  console.log('🔍 Service - Looking for order with ID:', id);
-  
-  const order = await Order.findById(id).exec();
-  if (!order) {
-    throw new Error("No Order found for this design");
-  }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  // Validate payment before allowing design upload
-  await validatePaymentForDesign(order._id.toString());
-
-  // Check order status - allow upload in these statuses
-  const allowedStatuses = [
-    OrderStatus.OrderReceived,
-    OrderStatus.FilesUploaded,
-    OrderStatus.InvoiceSent,
-    OrderStatus.AwaitingPartPayment,
-    OrderStatus.PartPaymentMade,
-    OrderStatus.UnderReview,
-    OrderStatus.FinalPaid,
-    OrderStatus.DesignUploaded, // Allow even if some designs already uploaded
-  ];
-
-  if (!allowedStatuses.includes(order.status)) {
-    throw new Error(
-      `Design cannot be uploaded when order is in ${order.status} status`,
-    );
-  }
-
-  // Check if this specific product already has an approved design
-  const existingApprovedDesign = await Design.findOne({
-    orderId: order._id,
-    productId: data.productId,
-    isApproved: true
-  });
-
-  if (existingApprovedDesign) {
-    throw new Error(`Product already has an approved design. Cannot upload new design.`);
-  }
-
-  const lastDesign = await Design.findOne({ 
-    orderId: order._id,
-    productId: data.productId 
-  }).sort({ version: -1 });
-  
-  const newVersion = lastDesign ? lastDesign.version + 1 : 1;
-
-  if (!data.designUrl) {
-    throw new Error("A design file must be uploaded.");
-  }
-
-  // Create the design
-  const design = await Design.create({
-    userId: order.userId,
-    orderId: order._id,
-    productId: data.productId,
-    uploadedBy: data.uploadedBy,
-    version: newVersion,
-    isApproved: false,
-    designUrl: data.designUrl,
-    otherImage: data.otherImage,
-    createdAt: new Date(),
-  });
-
-  // Update order status ONLY if this is the first design being uploaded
-  const hasDesigns = await hasAnyDesigns(order._id.toString());
-  if (!hasDesigns) {
-    order.status = OrderStatus.DesignUploaded;
-    await order.save();
-  }
-
-  const user = await User.findById(order.userId).exec();
-  if (!user) {
-    throw new Error("User not found");
-  }
-  const profile = await Profile.findOne({ userId: user._id }).exec();
-  if (!profile) {
-    throw new Error("Profile not found");
-  }
-
-  const productInOrder = order.items.find(
-    (item) => item.productId.toString() === data.productId.toString(),
-  );
-
-  if (!productInOrder) {
-    throw new Error("The selected product is not part of this order.");
-  }
-
-  const productName = productInOrder.productName;
-
-  // Socket notifications
-  io.to("superadmin-room").emit("designUploaded", {
-    designId: design._id,
-    orderId: design.orderId,
-    orderNumber: order.orderNumber,
-    designUrl: design.designUrl,
-    uploadedBy: design.uploadedBy,
-    productName,
-    version: design.version,
-  });
-
-  io.to("admin-room").emit("designUploaded", {
-    designId: design._id,
-    orderId: design.orderId,
-    orderNumber: order.orderNumber,
-    designUrl: design.designUrl,
-    productName,
-    version: design.version,
-  });
-
-  io.to(`user-${order.userId}`).emit("design-uploaded", {
-    designId: design._id,
-    orderId: design.orderId,
-    orderNumber: order.orderNumber,
-    productId: design.productId,
-    productName,
-    version: design.version,
-    designUrl: design.designUrl,
-    message: `Design for ${productName} is ready for review`,
-  });
-
-  // Send email notification
-  await emailService
-    .sendDesignReady(
-      user.email,
-      profile.firstName,
-      order.orderNumber,
-      productName,
-      `${process.env.FRONTEND_URL}/orders/${order.orderNumber}/design` ||
-        `http://localhost:4001/orders/${order.orderNumber}/design`,
-    )
-    .catch((err) => console.error("Error sending design ready email:", err));
-
-  // Database notifications
   try {
-    await notificationService.createForUser(user._id, {
-      type: 'design-uploaded',
-      title: 'Design Ready for Review',
-      message: `A new design for ${productName} (order #${order.orderNumber}) is ready for your review`,
-      data: {
-        designId: design._id,
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        productId: design.productId,
-        productName,
-        version: design.version,
-        designUrl: design.designUrl,
-        uploadedBy: design.uploadedBy
-      },
-      link: `/orders/${order._id}/products/${design.productId}/design`
-    });
-
-    await notificationService.createForAdmins({
-      type: 'admin-design-uploaded',
-      title: 'Design Uploaded',
-      message: `Design for ${productName} (order #${order.orderNumber}) was uploaded`,
-      data: {
-        designId: design._id,
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        productId: design.productId,
-        productName,
-        version: design.version,
-        customerId: user._id,
-        customerName: `${profile.firstName} ${profile.lastName}`,
-        uploadedBy: design.uploadedBy
-      },
-      link: `/dashboards/admin/orders/${order._id}/designs/${design._id}`
-    });
+    console.log('🔍 Service - Looking for order with ID:', id);
     
-  } catch (notifErr) {
-    console.error('Failed to create design upload notifications:', notifErr);
-  }
+    const order = await Order.findById(id).session(session).exec();
+    if (!order) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("No Order found for this design");
+    }
 
-  return design;
+    await validatePaymentForDesign(order._id.toString(), session);
+
+    const allowedStatuses = [
+      OrderStatus.OrderReceived,
+      OrderStatus.FilesUploaded,
+      OrderStatus.InvoiceSent,
+      OrderStatus.AwaitingPartPayment,
+      OrderStatus.PartPaymentMade,
+      OrderStatus.UnderReview,
+      OrderStatus.FinalPaid,
+      OrderStatus.DesignUploaded,
+    ];
+
+    if (!allowedStatuses.includes(order.status)) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error(
+        `Design cannot be uploaded when order is in ${order.status} status`,
+      );
+    }
+
+    const existingApprovedDesign = await Design.findOne({
+      orderId: order._id,
+      productId: data.productId,
+      isApproved: true
+    }).session(session);
+
+    if (existingApprovedDesign) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error(`Product already has an approved design. Cannot upload new design.`);
+    }
+
+    const lastDesign = await Design.findOne({ 
+      orderId: order._id,
+      productId: data.productId 
+    }).session(session).sort({ version: -1 });
+    
+    const newVersion = lastDesign ? lastDesign.version + 1 : 1;
+
+    if (!data.designUrl) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("A design file must be uploaded.");
+    }
+
+    const [design] = await Design.create(
+      [{
+        userId: order.userId,
+        orderId: order._id,
+        productId: data.productId,
+        uploadedBy: data.uploadedBy,
+        version: newVersion,
+        isApproved: false,
+        designUrl: data.designUrl,
+        otherImage: data.otherImage,
+        createdAt: new Date(),
+      }],
+      { session },
+    );
+
+    const hasDesigns = await hasAnyDesigns(order._id.toString(), session);
+    if (!hasDesigns) {
+      order.status = OrderStatus.DesignUploaded;
+      await order.save({ session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    const user = await User.findById(order.userId).exec();
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    const profile = await Profile.findOne({ userId: user._id }).exec();
+    if (!profile) {
+      throw new Error("Profile not found");
+    }
+
+    const productInOrder = order.items.find(
+      (item) => item.productId.toString() === data.productId.toString(),
+    );
+
+    if (!productInOrder) {
+      throw new Error("The selected product is not part of this order.");
+    }
+
+    const productName = productInOrder.productName;
+
+    io.to("superadmin-room").emit("designUploaded", {
+      designId: design._id,
+      orderId: design.orderId,
+      orderNumber: order.orderNumber,
+      designUrl: design.designUrl,
+      uploadedBy: design.uploadedBy,
+      productName,
+      version: design.version,
+    });
+
+    io.to("admin-room").emit("designUploaded", {
+      designId: design._id,
+      orderId: design.orderId,
+      orderNumber: order.orderNumber,
+      designUrl: design.designUrl,
+      productName,
+      version: design.version,
+    });
+
+    io.to(`user-${order.userId}`).emit("design-uploaded", {
+      designId: design._id,
+      orderId: design.orderId,
+      orderNumber: order.orderNumber,
+      productId: design.productId,
+      productName,
+      version: design.version,
+      designUrl: design.designUrl,
+      message: `Design for ${productName} is ready for review`,
+    });
+
+    // await emailService
+    //   .sendDesignReady(
+    //     user.email,
+    //     profile.firstName,
+    //     order.orderNumber,
+    //     productName,
+    //     `${process.env.FRONTEND_URL}/orders/${order.orderNumber}/design`,
+    //   )
+    //   .catch((err) => console.error("Error sending design ready email:", err));
+
+    try {
+      await notificationService.createForUser(user._id, {
+        type: 'design-uploaded',
+        title: 'Design Ready for Review',
+        message: `A new design for ${productName} (order #${order.orderNumber}) is ready for your review`,
+        data: {
+          designId: design._id,
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          productId: design.productId,
+          productName,
+          version: design.version,
+          designUrl: design.designUrl,
+          uploadedBy: design.uploadedBy
+        },
+        link: `/orders/${order._id}/products/${design.productId}/design`
+      });
+
+      await notificationService.createForAdmins({
+        type: 'admin-design-uploaded',
+        title: 'Design Uploaded',
+        message: `Design for ${productName} (order #${order.orderNumber}) was uploaded`,
+        data: {
+          designId: design._id,
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          productId: design.productId,
+          productName,
+          version: design.version,
+          customerId: user._id,
+          customerName: `${profile.firstName} ${profile.lastName}`,
+          uploadedBy: design.uploadedBy
+        },
+        link: `/dashboards/admin/orders/${order._id}/designs/${design._id}`
+      });
+      
+    } catch (notifErr: any) {
+      console.error('Failed to create design upload notifications:', notifErr.message);
+    }
+
+    return design;
+  } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
-// ==================== UPDATE DESIGN ====================
 export const updateDesign = async (
   id: string,
   data: Partial<IDesign>,
   io: Server,
 ): Promise<IDesign> => {
-  if (!data.productId) {
-    throw new Error("productId is required for design upload.");
-  }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  const updatedDesign = await Design.findByIdAndUpdate(
-    id,
-    { ...data },
-    { new: true, runValidators: true },
-  );
-
-  if (!updatedDesign) throw new Error("Design not found");
-  updatedDesign.updatedAt = new Date();
-
-  await updatedDesign.save();
-
-  const user = await User.findById(updatedDesign.userId).exec();
-  if (!user) {
-    throw new Error("User not found");
-  }
-  const profile = await Profile.findOne({ userId: user._id }).exec();
-  const product = await Product.findOne({
-    _id: updatedDesign.productId,
-  }).exec();
-  const order = await Order.findById(updatedDesign.orderId).exec();
-
-  if (!profile || !order || !product) {
-    throw new Error("Missing related profile/order/product data");
-  }
-
-  const productName = product.name;
-  const orderNumber = order.orderNumber;
-
-  // Send email notification for update
-  await emailService
-    .sendDesignReady(
-      user.email,
-      profile.firstName,
-      orderNumber,
-      productName,
-      `${process.env.FRONTEND_URL}/orders/${orderNumber}/design` ||
-        `http://localhost:4001/orders/${orderNumber}/design`,
-    )
-    .catch((err) => console.error("Error sending design update email:", err));
-
-  // Socket notifications
-  io.to("superadmin-room").emit("designUpdated", {
-    designId: updatedDesign._id,
-    orderId: updatedDesign.orderId,
-    orderNumber: orderNumber,
-    designUrl: updatedDesign.designUrl,
-    uploadedBy: updatedDesign.uploadedBy,
-    productName,
-    version: updatedDesign.version,
-  });
-
-  io.to("admin-room").emit("designUpdated", {
-    designId: updatedDesign._id,
-    orderId: updatedDesign.orderId,
-    orderNumber: orderNumber,
-    productName,
-    version: updatedDesign.version,
-  });
-
-  io.to(`user-${user._id}`).emit("design-updated", {
-    designId: updatedDesign._id,
-    orderId: updatedDesign.orderId,
-    orderNumber: orderNumber,
-    productId: updatedDesign.productId,
-    productName,
-    version: updatedDesign.version,
-    designUrl: updatedDesign.designUrl,
-    message: `Design for ${productName} has been updated`,
-  });
-
-  // Database notifications
   try {
-    await notificationService.createForUser(user._id, {
-      type: 'design-updated',
-      title: 'Design Updated',
-      message: `The design for ${productName} (order #${orderNumber}) has been updated`,
-      data: {
-        designId: updatedDesign._id,
-        orderId: order._id,
-        orderNumber,
-        productId: updatedDesign.productId,
-        productName,
-        version: updatedDesign.version,
-        designUrl: updatedDesign.designUrl,
-        updatedBy: updatedDesign.uploadedBy
-      },
-      link: `/orders/${order._id}/products/${updatedDesign.productId}/design`
-    });
+    if (!data.productId) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("productId is required for design upload.");
+    }
 
-    await notificationService.createForAdmins({
-      type: 'admin-design-updated',
-      title: 'Design Updated',
-      message: `Design for ${productName} (order #${orderNumber}) was updated`,
-      data: {
-        designId: updatedDesign._id,
-        orderId: order._id,
-        orderNumber,
-        productId: updatedDesign.productId,
-        productName,
-        version: updatedDesign.version,
-        customerId: user._id,
-        updatedBy: updatedDesign.uploadedBy
-      },
-      link: `/dashboards/admin/orders/${order._id}/designs/${updatedDesign._id}`
-    });
+    const updatedDesign = await Design.findByIdAndUpdate(
+      id,
+      { ...data, updatedAt: new Date() },
+      { new: true, runValidators: true, session },
+    );
+
+    if (!updatedDesign) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Design not found");
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    const user = await User.findById(updatedDesign.userId).exec();
+    if (!user) {
+      throw new Error("User not found");
+    }
     
-  } catch (notifErr) {
-    console.error('Failed to create design update notifications:', notifErr);
-  }
+    const profile = await Profile.findOne({ userId: user._id }).exec();
+    const product = await Product.findOne({
+      _id: updatedDesign.productId,
+    }).exec();
+    const order = await Order.findById(updatedDesign.orderId).exec();
 
-  return updatedDesign;
-};
-
-// ==================== DELETE DESIGN ====================
-export const deleteDesign = async (id: string): Promise<string> => {
-  const design = await Design.findById(id);
-  if (!design) throw new Error("Design not found");
-
-  const order = await Order.findById(design.orderId);
-  const user = await User.findById(design.userId);
-  const product = await Product.findById(design.productId);
-
-  // Delete all associated files
-  const filesToDelete = [design.designUrl, ...(design.otherImage || [])].filter(
-    Boolean,
-  );
-
-  for (const fileUrl of filesToDelete) {
-    if (fileUrl) {
-      const filename = path.basename(fileUrl);
-      const filePath = path.join("uploads", filename);
-      try {
-        await fs.unlink(filePath);
-        console.log(`Deleted file: ${filePath}`);
-      } catch (err) {
-        console.error(`Failed to delete file ${filePath}:`, err);
-        // Continue even if file delete fails
-      }
+    if (!profile || !order || !product) {
+      throw new Error("Missing related profile/order/product data");
     }
-  }
 
-  await Design.findByIdAndDelete(id);
-
-  // After deletion, check if order status should be updated
-  if (order) {
-    const hasDesigns = await hasAnyDesigns(order._id.toString());
-    if (!hasDesigns) {
-      // If no designs left, revert order status to previous state
-      // You might want to store the previous status or determine appropriate status
-      order.status = OrderStatus.PartPaymentMade; // or appropriate status
-      await order.save();
-    }
-  }
-
-  // Database notifications
-  if (user && order) {
-    try {
-      await notificationService.createForUser(user._id, {
-        type: 'design-deleted',
-        title: 'Design Deleted',
-        message: `A design for order #${order.orderNumber} has been deleted`,
-        data: {
-          designId: design._id,
-          orderId: order._id,
-          orderNumber: order.orderNumber,
-          productId: design.productId,
-          productName: product?.name
-        },
-        link: `/orders/${order._id}`
-      });
-
-      await notificationService.createForAdmins({
-        type: 'admin-design-deleted',
-        title: 'Design Deleted',
-        message: `Design for order #${order.orderNumber} was deleted`,
-        data: {
-          designId: design._id,
-          orderId: order._id,
-          orderNumber: order.orderNumber,
-          productId: design.productId,
-          productName: product?.name,
-          customerId: user._id
-        },
-        link: `/dashboards/admin/orders/${order._id}`
-      });
-      
-    } catch (notifErr) {
-      console.error('Failed to create design deletion notifications:', notifErr);
-    }
-  }
-
-  return "Design deleted successfully";
-};
-
-// ==================== APPROVE DESIGN ====================
-export const approveDesign = async (id: string): Promise<IDesign> => {
-  const design = await Design.findById(id);
-  if (!design) throw new Error("Design not found");
-
-  design.isApproved = true;
-  design.approvedAt = new Date();
-  await design.save();
-
-  // Check if all products in the order now have approved designs
-  const allProductsApproved = await areAllProductsApproved(design.orderId.toString());
-
-  const order = await Order.findById(design.orderId).exec();
-  if (order) {
-    // Only update order status to Approved if ALL products have approved designs
-    if (allProductsApproved) {
-      order.status = OrderStatus.Approved;
-      await order.save();
-    }
-    // Otherwise, keep order status as DesignUploaded or whatever it was
-
-    // Socket notification
-    const io = (global as any).io;
-    if (io) {
-      io.to(`user-${order.userId}`).emit("design-approved", {
-        designId: design._id,
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        productId: design.productId,
-        allProductsApproved
-      });
-
-      io.to("admin-room").emit("design-approved", {
-        designId: design._id,
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        productId: design.productId,
-        allProductsApproved
-      });
-
-      io.to("superadmin-room").emit("design-approved", {
-        designId: design._id,
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        productId: design.productId,
-        allProductsApproved
-      });
-    }
-  }
-
-  // Send design approved email
-  const user = await User.findById(design.userId).exec();
-  const profile = await Profile.findOne({ userId: design.userId }).exec();
-  const product = await Product.findById(design.productId).exec();
-
-  if (user && profile && order && product) {
-    // Calculate estimated delivery
-    const estimatedDelivery = new Date();
-    estimatedDelivery.setDate(estimatedDelivery.getDate() + 7);
+    const productName = product.name;
+    const orderNumber = order.orderNumber;
 
     await emailService
-      .sendDesignApproved(
+      .sendDesignReady(
         user.email,
         profile.firstName,
-        order.orderNumber,
-        product.name,
-        "3-5", // Production time
-        estimatedDelivery.toLocaleDateString(),
+        orderNumber,
+        productName,
+        `${process.env.FRONTEND_URL}/orders/${orderNumber}/design`,
       )
-      .catch((err) =>
-        console.error("Error sending design approved email:", err),
-      );
+      .catch((err) => console.error("Error sending design update email:", err));
 
-    // Database notifications
+    io.to("superadmin-room").emit("designUpdated", {
+      designId: updatedDesign._id,
+      orderId: updatedDesign.orderId,
+      orderNumber: orderNumber,
+      designUrl: updatedDesign.designUrl,
+      uploadedBy: updatedDesign.uploadedBy,
+      productName,
+      version: updatedDesign.version,
+    });
+
+    io.to("admin-room").emit("designUpdated", {
+      designId: updatedDesign._id,
+      orderId: updatedDesign.orderId,
+      orderNumber: orderNumber,
+      productName,
+      version: updatedDesign.version,
+    });
+
+    io.to(`user-${user._id}`).emit("design-updated", {
+      designId: updatedDesign._id,
+      orderId: updatedDesign.orderId,
+      orderNumber: orderNumber,
+      productId: updatedDesign.productId,
+      productName,
+      version: updatedDesign.version,
+      designUrl: updatedDesign.designUrl,
+      message: `Design for ${productName} has been updated`,
+    });
+
     try {
       await notificationService.createForUser(user._id, {
-        type: 'design-approved',
-        title: allProductsApproved ? 'All Designs Approved' : 'Design Approved',
-        message: allProductsApproved 
-          ? `All designs for order #${order.orderNumber} have been approved! Production will begin shortly.`
-          : `Your design for ${product.name} (order #${order.orderNumber}) has been approved!`,
+        type: 'design-updated',
+        title: 'Design Updated',
+        message: `The design for ${productName} (order #${orderNumber}) has been updated`,
         data: {
-          designId: design._id,
+          designId: updatedDesign._id,
           orderId: order._id,
-          orderNumber: order.orderNumber,
-          productId: design.productId,
-          productName: product.name,
-          version: design.version,
-          approvedAt: design.approvedAt,
-          allProductsApproved
+          orderNumber,
+          productId: updatedDesign.productId,
+          productName,
+          version: updatedDesign.version,
+          designUrl: updatedDesign.designUrl,
+          updatedBy: updatedDesign.uploadedBy
         },
-        link: `/orders/${order._id}`
+        link: `/orders/${order._id}/products/${updatedDesign.productId}/design`
       });
 
       await notificationService.createForAdmins({
-        type: 'admin-design-approved',
-        title: allProductsApproved ? 'All Designs Approved' : 'Design Approved',
-        message: allProductsApproved
-          ? `All designs for order #${order.orderNumber} have been approved by customer`
-          : `Design for ${product.name} (order #${order.orderNumber}) was approved by customer`,
+        type: 'admin-design-updated',
+        title: 'Design Updated',
+        message: `Design for ${productName} (order #${orderNumber}) was updated`,
         data: {
+          designId: updatedDesign._id,
+          orderId: order._id,
+          orderNumber,
+          productId: updatedDesign.productId,
+          productName,
+          version: updatedDesign.version,
+          customerId: user._id,
+          updatedBy: updatedDesign.uploadedBy
+        },
+        link: `/dashboards/admin/orders/${order._id}/designs/${updatedDesign._id}`
+      });
+      
+    } catch (notifErr: any) {
+      console.error('Failed to create design update notifications:', notifErr.message);
+    }
+
+    return updatedDesign;
+  } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+};
+
+export const deleteDesign = async (id: string): Promise<string> => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const design = await Design.findById(id).session(session);
+    if (!design) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Design not found");
+    }
+
+    const order = await Order.findById(design.orderId).session(session);
+    const user = await User.findById(design.userId);
+    const product = await Product.findById(design.productId);
+
+    const filesToDelete = [design.designUrl, ...(design.otherImage || [])].filter(Boolean);
+
+    for (const fileUrl of filesToDelete) {
+      if (fileUrl) {
+        const filename = path.basename(fileUrl);
+        const filePath = path.join("uploads", filename);
+        try {
+          await fs.unlink(filePath);
+          console.log(`Deleted file: ${filePath}`);
+        } catch (err) {
+          console.error(`Failed to delete file ${filePath}:`, err);
+        }
+      }
+    }
+
+    await Design.findByIdAndDelete(id).session(session);
+
+    if (order) {
+      const hasDesigns = await hasAnyDesigns(order._id.toString(), session);
+      if (!hasDesigns) {
+        order.status = OrderStatus.PartPaymentMade;
+        await order.save({ session });
+      }
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    if (user && order) {
+      try {
+        await notificationService.createForUser(user._id, {
+          type: 'design-deleted',
+          title: 'Design Deleted',
+          message: `A design for order #${order.orderNumber} has been deleted`,
+          data: {
+            designId: design._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            productId: design.productId,
+            productName: product?.name
+          },
+          link: `/orders/${order._id}`
+        });
+
+        await notificationService.createForAdmins({
+          type: 'admin-design-deleted',
+          title: 'Design Deleted',
+          message: `Design for order #${order.orderNumber} was deleted`,
+          data: {
+            designId: design._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            productId: design.productId,
+            productName: product?.name,
+            customerId: user._id
+          },
+          link: `/dashboards/admin/orders/${order._id}`
+        });
+        
+      } catch (notifErr: any) {
+        console.error('Failed to create design deletion notifications:', notifErr.message);
+      }
+    }
+
+    return "Design deleted successfully";
+  } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+};
+
+export const approveDesign = async (id: string): Promise<IDesign> => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const design = await Design.findById(id).session(session);
+    if (!design) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Design not found");
+    }
+
+    design.isApproved = true;
+    design.approvedAt = new Date();
+    await design.save({ session });
+
+    const allProductsApproved = await areAllProductsApproved(design.orderId.toString(), session);
+
+    const order = await Order.findById(design.orderId).session(session).exec();
+    if (order && allProductsApproved) {
+      order.status = OrderStatus.Approved;
+      await order.save({ session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    if (order) {
+      const io = (global as any).io;
+      if (io) {
+        io.to(`user-${order.userId}`).emit("design-approved", {
           designId: design._id,
           orderId: order._id,
           orderNumber: order.orderNumber,
           productId: design.productId,
-          productName: product.name,
-          customerId: user._id,
           allProductsApproved
-        },
-        link: `/dashboards/admin/orders/${order._id}/designs/${design._id}`
-      });
-      
-    } catch (notifErr) {
-      console.error('Failed to create design approval notifications:', notifErr);
-    }
-  }
+        });
 
-  return design;
+        io.to("admin-room").emit("design-approved", {
+          designId: design._id,
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          productId: design.productId,
+          allProductsApproved
+        });
+
+        io.to("superadmin-room").emit("design-approved", {
+          designId: design._id,
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          productId: design.productId,
+          allProductsApproved
+        });
+      }
+    }
+
+    const user = await User.findById(design.userId).exec();
+    const profile = await Profile.findOne({ userId: design.userId }).exec();
+    const product = await Product.findById(design.productId).exec();
+
+    if (user && profile && order && product) {
+    //   await emailService
+    //     .sendDesignApproved(
+    //       user.email,
+    //       profile.firstName,
+    //       order.orderNumber,
+    //       product.name,
+    //       "3-5", 
+    //     )
+    //     .catch((err) =>
+    //       console.error("Error sending design approved email:", err),
+    //     );
+
+      try {
+        await notificationService.createForUser(user._id, {
+          type: 'design-approved',
+          title: allProductsApproved ? 'All Designs Approved' : 'Design Approved',
+          message: allProductsApproved 
+            ? `All designs for order #${order.orderNumber} have been approved! Production will begin shortly.`
+            : `Your design for ${product.name} (order #${order.orderNumber}) has been approved!`,
+          data: {
+            designId: design._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            productId: design.productId,
+            productName: product.name,
+            version: design.version,
+            approvedAt: design.approvedAt,
+            allProductsApproved
+          },
+          link: `/orders/${order._id}`
+        });
+
+        await notificationService.createForAdmins({
+          type: 'admin-design-approved',
+          title: allProductsApproved ? 'All Designs Approved' : 'Design Approved',
+          message: allProductsApproved
+            ? `All designs for order #${order.orderNumber} have been approved by customer`
+            : `Design for ${product.name} (order #${order.orderNumber}) was approved by customer`,
+          data: {
+            designId: design._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            productId: design.productId,
+            productName: product.name,
+            customerId: user._id,
+            allProductsApproved
+          },
+          link: `/dashboards/admin/orders/${order._id}/designs/${design._id}`
+        });
+        
+      } catch (notifErr: any) {
+        console.error('Failed to create design approval notifications:', notifErr.message);
+      }
+    }
+
+    return design;
+  } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
-// ==================== GET DESIGN BY ID ====================
 export const getDesignById = async (id: string): Promise<IDesign> => {
   const design = await Design.findById(id)
     .populate("userId", "email")
     .populate("orderId")
     .populate("productId")
     .populate("uploadedBy", "email");
+  
   if (!design) throw new Error("Design not found");
 
   return design;
 };
 
-// ==================== GET USER DESIGNS ====================
 export const getUserDesigns = async (userId: string): Promise<IDesign[]> => {
   const designs = await Design.find({ userId })
     .populate("orderId")
@@ -631,7 +663,6 @@ export const getUserDesigns = async (userId: string): Promise<IDesign[]> => {
   return designs;
 };
 
-// ==================== GET DESIGNS BY ORDER ID ====================
 export const getDesignsByOrderId = async (
   orderId: string,
 ): Promise<IDesign[]> => {
@@ -643,7 +674,6 @@ export const getDesignsByOrderId = async (
   return designs;
 };
 
-// ==================== FILTER DESIGNS ====================
 export const filterDesigns = async (filters: IDesignFilter) => {
   const query: any = {};
 
@@ -676,7 +706,6 @@ export const filterDesigns = async (filters: IDesignFilter) => {
   return designs;
 };
 
-// ==================== GET DESIGNS BY PRODUCT ID ====================
 export const getDesignByProductId = async (
   productId: string,
 ): Promise<IDesign[]> => {
@@ -688,7 +717,6 @@ export const getDesignByProductId = async (
   return designs;
 };
 
-// ==================== GET ALL DESIGNS ====================
 export const getAllDesigns = async (): Promise<IDesign[]> => {
   return Design.find()
     .populate("userId")

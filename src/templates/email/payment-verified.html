@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Payment Verification - Ample Printhub</title>
+    <style>
+        /* Reset styles */
+        body, table, td, p, a {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            font-size: 100%;
+            font: inherit;
+            vertical-align: baseline;
+        }
+        
+        body {
+            background-color: #f4f7fb;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 20px;
+        }
+        
+        table {
+            border-collapse: collapse;
+            mso-table-lspace: 0;
+            mso-table-rspace: 0;
+        }
+        
+        /* Container */
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* Header - Base styles */
+        .email-header {
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .header-approved {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .header-rejected {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .logo {
+            max-width: 180px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        
+        .header-title {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-subtitle-approved {
+            color: #a7f3d0;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        
+        .header-subtitle-rejected {
+            color: #fecaca;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        
+        .status-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .status-icon.approved {
+            animation: scale 0.5s ease-in-out;
+        }
+        
+        .status-icon.rejected {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes scale {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        /* Content */
+        .email-content {
+            padding: 40px 30px;
+            background-color: #ffffff;
+        }
+        
+        .greeting {
+            color: #1e293b;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            color: #475569;
+            font-size: 16px;
+            margin-bottom: 25px;
+        }
+        
+        .highlight-approved {
+            color: #059669;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        
+        .highlight-rejected {
+            color: #dc2626;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 25px;
+        }
+        
+        .status-approved {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-rejected {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        /* Info Box */
+        .info-box {
+            background-color: #f8fafc;
+            border-radius: 16px;
+            padding: 25px;
+            margin: 25px 0;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .info-box h3 {
+            color: #1e293b;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .transaction-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        
+        .transaction-row:last-child {
+            border-bottom: none;
+        }
+        
+        .transaction-label {
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .transaction-value {
+            color: #1e293b;
+            font-weight: 600;
+        }
+        
+        .transaction-value.amount-approved {
+            color: #059669;
+            font-size: 18px;
+        }
+        
+        .transaction-value.amount-rejected {
+            color: #dc2626;
+            font-size: 18px;
+        }
+        
+        .reason-box {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #fee2e2;
+            border-radius: 8px;
+            border-left: 4px solid #dc2626;
+        }
+        
+        .reason-box p {
+            color: #991b1b;
+            margin: 5px 0;
+        }
+        
+        .reason-box strong {
+            color: #7f1d1d;
+        }
+        
+        /* Next Steps Box */
+        .next-steps-approved {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-radius: 16px;
+            padding: 25px;
+            margin: 25px 0;
+            border: 1px solid #6ee7b7;
+        }
+        
+        .next-steps-rejected {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border-radius: 16px;
+            padding: 25px;
+            margin: 25px 0;
+            border: 1px solid #fecaca;
+        }
+        
+        .next-steps-approved h3 {
+            color: #065f46;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .next-steps-rejected h3 {
+            color: #991b1b;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .next-steps-approved p {
+            color: #065f46;
+            margin: 10px 0;
+        }
+        
+        .next-steps-rejected p {
+            color: #7f1d1d;
+            margin: 10px 0;
+        }
+        
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+        }
+        
+        .step-circle-approved {
+            width: 30px;
+            height: 30px;
+            background-color: #10b981;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .step-circle-rejected {
+            width: 30px;
+            height: 30px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .step-text {
+            color: #1e293b;
+            font-weight: 500;
+        }
+        
+        /* Action Buttons */
+        .button-container {
+            text-align: center;
+            margin: 35px 0;
+        }
+        
+        .button-approved {
+            display: inline-block;
+            padding: 16px 36px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .button-rejected {
+            display: inline-block;
+            padding: 16px 36px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .button-approved:hover, .button-rejected:hover {
+            transform: translateY(-2px);
+        }
+        
+        .button-approved:hover {
+            box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.3);
+        }
+        
+        .button-rejected:hover {
+            box-shadow: 0 6px 8px -1px rgba(239, 68, 68, 0.3);
+        }
+        
+        .button-secondary {
+            display: inline-block;
+            padding: 16px 36px;
+            background: #ffffff;
+            color: #1e293b !important;
+            border: 2px solid #e2e8f0;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .button-secondary:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+            transform: translateY(-2px);
+        }
+        
+        /* Support Card */
+        .support-card {
+            background-color: #f1f5f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        
+        .support-card p {
+            color: #475569;
+            margin: 5px 0;
+        }
+        
+        .support-link {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        /* Footer */
+        .email-footer {
+            background-color: #f8fafc;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .footer-text {
+            color: #64748b;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        .social-links {
+            margin: 20px 0;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            text-decoration: none;
+            font-size: 20px;
+        }
+        
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-content {
+                padding: 30px 20px;
+            }
+            
+            .transaction-row {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .step-indicator {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .step-circle-approved, .step-circle-rejected {
+                margin-right: 0;
+                margin-bottom: 8px;
+            }
+            
+            .button-approved, .button-rejected, .button-secondary {
+                display: block;
+                width: 100%;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header - Conditional class applied -->
+        <div class="email-header {{#if (eq status 'approved')}}header-approved{{else}}header-rejected{{/if}}">
+            <div class="status-icon {{#if (eq status 'approved')}}approved{{else}}rejected{{/if}}">
+                {{#if (eq status 'approved')}}✅{{else}}❌{{/if}}
+            </div>
+            <img src="cid:ample_logo" alt="Ample Printhub" class="logo" width="180" height="auto">
+            <h1 class="header-title">
+                {{#if (eq status 'approved')}}
+                Payment Verified!
+                {{else}}
+                Payment Verification Failed
+                {{/if}}
+            </h1>
+            <p class="{{#if (eq status 'approved')}}header-subtitle-approved{{else}}header-subtitle-rejected{{/if}}">
+                {{#if (eq status 'approved')}}
+                Your payment has been confirmed
+                {{else}}
+                We couldn't verify your payment
+                {{/if}}
+            </p>
+        </div>
+        
+        <!-- Content -->
+        <div class="email-content">
+            <div style="text-align: center;">
+                <span class="status-badge {{#if (eq status 'approved')}}status-approved{{else}}status-rejected{{/if}}">
+                    {{#if (eq status 'approved')}}✓ Approved{{else}}✗ Rejected{{/if}}
+                </span>
+            </div>
+            
+            <p class="greeting">Hello {{name}},</p>
+            
+            {{#if (eq status 'approved')}}
+            <p class="message">
+                Great news! Your bank transfer of 
+                <span class="highlight-approved">₦{{amount}}</span> for order 
+                <span class="highlight-approved">#{{orderNumber}}</span> has been successfully verified and confirmed. ✅
+            </p>
+            {{else}}
+            <p class="message">
+                Unfortunately, we were unable to verify your bank transfer of 
+                <span class="highlight-rejected">₦{{amount}}</span> for order 
+                <span class="highlight-rejected">#{{orderNumber}}</span>. ❌
+            </p>
+            {{/if}}
+            
+            <!-- Transaction Details -->
+            <div class="info-box">
+                <h3>
+                    <span>📋</span>
+                    Transaction Details
+                </h3>
+                
+                <div class="transaction-row">
+                    <span class="transaction-label">Amount:</span>
+                    <span class="transaction-value {{#if (eq status 'approved')}}amount-approved{{else}}amount-rejected{{/if}}">₦{{amount}}</span>
+                </div>
+                
+                <div class="transaction-row">
+                    <span class="transaction-label">Reference:</span>
+                    <span class="transaction-value" style="font-family: monospace;">{{transactionId}}</span>
+                </div>
+                
+                <div class="transaction-row">
+                    <span class="transaction-label">Order Number:</span>
+                    <span class="transaction-value">#{{orderNumber}}</span>
+                </div>
+                
+                <div class="transaction-row">
+                    <span class="transaction-label">Status:</span>
+                    <span class="transaction-value">
+                        <span class="{{#if (eq status 'approved')}}status-approved{{else}}status-rejected{{/if}}" style="padding: 4px 12px; border-radius: 50px; font-size: 12px;">
+                            {{#if (eq status 'approved')}}Approved{{else}}Rejected{{/if}}
+                        </span>
+                    </span>
+                </div>
+                
+                {{#if notes}}
+                <div class="reason-box">
+                    <p><strong>Reason for rejection:</strong></p>
+                    <p>{{notes}}</p>
+                </div>
+                {{/if}}
+            </div>
+            
+            <!-- Next Steps -->
+            <div class="{{#if (eq status 'approved')}}next-steps-approved{{else}}next-steps-rejected{{/if}}">
+                {{#if (eq status 'approved')}}
+                <h3>🚀 What's Next?</h3>
+                <div class="step-indicator">
+                    <div class="step-circle-approved">✓</div>
+                    <span class="step-text">Payment verified - Your order will now proceed to the next stage</span>
+                </div>
+                <p style="margin-top: 15px;">
+                    You'll receive further updates as processing continues. You can track your order progress in your dashboard.
+                </p>
+                {{else}}
+                <h3>📋 Next Steps</h3>
+                <div class="step-indicator">
+                    <div class="step-circle-rejected">1</div>
+                    <span class="step-text">Upload a clearer payment receipt</span>
+                </div>
+                <div class="step-indicator">
+                    <div class="step-circle-rejected">2</div>
+                    <span class="step-text">Contact our support team for assistance</span>
+                </div>
+                <p style="margin-top: 15px;">
+                    Please ensure your payment receipt clearly shows the transaction details and matches your order information.
+                </p>
+                {{/if}}
+            </div>
+            
+            <!-- Action Button -->
+            <div class="button-container">
+                {{#if (eq status 'approved')}}
+                <a href="{{orderUrl}}" class="button-approved">Track Your Order</a>
+                {{else}}
+                <a href="{{uploadUrl}}" class="button-rejected">Upload New Receipt</a>
+                <a href="{{supportUrl}}" class="button-secondary">Contact Support</a>
+                {{/if}}
+            </div>
+            
+            <!-- Support Information -->
+            <div class="support-card">
+                <p><strong>Need assistance?</strong></p>
+                <p>Email: <a href="mailto:support@ampleprinthub.com" class="support-link">support@ampleprinthub.com</a></p>
+                <p>Phone: +234 806 235 6261</p>
+                <p>Hours: Mon-Fri, 9am - 5pm</p>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="email-footer">
+            <div class="social-links">
+                <a href="https://facebook.com/ampleprinthub">📘</a>
+                <a href="https://instagram.com/ampleprinthub">📷</a>
+                <a href="https://twitter.com/ampleprinthub">🐦</a>
+                <a href="https://tiktok.com/@ampleprinthub">🎵</a>
+            </div>
+            <p class="footer-text">© {{year}} Ample Printhub. All rights reserved.</p>
+            <p class="footer-text">5 Boyle Street, Shomolu, Lagos</p>
+            <p class="footer-text">
+                <a href="{{privacyUrl}}" style="color: #64748b; text-decoration: underline;">Privacy Policy</a> |
+                <a href="{{unsubscribeUrl}}" style="color: #64748b; text-decoration: underline;">Unsubscribe</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

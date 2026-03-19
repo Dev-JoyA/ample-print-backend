@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import {
   Shipping,
   IShipping,
@@ -10,7 +11,6 @@ import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
 import emailService from "../../utils/email.js";
 import { notificationService } from "../../notification/service/notificationService.js";
-import mongoose from "mongoose";
 
 export interface IShippingFilter {
   status?: ShippingStatus;
@@ -41,16 +41,10 @@ export interface ShippingAddress {
 
 export interface CreateShippingData {
   shippingMethod: ShippingMethod;
-
-  // For delivery - customer provides address only
-  // Name and phone come from profile (cannot be changed)
-  address?: ShippingAddress; // Required for delivery
-
-  // For pickup
+  address?: ShippingAddress;
   pickupNotes?: string;
 }
 
-// ==================== CREATE SHIPPING (Admin only) ====================
 export const createShipping = async (
   orderId: string,
   data: CreateShippingData,
@@ -66,7 +60,6 @@ export const createShipping = async (
       throw new Error("Order not found");
     }
 
-    // Check if order is ready for shipping
     if (
       order.status !== OrderStatus.ReadyForShipping &&
       order.status !== OrderStatus.Completed
@@ -76,26 +69,20 @@ export const createShipping = async (
       );
     }
 
-    // Check if shipping already exists
-    const existingShipping = await Shipping.findOne({ orderId }).session(
-      session,
-    );
+    const existingShipping = await Shipping.findOne({ orderId }).session(session);
     if (existingShipping) {
       throw new Error("Shipping record already exists for this order");
     }
 
-    // Validate based on shipping method
     if (data.shippingMethod === ShippingMethod.Delivery && !data.address) {
       throw new Error("Address is required for delivery");
     }
 
-    // Get user profile for name and phone (these cannot be changed by customer)
-    const profile = await Profile.findOne({ userId: order.userId });
+    const profile = await Profile.findOne({ userId: order.userId }).session(session);
     if (!profile) {
       throw new Error("User profile not found");
     }
 
-    // Create shipping record
     const [shipping] = await Shipping.create(
       [
         {
@@ -106,7 +93,6 @@ export const createShipping = async (
           status: ShippingStatus.Pending,
           isPaid: false,
 
-          // For delivery - use profile name/phone, customer-provided address
           ...(data.shippingMethod === ShippingMethod.Delivery && {
             recipientName: `${profile.firstName} ${profile.lastName}`,
             recipientPhone: profile.phoneNumber,
@@ -116,7 +102,6 @@ export const createShipping = async (
             },
           }),
 
-          // Metadata
           metadata: {
             createdBy: adminId,
             pickupNotes: data.pickupNotes,
@@ -126,16 +111,13 @@ export const createShipping = async (
       { session },
     );
 
-    // Update order with shipping ID
     order.shippingId = shipping._id;
     await order.save({ session });
 
     await session.commitTransaction();
 
-    // Get user for notifications
     const user = await User.findById(order.userId);
 
-    // ✅ NOTIFICATIONS
     if (data.shippingMethod === ShippingMethod.Delivery) {
       io.to(`user-${order.userId}`).emit("shipping-created", {
         shippingId: shipping._id,
@@ -148,7 +130,6 @@ export const createShipping = async (
         recipientPhone: profile.phoneNumber,
       });
 
-      // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
       try {
         await notificationService.createForUser(order.userId, {
           type: 'shipping-created',
@@ -170,7 +151,6 @@ export const createShipping = async (
         console.error('Failed to create shipping notification:', notifErr);
       }
 
-      // Email to customer about shipping setup
       if (user && profile) {
         const addressStr = data.address
           ? `${data.address.street}, ${data.address.city}, ${data.address.state}`
@@ -190,7 +170,6 @@ export const createShipping = async (
           .catch((err) => console.error("Error sending shipping email:", err));
       }
     } else {
-      // Pickup notification
       io.to(`user-${order.userId}`).emit("pickup-ready", {
         shippingId: shipping._id,
         orderId: order._id,
@@ -200,7 +179,6 @@ export const createShipping = async (
         storeHours: process.env.STORE_HOURS || "Mon-Fri 9am-5pm",
       });
 
-      // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
       try {
         await notificationService.createForUser(order.userId, {
           type: 'pickup-ready',
@@ -230,7 +208,6 @@ export const createShipping = async (
       cost: 0,
     });
 
-    // ✅ CREATE DATABASE NOTIFICATION FOR ADMINS
     try {
       await notificationService.createForAdmins({
         type: 'admin-shipping-created',
@@ -247,7 +224,7 @@ export const createShipping = async (
           customerName: `${profile.firstName} ${profile.lastName}`
         },
         link: `/dashboards/admin/orders/${order._id}/shipping`
-      }); // Exclude the creator
+      });
       
     } catch (notifErr) {
       console.error('Failed to create admin shipping notification:', notifErr);
@@ -262,7 +239,6 @@ export const createShipping = async (
   }
 };
 
-// ==================== UPDATE SHIPPING TRACKING (Admin only) ====================
 export const updateShippingTracking = async (
   shippingId: string,
   data: {
@@ -273,335 +249,349 @@ export const updateShippingTracking = async (
   adminId: string,
   io: Server,
 ): Promise<IShipping> => {
-  const shipping = await Shipping.findById(shippingId);
-  if (!shipping) {
-    throw new Error("Shipping not found");
-  }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (shipping.shippingMethod !== ShippingMethod.Delivery) {
-    throw new Error("Cannot add tracking number for pickup orders");
-  }
+  try {
+    const shipping = await Shipping.findById(shippingId).session(session);
+    if (!shipping) {
+      throw new Error("Shipping not found");
+    }
 
-  if (shipping.status !== ShippingStatus.Pending) {
-    throw new Error(`Cannot update tracking when status is ${shipping.status}`);
-  }
+    if (shipping.shippingMethod !== ShippingMethod.Delivery) {
+      throw new Error("Cannot add tracking number for pickup orders");
+    }
 
-  // Update tracking
-  shipping.trackingNumber = data.trackingNumber;
+    if (shipping.status !== ShippingStatus.Pending) {
+      throw new Error(`Cannot update tracking when status is ${shipping.status}`);
+    }
 
-  // Add to tracking history
-  shipping.trackingHistory = shipping.trackingHistory || [];
-  shipping.trackingHistory.push({
-    status: ShippingStatus.Shipped,
-    location: "Warehouse",
-    description: `Package shipped via ${data.carrier || "courier"} with tracking ${data.trackingNumber}`,
-    timestamp: new Date(),
-  });
+    shipping.trackingNumber = data.trackingNumber;
 
-  // Update metadata
-  shipping.metadata = {
-    ...shipping.metadata,
-    carrier: data.carrier,
-    trackingUpdatedBy: adminId,
-    trackingUpdatedAt: new Date(),
-  };
+    shipping.trackingHistory = shipping.trackingHistory || [];
+    shipping.trackingHistory.push({
+      status: ShippingStatus.Shipped,
+      location: "Warehouse",
+      description: `Package shipped via ${data.carrier || "courier"} with tracking ${data.trackingNumber}`,
+      timestamp: new Date(),
+    });
 
-  if (data.estimatedDelivery) {
-    shipping.estimatedDelivery = data.estimatedDelivery;
-  }
+    shipping.metadata = {
+      ...shipping.metadata,
+      carrier: data.carrier,
+      trackingUpdatedBy: adminId,
+      trackingUpdatedAt: new Date(),
+    };
 
-  // Update status to Shipped when tracking is added
-  shipping.status = ShippingStatus.Shipped;
+    if (data.estimatedDelivery) {
+      shipping.estimatedDelivery = data.estimatedDelivery;
+    }
 
-  await shipping.save();
+    shipping.status = ShippingStatus.Shipped;
 
-  // Get order and user for notifications
-  const order = await Order.findById(shipping.orderId);
-  const user = await User.findById(order?.userId);
-  const profile = await Profile.findOne({ userId: order?.userId });
+    await shipping.save({ session });
+    await session.commitTransaction();
 
-  // ✅ NOTIFICATIONS
-  if (user && profile && order) {
-    io.to(`user-${user._id}`).emit("tracking-updated", {
+    const order = await Order.findById(shipping.orderId);
+    const user = await User.findById(order?.userId);
+    const profile = await Profile.findOne({ userId: order?.userId });
+
+    if (user && profile && order) {
+      io.to(`user-${user._id}`).emit("tracking-updated", {
+        shippingId: shipping._id,
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        trackingNumber: data.trackingNumber,
+        carrier: data.carrier,
+        estimatedDelivery: data.estimatedDelivery,
+        status: ShippingStatus.Shipped,
+      });
+
+      try {
+        await notificationService.createForUser(user._id, {
+          type: 'tracking-updated',
+          title: 'Tracking Information Added',
+          message: `Your order #${order.orderNumber} has been shipped. Tracking number: ${data.trackingNumber}`,
+          data: {
+            shippingId: shipping._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            trackingNumber: data.trackingNumber,
+            carrier: data.carrier,
+            estimatedDelivery: data.estimatedDelivery
+          },
+          link: `/orders/${order._id}/tracking`
+        });
+      } catch (notifErr) {
+        console.error('Failed to create tracking notification:', notifErr);
+      }
+
+      const addressStr = shipping.address
+        ? `${shipping.address.street}, ${shipping.address.city}, ${shipping.address.state}`
+        : "Your address";
+
+      await emailService
+        .sendOrderShipped(
+          user.email,
+          profile.firstName,
+          order.orderNumber,
+          data.carrier || "Courier",
+          data.trackingNumber,
+          data.estimatedDelivery?.toLocaleDateString() || "To be determined",
+          addressStr,
+          `${process.env.TRACKING_BASE_URL}/${data.trackingNumber}`,
+        )
+        .catch((err) => console.error("Error sending tracking email:", err));
+    }
+
+    io.to("admin-room").emit("tracking-updated", {
       shippingId: shipping._id,
-      orderId: order._id,
-      orderNumber: order.orderNumber,
+      orderId: shipping.orderId,
+      orderNumber: order?.orderNumber,
       trackingNumber: data.trackingNumber,
       carrier: data.carrier,
       estimatedDelivery: data.estimatedDelivery,
       status: ShippingStatus.Shipped,
     });
 
-    // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
     try {
-      await notificationService.createForUser(user._id, {
-        type: 'tracking-updated',
-        title: 'Tracking Information Added',
-        message: `Your order #${order.orderNumber} has been shipped. Tracking number: ${data.trackingNumber}`,
+      await notificationService.createForAdmins({
+        type: 'admin-tracking-updated',
+        title: 'Tracking Information Updated',
+        message: `Tracking #${data.trackingNumber} added for order #${order?.orderNumber}`,
         data: {
           shippingId: shipping._id,
-          orderId: order._id,
-          orderNumber: order.orderNumber,
+          orderId: shipping.orderId,
+          orderNumber: order?.orderNumber,
           trackingNumber: data.trackingNumber,
           carrier: data.carrier,
-          estimatedDelivery: data.estimatedDelivery
+          estimatedDelivery: data.estimatedDelivery,
+          updatedBy: adminId,
+          customerId: user?._id,
+          customerName: profile ? `${profile.firstName} ${profile.lastName}` : 'Customer'
         },
-        link: `/orders/${order._id}/tracking`
+        link: `/dashboards/admin/orders/${order?._id}/shipping`
       });
+      
     } catch (notifErr) {
-      console.error('Failed to create tracking notification:', notifErr);
+      console.error('Failed to create admin tracking notification:', notifErr);
     }
 
-    const addressStr = shipping.address
-      ? `${shipping.address.street}, ${shipping.address.city}, ${shipping.address.state}`
-      : "Your address";
-
-    await emailService
-      .sendOrderShipped(
-        user.email,
-        profile.firstName,
-        order.orderNumber,
-        data.carrier || "Courier",
-        data.trackingNumber,
-        data.estimatedDelivery?.toLocaleDateString() || "To be determined",
-        addressStr,
-        `${process.env.TRACKING_BASE_URL}/${data.trackingNumber}`,
-      )
-      .catch((err) => console.error("Error sending tracking email:", err));
+    return shipping;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
-
-  io.to("admin-room").emit("tracking-updated", {
-    shippingId: shipping._id,
-    orderId: shipping.orderId,
-    orderNumber: order?.orderNumber,
-    trackingNumber: data.trackingNumber,
-    carrier: data.carrier,
-    estimatedDelivery: data.estimatedDelivery,
-    status: ShippingStatus.Shipped,
-  });
-
-  // ✅ CREATE DATABASE NOTIFICATION FOR ADMINS
-  try {
-    await notificationService.createForAdmins({
-      type: 'admin-tracking-updated',
-      title: 'Tracking Information Updated',
-      message: `Tracking #${data.trackingNumber} added for order #${order?.orderNumber}`,
-      data: {
-        shippingId: shipping._id,
-        orderId: shipping.orderId,
-        orderNumber: order?.orderNumber,
-        trackingNumber: data.trackingNumber,
-        carrier: data.carrier,
-        estimatedDelivery: data.estimatedDelivery,
-        updatedBy: adminId,
-        customerId: user?._id,
-        customerName: profile ? `${profile.firstName} ${profile.lastName}` : 'Customer'
-      },
-      link: `/dashboards/admin/orders/${order?._id}/shipping`
-    }); // Exclude the updater
-    
-  } catch (notifErr) {
-    console.error('Failed to create admin tracking notification:', notifErr);
-  }
-
-  return shipping;
 };
 
-// ==================== UPDATE SHIPPING STATUS (Admin only) ====================
 export const updateShippingStatus = async (
   shippingId: string,
   status: ShippingStatus,
   adminId: string,
   io: Server,
 ): Promise<IShipping> => {
-  const shipping = await Shipping.findById(shippingId);
-  if (!shipping) {
-    throw new Error("Shipping not found");
-  }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  // Validate status transition
-  const validTransitions: Record<ShippingStatus, ShippingStatus[]> = {
-    [ShippingStatus.Pending]: [
-      ShippingStatus.Shipped,
-      ShippingStatus.Delivered,
-    ],
-    [ShippingStatus.Shipped]: [ShippingStatus.Delivered],
-    [ShippingStatus.Delivered]: [],
-  };
+  try {
+    const shipping = await Shipping.findById(shippingId).session(session);
+    if (!shipping) {
+      throw new Error("Shipping not found");
+    }
 
-  if (!validTransitions[shipping.status].includes(status)) {
-    throw new Error(`Cannot transition from ${shipping.status} to ${status}`);
-  }
+    const validTransitions: Record<ShippingStatus, ShippingStatus[]> = {
+      [ShippingStatus.Pending]: [
+        ShippingStatus.Shipped,
+        ShippingStatus.Delivered,
+      ],
+      [ShippingStatus.Shipped]: [ShippingStatus.Delivered],
+      [ShippingStatus.Delivered]: [],
+    };
 
-  const oldStatus = shipping.status;
-  shipping.status = status;
+    if (!validTransitions[shipping.status].includes(status)) {
+      throw new Error(`Cannot transition from ${shipping.status} to ${status}`);
+    }
 
-  if (status === ShippingStatus.Delivered) {
-    shipping.actualDelivery = new Date();
-  }
+    const oldStatus = shipping.status;
+    shipping.status = status;
 
-  // Add to tracking history
-  shipping.trackingHistory = shipping.trackingHistory || [];
-  shipping.trackingHistory.push({
-    status,
-    location:
-      status === ShippingStatus.Delivered ? "Destination" : "In transit",
-    description: `Status changed from ${oldStatus} to ${status}`,
-    timestamp: new Date(),
-  });
+    if (status === ShippingStatus.Delivered) {
+      shipping.actualDelivery = new Date();
+    }
 
-  await shipping.save();
-
-  // Get order and user for notifications
-  const order = await Order.findById(shipping.orderId);
-  const user = await User.findById(order?.userId);
-  const profile = await Profile.findOne({ userId: order?.userId });
-
-  // ✅ NOTIFICATIONS
-  if (user && profile && order) {
-    io.to(`user-${user._id}`).emit("shipping-status-updated", {
-      shippingId: shipping._id,
-      orderId: order._id,
-      orderNumber: order.orderNumber,
+    shipping.trackingHistory = shipping.trackingHistory || [];
+    shipping.trackingHistory.push({
       status,
-      trackingNumber: shipping.trackingNumber,
+      location:
+        status === ShippingStatus.Delivered ? "Destination" : "In transit",
+      description: `Status changed from ${oldStatus} to ${status}`,
+      timestamp: new Date(),
+    });
+
+    await shipping.save({ session });
+    await session.commitTransaction();
+
+    const order = await Order.findById(shipping.orderId);
+    const user = await User.findById(order?.userId);
+    const profile = await Profile.findOne({ userId: order?.userId });
+
+    if (user && profile && order) {
+      io.to(`user-${user._id}`).emit("shipping-status-updated", {
+        shippingId: shipping._id,
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        status,
+        trackingNumber: shipping.trackingNumber,
+        oldStatus,
+      });
+
+      try {
+        let title = 'Shipping Status Updated';
+        let message = `Your order #${order.orderNumber} shipping status changed from ${oldStatus} to ${status}`;
+        
+        if (status === ShippingStatus.Delivered) {
+          title = 'Order Delivered';
+          message = `Your order #${order.orderNumber} has been delivered!`;
+        } else if (status === ShippingStatus.Shipped) {
+          title = 'Order Shipped';
+          message = `Your order #${order.orderNumber} has been shipped!`;
+        }
+
+        await notificationService.createForUser(user._id, {
+          type: 'shipping-status-updated',
+          title,
+          message,
+          data: {
+            shippingId: shipping._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            oldStatus,
+            newStatus: status,
+            trackingNumber: shipping.trackingNumber
+          },
+          link: `/orders/${order._id}/tracking`
+        });
+      } catch (notifErr) {
+        console.error('Failed to create shipping status notification:', notifErr);
+      }
+
+      if (status === ShippingStatus.Delivered) {
+        await emailService
+          .sendOrderDelivered(user.email, profile.firstName, order.orderNumber)
+          .catch((err) => console.error("Error sending delivery email:", err));
+      }
+    }
+
+    io.to("admin-room").emit("shipping-status-updated", {
+      shippingId: shipping._id,
+      orderId: shipping.orderId,
+      orderNumber: order?.orderNumber,
+      status,
       oldStatus,
     });
 
-    // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
     try {
-      let title = 'Shipping Status Updated';
-      let message = `Your order #${order.orderNumber} shipping status changed from ${oldStatus} to ${status}`;
-      
-      if (status === ShippingStatus.Delivered) {
-        title = 'Order Delivered';
-        message = `Your order #${order.orderNumber} has been delivered!`;
-      } else if (status === ShippingStatus.Shipped) {
-        title = 'Order Shipped';
-        message = `Your order #${order.orderNumber} has been shipped!`;
-      }
-
-      await notificationService.createForUser(user._id, {
-        type: 'shipping-status-updated',
-        title,
-        message,
+      await notificationService.createForAdmins({
+        type: 'admin-shipping-status-updated',
+        title: 'Shipping Status Updated',
+        message: `Shipping status for order #${order?.orderNumber} changed from ${oldStatus} to ${status}`,
         data: {
           shippingId: shipping._id,
-          orderId: order._id,
-          orderNumber: order.orderNumber,
+          orderId: shipping.orderId,
+          orderNumber: order?.orderNumber,
           oldStatus,
           newStatus: status,
-          trackingNumber: shipping.trackingNumber
+          trackingNumber: shipping.trackingNumber,
+          updatedBy: adminId,
+          customerId: user?._id,
+          customerName: profile ? `${profile.firstName} ${profile.lastName}` : 'Customer'
         },
-        link: `/orders/${order._id}/tracking`
+        link: `/dashboards/admin/orders/${order?._id}/shipping`
       });
+      
     } catch (notifErr) {
-      console.error('Failed to create shipping status notification:', notifErr);
+      console.error('Failed to create admin shipping status notification:', notifErr);
     }
 
-    if (status === ShippingStatus.Delivered) {
-      await emailService
-        .sendOrderDelivered(user.email, profile.firstName, order.orderNumber)
-        .catch((err) => console.error("Error sending delivery email:", err));
-    }
+    return shipping;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
-
-  io.to("admin-room").emit("shipping-status-updated", {
-    shippingId: shipping._id,
-    orderId: shipping.orderId,
-    orderNumber: order?.orderNumber,
-    status,
-    oldStatus,
-  });
-
-  // ✅ CREATE DATABASE NOTIFICATION FOR ADMINS
-  try {
-    await notificationService.createForAdmins({
-      type: 'admin-shipping-status-updated',
-      title: 'Shipping Status Updated',
-      message: `Shipping status for order #${order?.orderNumber} changed from ${oldStatus} to ${status}`,
-      data: {
-        shippingId: shipping._id,
-        orderId: shipping.orderId,
-        orderNumber: order?.orderNumber,
-        oldStatus,
-        newStatus: status,
-        trackingNumber: shipping.trackingNumber,
-        updatedBy: adminId,
-        customerId: user?._id,
-        customerName: profile ? `${profile.firstName} ${profile.lastName}` : 'Customer'
-      },
-      link: `/dashboards/admin/orders/${order?._id}/shipping`
-    }); // Exclude the updater
-    
-  } catch (notifErr) {
-    console.error('Failed to create admin shipping status notification:', notifErr);
-  }
-
-  return shipping;
 };
 
-// ==================== MARK SHIPPING AS PAID (called by payment service) ====================
 export const markShippingAsPaid = async (
   shippingId: string,
   invoiceId: string,
 ): Promise<IShipping> => {
-  const shipping = await Shipping.findById(shippingId);
-  if (!shipping) {
-    throw new Error("Shipping not found");
-  }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  shipping.isPaid = true;
-  shipping.shippingInvoiceId = new mongoose.Types.ObjectId(invoiceId);
-  await shipping.save();
-
-  // Get order and user for notifications
-  const order = await Order.findById(shipping.orderId);
-  const user = await User.findById(order?.userId);
-  const profile = await Profile.findOne({ userId: order?.userId });
-
-  if (user && order) {
-    try {
-      await notificationService.createForUser(user._id, {
-        type: 'shipping-paid',
-        title: 'Shipping Payment Received',
-        message: `Your shipping payment for order #${order.orderNumber} has been received.`,
-        data: {
-          shippingId: shipping._id,
-          orderId: order._id,
-          orderNumber: order.orderNumber,
-          invoiceId,
-          cost: shipping.shippingCost
-        },
-        link: `/orders/${order._id}`
-      });
-
-      // Also notify admins about payment
-      await notificationService.createForAdmins({
-        type: 'admin-shipping-paid',
-        title: 'Shipping Payment Received',
-        message: `Shipping payment of ₦${(shipping.shippingCost ?? 0).toLocaleString()} received for order #${order.orderNumber}`,
-        data: {
-          shippingId: shipping._id,
-          orderId: order._id,
-          orderNumber: order.orderNumber,
-          invoiceId,
-          cost: shipping.shippingCost,
-          customerId: user._id,
-          customerName: profile ? `${profile.firstName} ${profile.lastName}` : 'Customer'
-        },
-        link: `/dashboards/admin/orders/${order._id}/shipping`
-      });
-      
-    } catch (notifErr) {
-      console.error('Failed to create shipping paid notifications:', notifErr);
+  try {
+    const shipping = await Shipping.findById(shippingId).session(session);
+    if (!shipping) {
+      throw new Error("Shipping not found");
     }
-  }
 
-  return shipping;
+    shipping.isPaid = true;
+    shipping.shippingInvoiceId = new mongoose.Types.ObjectId(invoiceId);
+    await shipping.save({ session });
+    await session.commitTransaction();
+
+    const order = await Order.findById(shipping.orderId);
+    const user = await User.findById(order?.userId);
+    const profile = await Profile.findOne({ userId: order?.userId });
+
+    if (user && order) {
+      try {
+        await notificationService.createForUser(user._id, {
+          type: 'shipping-paid',
+          title: 'Shipping Payment Received',
+          message: `Your shipping payment for order #${order.orderNumber} has been received.`,
+          data: {
+            shippingId: shipping._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            invoiceId,
+            cost: shipping.shippingCost
+          },
+          link: `/orders/${order._id}`
+        });
+
+        await notificationService.createForAdmins({
+          type: 'admin-shipping-paid',
+          title: 'Shipping Payment Received',
+          message: `Shipping payment of ₦${(shipping.shippingCost ?? 0).toLocaleString()} received for order #${order.orderNumber}`,
+          data: {
+            shippingId: shipping._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            invoiceId,
+            cost: shipping.shippingCost,
+            customerId: user._id,
+            customerName: profile ? `${profile.firstName} ${profile.lastName}` : 'Customer'
+          },
+          link: `/dashboards/admin/orders/${order._id}/shipping`
+        });
+        
+      } catch (notifErr) {
+        console.error('Failed to create shipping paid notifications:', notifErr);
+      }
+    }
+
+    return shipping;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };
 
-// ==================== GET SHIPPING BY ID ====================
 export const getShippingById = async (
   shippingId: string,
   userId: string,
@@ -614,8 +604,6 @@ export const getShippingById = async (
       populate: {
         path: "userId",
         select: "email",
-        // Remove the profileId population if it doesn't exist
-        // Or fix it to match your schema
       }
     });
 
@@ -625,7 +613,6 @@ export const getShippingById = async (
 
   const order = shipping.orderId as any;
 
-  // Check authorization
   if (userRole === "Customer" && order.userId._id.toString() !== userId) {
     throw new Error("Unauthorized to view this shipping");
   }
@@ -633,8 +620,6 @@ export const getShippingById = async (
   return shipping;
 };
 
-
- // ==================== GET SHIPPING BY ORDER ID ====================
 export const getShippingByOrderId = async (
   orderId: string,
   userId: string,
@@ -645,7 +630,6 @@ export const getShippingByOrderId = async (
     throw new Error("Order not found");
   }
 
-  // Check authorization
   if (userRole === "Customer" && order.userId.toString() !== userId) {
     throw new Error("Unauthorized to view this shipping");
   }
@@ -655,14 +639,13 @@ export const getShippingByOrderId = async (
     populate: {
       path: "userId",
       model: "User",
-      select: "email" // Just get email
+      select: "email"
     }
   });
 
   return shipping;
 };
 
-// ==================== GET ALL SHIPPING (Admin) ====================
 export const getAllShipping = async (
   page: number = 1,
   limit: number = 10,
@@ -676,7 +659,7 @@ export const getAllShipping = async (
         populate: {
           path: "userId",
           model: "User",
-          select: "email" // Just get email, don't try to populate profileId
+          select: "email"
         }
       })
       .sort({ createdAt: -1 })
@@ -695,7 +678,6 @@ export const getAllShipping = async (
   };
 };
 
-// ==================== FILTER SHIPPING (Admin) ====================
 export const filterShipping = async (
   filters: IShippingFilter,
 ): Promise<PaginatedShipping> => {
@@ -718,7 +700,6 @@ export const filterShipping = async (
   if (orderId) query.orderId = new mongoose.Types.ObjectId(orderId);
   if (isPaid !== undefined) query.isPaid = isPaid;
 
-  // If userId provided, find orders by user first
   if (userId) {
     const orders = await Order.find({
       userId: new mongoose.Types.ObjectId(userId),
@@ -727,7 +708,6 @@ export const filterShipping = async (
     query.orderId = { $in: orderIds };
   }
 
-  // Date range filter
   if (startDate || endDate) {
     query.createdAt = {};
     if (startDate) query.createdAt.$gte = startDate;
@@ -743,7 +723,7 @@ export const filterShipping = async (
         populate: {
           path: "userId",
           model: "User",
-          select: "email" // Just get email, don't try to populate profileId
+          select: "email"
         }
       })
       .sort({ createdAt: -1 })
@@ -762,7 +742,6 @@ export const filterShipping = async (
   };
 };
 
-// ==================== GET SHIPPING NEEDING INVOICE (Admin) ====================
 export const getShippingNeedingInvoice = async (): Promise<IShipping[]> => {
   return Shipping.find({
     shippingInvoiceId: { $exists: false },
@@ -773,7 +752,6 @@ export const getShippingNeedingInvoice = async (): Promise<IShipping[]> => {
     .exec();
 };
 
-// ==================== GET PENDING SHIPPING (Admin) ====================
 export const getPendingShipping = async (): Promise<IShipping[]> => {
   return Shipping.find({
     status: ShippingStatus.Pending,

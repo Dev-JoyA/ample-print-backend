@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>AmplePrinthub</title>
+  <title>Invoice Ready - Ample Printhub</title>
   <style>
     /* Reset styles */
     body, table, td, p, a { 
@@ -113,38 +113,18 @@
     .order-details table {
       width: 100%;
     }
-    .order-details th {
-      text-align: left;
-      padding: 10px 0;
-      color: #4a5568;
-      font-weight: 600;
-      border-bottom: 2px solid #e2e8f0;
-    }
     .order-details td {
-      padding: 12px 0;
+      padding: 10px 0;
       color: #2d3748;
       border-bottom: 1px solid #e2e8f0;
     }
-    .order-details .total {
-      font-size: 18px;
-      font-weight: 700;
-      color: #2d3748;
+    .order-details td:first-child {
+      font-weight: 600;
+      color: #4a5568;
+      width: 40%;
+    }
+    .order-details tr:last-child td {
       border-bottom: none;
-    }
-    .order-details .total-amount {
-      color: #667eea;
-      font-size: 20px;
-    }
-
-    /* Design Preview */
-    .design-preview {
-      text-align: center;
-      margin: 25px 0;
-    }
-    .design-preview img {
-      max-width: 100%;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     /* Info Box */
@@ -156,8 +136,11 @@
       border-radius: 0 8px 8px 0;
     }
     .info-box p {
-      margin: 0;
+      margin: 0 0 10px;
       color: #2d3748;
+    }
+    .info-box p:last-child {
+      margin-bottom: 0;
     }
     .info-box strong {
       color: #4a5568;
@@ -206,6 +189,14 @@
       .order-details {
         padding: 15px;
       }
+      .order-details td {
+        display: block;
+        width: 100%;
+        padding: 8px 0;
+      }
+      .order-details td:first-child {
+        padding-bottom: 0;
+      }
       .button {
         display: block;
         margin: 0 20px;
@@ -234,18 +225,55 @@
           <!-- Content -->
           <tr>
             <td class="content">
-              <h1><%= header %></h1>
-              <p>Dear <strong><%= name %></strong>,</p>
+              <h1>Your Invoice is Ready!</h1>
+              <p>Dear <strong>{{name}}</strong>,</p>
+              <p>Your invoice for order <strong>#{{orderNumber}}</strong> has been generated and is ready for payment.</p>
               
-              <!-- Dynamic Content Section -->
-              <%- bodyContent %>
+              <div class="order-details">
+                <h3 style="margin-top: 0; margin-bottom: 20px;">Invoice Summary</h3>
+                <table>
+                  <tr>
+                    <td><strong>Invoice Number:</strong></td>
+                    <td>{{invoiceNumber}}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Order Number:</strong></td>
+                    <td>{{orderNumber}}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Total Amount:</strong></td>
+                    <td>₦{{total}}</td>
+                  </tr>
+                  {{#if depositAmount}}
+                  <tr>
+                    <td><strong>Deposit Required:</strong></td>
+                    <td>₦{{depositAmount}}</td>
+                  </tr>
+                  {{/if}}
+                  <tr>
+                    <td><strong>Payment Due:</strong></td>
+                    <td>{{dueDate}}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <div class="info-box">
+                <p><strong>💳 Payment Instructions:</strong></p>
+                <p style="margin-bottom: 5px;"><strong>Bank Transfer:</strong></p>
+                <p style="margin: 0;">
+                  Log in to your dashboard to make payment via bank transfer or Paystack. Please ensure you use your invoice number as the payment reference to avoid delays in processing your order.
+                </p>
+              </div>
+
+              <p>Once payment is confirmed, we'll immediately begin processing your order.</p>
               
-              <!-- Button (if provided) -->
-              <% if (buttonText && buttonUrl) { %>
-                <div class="button-container">
-                  <a href="<%= buttonUrl %>" class="button"><%= buttonText %></a>
-                </div>
-              <% } %>
+              <div class="button-container">
+                <a href="{{invoiceUrl}}" class="button">View Invoice</a>
+              </div>
+
+              <p style="margin-top: 30px; font-size: 14px; color: #888;">
+                If you have any questions about your invoice, please don't hesitate to contact our support team.
+              </p>
             </td>
           </tr>
 
@@ -255,17 +283,17 @@
               <div class="social-links">
                 <a href="https://facebook.com/ampleprinthub">Facebook</a> •
                 <a href="https://instagram.com/ampleprinthub">Instagram</a> •
-                <a href="https://twitter.com/ampleprinthub">Twitter</a>
-                <a href="https://tiktok.com/ampleprinthub">TikTok</a>
+                <a href="https://twitter.com/ampleprinthub">Twitter</a> •
+                <a href="https://tiktok.com/@ampleprinthub">TikTok</a>
               </div>
-              <p>© <%= year %> Ample Printhub. All rights reserved.</p>
+              <p>© {{year}} Ample Printhub. All rights reserved.</p>
               <p>
-                <a href="<%= unsubscribeUrl || '#' %>">Unsubscribe</a> •
-                <a href="<%= privacyUrl || '#' %>">Privacy Policy</a>
+                <a href="{{unsubscribeUrl}}">Unsubscribe</a> •
+                <a href="{{privacyUrl}}">Privacy Policy</a>
               </p>
               <p style="font-size: 12px; color: #a0aec0; margin-top: 20px;">
-                5 Boyle Street Shomolu, Lagos<br>
-                Tel: +2348062356261 | Email: ampleprinthub@gmail.com
+                5 Boyle Street, Shomolu, Lagos<br>
+                Tel: +234 806 235 6261 | Email: ampleprinthub@gmail.com
               </p>
             </td>
           </tr>

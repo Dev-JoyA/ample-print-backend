@@ -1,3 +1,4 @@
+import mongoose, { Types } from "mongoose";
 import { User, UserRole } from "../../users/model/userModel.js";
 import {
   OrderData,
@@ -13,488 +14,493 @@ import { Server } from "socket.io";
 import emailService from "../../utils/email.js";
 import { generateOrderNumber } from "../../utils/orderUtils.js";
 import { startServer } from "../../config/db.js";
-import { Types } from "mongoose";
 import { notificationService } from "../../notification/service/notificationService.js";
 
 const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
-  // Initial states
   [OrderStatus.Pending]: [OrderStatus.OrderReceived, OrderStatus.Cancelled],
-
-  // Order received - can go to files upload
   [OrderStatus.OrderReceived]: [
     OrderStatus.FilesUploaded,
     OrderStatus.Cancelled,
   ],
-
-  // Files uploaded - customer has submitted briefs
   [OrderStatus.FilesUploaded]: [
-    OrderStatus.AwaitingInvoice, // All briefs processed, waiting for invoice
+    OrderStatus.AwaitingInvoice,
     OrderStatus.Cancelled,
   ],
-
-  // Awaiting invoice - super admin needs to create invoice
   [OrderStatus.AwaitingInvoice]: [
-    OrderStatus.InvoiceSent, // Invoice created and sent
+    OrderStatus.InvoiceSent,
     OrderStatus.Cancelled,
   ],
-
-  // Invoice sent - payment tracking begins
   [OrderStatus.InvoiceSent]: [
     OrderStatus.AwaitingPartPayment,
     OrderStatus.Cancelled,
   ],
-
-  // Design uploaded - admin has uploaded design (moved after payment)
   [OrderStatus.DesignUploaded]: [
     OrderStatus.UnderReview,
     OrderStatus.Cancelled,
   ],
-
-  // Under review - customer approving
   [OrderStatus.UnderReview]: [
     OrderStatus.Approved,
     OrderStatus.AwaitingPartPayment,
     OrderStatus.Cancelled,
   ],
-
-  // Approved - ready for production
   [OrderStatus.Approved]: [
     OrderStatus.InProduction,
     OrderStatus.AwaitingPartPayment,
     OrderStatus.Cancelled,
   ],
-
-  // Awaiting part payment - waiting for deposit
   [OrderStatus.AwaitingPartPayment]: [
     OrderStatus.PartPaymentMade,
     OrderStatus.Cancelled,
   ],
-
-  // Part payment made - deposit received
   [OrderStatus.PartPaymentMade]: [
     OrderStatus.InProduction,
     OrderStatus.AwaitingFinalPayment,
     OrderStatus.Cancelled,
   ],
-
-  // In production - being printed
   [OrderStatus.InProduction]: [OrderStatus.Completed, OrderStatus.Cancelled],
-
-  // Completed - ready for next step
   [OrderStatus.Completed]: [
     OrderStatus.ReadyForShipping,
     OrderStatus.AwaitingFinalPayment,
     OrderStatus.Delivered,
   ],
-
-  // Awaiting final payment - balance due
   [OrderStatus.AwaitingFinalPayment]: [
     OrderStatus.FinalPaid,
     OrderStatus.Cancelled,
   ],
-
-  // Final paid - all payments complete
   [OrderStatus.FinalPaid]: [
     OrderStatus.Completed,
     OrderStatus.ReadyForShipping,
     OrderStatus.Shipped,
     OrderStatus.Delivered,
   ],
-
-  // Ready for shipping - admin can create shipping
   [OrderStatus.ReadyForShipping]: [OrderStatus.Shipped, OrderStatus.Delivered],
-
-  // Shipped - on the way
   [OrderStatus.Shipped]: [OrderStatus.Delivered],
-
-  // Cancelled - terminal state
   [OrderStatus.Cancelled]: [],
-
-  // Delivered - terminal state
   [OrderStatus.Delivered]: [],
 };
 
 await startServer();
 
-// ==================== CREATE ORDER (Customer) ====================
 export const createOrder = async (
   userId: string,
   data: OrderData,
   io: Server,
 ): Promise<IOrderModel> => {
-  const user = await User.findById(userId);
-  if (!user) throw new Error("User not found");
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (user.role === UserRole.Admin) {
-    throw new Error("Admin cannot create an order");
-  }
+  try {
+    const user = await User.findById(userId).session(session);
+    if (!user) throw new Error("User not found");
 
-  const items = data.items;
-  if (!items || items.length === 0) {
-    throw new Error("You must select at least one product to create an order");
-  }
-
-  const seenProductIds = new Set<string>();
-  const orderItems = [];
-  let totalAmount = 0;
-
-  const productIds = items.map((i) => i.productId);
-  const products = await Product.find({ _id: { $in: productIds } });
-  const productMap = new Map(products.map((p) => [p._id.toString(), p]));
-
-  for (const item of items) {
-    const product = productMap.get(item.productId.toString());
-    const productId = item.productId.toString();
-
-    if (seenProductIds.has(productId)) {
-      throw new Error("You cannot order the same product multiple times");
+    if (user.role === UserRole.Admin) {
+      throw new Error("Admin cannot create an order");
     }
 
-    seenProductIds.add(productId);
-
-    if (!product) {
-      throw new Error(`Product not found`);
+    const items = data.items;
+    if (!items || items.length === 0) {
+      throw new Error("You must select at least one product to create an order");
     }
 
-    if (item.quantity < product.minOrder) {
-      throw new Error(
-        `${product.name} minimum order quantity is ${product.minOrder}`,
-      );
+    const seenProductIds = new Set<string>();
+    const orderItems = [];
+    let totalAmount = 0;
+
+    const productIds = items.map((i) => i.productId);
+    const products = await Product.find({ _id: { $in: productIds } }).session(session);
+    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+    for (const item of items) {
+      const product = productMap.get(item.productId.toString());
+      const productId = item.productId.toString();
+
+      if (seenProductIds.has(productId)) {
+        throw new Error("You cannot order the same product multiple times");
+      }
+
+      seenProductIds.add(productId);
+
+      if (!product) {
+        throw new Error(`Product not found`);
+      }
+
+      if (item.quantity < product.minOrder) {
+        throw new Error(
+          `${product.name} minimum order quantity is ${product.minOrder}`,
+        );
+      }
+
+      orderItems.push({
+        productId: item.productId,
+        productName: product.name,
+        quantity: item.quantity,
+        price: product.price,
+        productSnapshot: {
+          name: product.name,
+          description: product.description,
+          dimension: product.dimension,
+          minOrder: product.minOrder,
+          material: product.material,
+        },
+      });
+
+      totalAmount += product.price * item.quantity;
     }
-
-    orderItems.push({
-      productId: item.productId,
-      productName: product.name,
-      quantity: item.quantity,
-      price: product.price, // This is just an estimate
-      productSnapshot: {
-        name: product.name,
-        description: product.description,
-        dimension: product.dimension,
-        minOrder: product.minOrder,
-        material: product.material,
-      },
-    });
-
-    totalAmount += product.price * item.quantity; // This is just an estimate
-  }
-  
-  const orderNumber = await generateOrderNumber();
-  const order = await Order.create({
-    userId: user._id,
-    items: orderItems,
-    totalAmount: totalAmount, // Estimate, will be updated by invoice
-    amountPaid: 0,
-    remainingBalance: 0, // Will be set by invoice
-    orderNumber,
-    status: OrderStatus.OrderReceived,
-    paymentStatus: PaymentStatus.Pending,
-    createdAt: new Date(),
-  });
-
-  const profile = await Profile.findOne({ userId: user._id }).exec();
-  if (!profile) throw new Error("Profile not found");
-
-  // Socket notifications
-  io.to("superadmin-room").emit("new-order", {
-    orderId: order._id,
-    orderNumber: order.orderNumber,
-    message: "New order created - requires invoice",
-  });
-
-  io.to("admin-room").emit("new-order", {
-    orderId: order._id,
-    orderNumber: order.orderNumber,
-  });
-
-  // Email notification
-  await emailService
-    .sendOrderConfirmation(
-      user.email,
-      profile.firstName,
-      order.orderNumber,
-      orderItems,
-      totalAmount,
-    )
-    .catch((err) =>
-      console.error("Error sending order confirmation email", err),
+    
+    const orderNumber = await generateOrderNumber();
+    
+    const [order] = await Order.create(
+      [{
+        userId: user._id,
+        items: orderItems,
+        totalAmount: totalAmount,
+        amountPaid: 0,
+        remainingBalance: 0,
+        orderNumber,
+        status: OrderStatus.OrderReceived,
+        paymentStatus: PaymentStatus.Pending,
+        createdAt: new Date(),
+      }],
+      { session },
     );
 
-  // ✅ CREATE DATABASE NOTIFICATIONS
-  try {
-    // 1. Notify the customer
-    await notificationService.createForUser(user._id, {
-      type: 'order-created',
-      title: 'Order Created',
-      message: `Order #${order.orderNumber} has been created successfully`,
-      data: {
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        totalAmount,
-        items: orderItems.map(item => ({
-          productName: item.productName,
-          quantity: item.quantity,
-          price: item.price
-        }))
-      },
-      link: `/dashboards/customer/orders/${order._id}`
+    const profile = await Profile.findOne({ userId: user._id }).session(session).exec();
+    if (!profile) throw new Error("Profile not found");
+
+    await session.commitTransaction();
+    session.endSession();
+
+    io.to("superadmin-room").emit("new-order", {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      message: "New order created - requires invoice",
     });
 
-    // 2. Notify all admins about new order
-    await notificationService.createForAdmins({
-      type: 'admin-new-order',
-      title: 'New Order Received',
-      message: `New order #${order.orderNumber} has been placed by ${profile.firstName}`,
-      data: {
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        customerId: user._id,
-        customerName: `${profile.firstName} ${profile.lastName}`,
-        totalAmount,
-        itemCount: orderItems.length
-      },
-      link: `/dashboards/admin/orders/${order._id}`
+    io.to("admin-room").emit("new-order", {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
     });
-    
-  } catch (notifErr) {
-    console.error('Failed to create order notifications:', notifErr);
+
+    await emailService
+      .sendOrderConfirmation(
+        user.email,
+        profile.firstName,
+        order.orderNumber,
+        orderItems,
+        totalAmount,
+      )
+      .catch((err) =>
+        console.error("Error sending order confirmation email", err),
+      );
+
+    try {
+      await notificationService.createForUser(user._id, {
+        type: 'order-created',
+        title: 'Order Created',
+        message: `Order #${order.orderNumber} has been created successfully`,
+        data: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          totalAmount,
+          items: orderItems.map(item => ({
+            productName: item.productName,
+            quantity: item.quantity,
+            price: item.price
+          }))
+        },
+        link: `/dashboards/customer/orders/${order._id}`
+      });
+
+      await notificationService.createForAdmins({
+        type: 'admin-new-order',
+        title: 'New Order Received',
+        message: `New order #${order.orderNumber} has been placed by ${profile.firstName}`,
+        data: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          customerId: user._id,
+          customerName: `${profile.firstName} ${profile.lastName}`,
+          totalAmount,
+          itemCount: orderItems.length
+        },
+        link: `/dashboards/admin/orders/${order._id}`
+      });
+      
+    } catch (notifErr) {
+      console.error('Failed to create order notifications:', notifErr);
+    }
+
+    return order;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-
-  return order;
 };
 
-// ==================== SUPER ADMIN CREATE ORDER ====================
 export const superAdminCreateOrder = async (
   customerId: string,
   data: OrderData,
   superAdminId: string,
   io: Server,
 ): Promise<IOrderModel> => {
-  const customer = await User.findById(customerId);
-  if (!customer) throw new Error("Customer not found");
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  const items = data.items;
-  if (!items || items.length === 0) {
-    throw new Error("You must select at least one product");
-  }
-
-  const seenProductIds = new Set<string>();
-  const orderItems = [];
-  let totalAmount = 0;
-
-  const productIds = items.map((i) => i.productId);
-  const products = await Product.find({ _id: { $in: productIds } });
-  const productMap = new Map(products.map((p) => [p._id.toString(), p]));
-
-  for (const item of items) {
-    const product = productMap.get(item.productId.toString());
-    const productId = item.productId.toString();
-
-    if (seenProductIds.has(productId)) {
-      throw new Error("Cannot order the same product multiple times");
-    }
-
-    seenProductIds.add(productId);
-
-    if (!product) {
-      throw new Error(`Product not found`);
-    }
-
-    if (item.quantity < product.minOrder) {
-      throw new Error(
-        `${product.name} minimum order quantity is ${product.minOrder}`,
-      );
-    }
-
-    orderItems.push({
-      productId: item.productId,
-      productName: product.name,
-      quantity: item.quantity,
-      price: product.price,
-    });
-
-    totalAmount += product.price * item.quantity;
-  }
-
-  const order = await Order.create({
-    userId: customer._id,
-    items: orderItems,
-    totalAmount: totalAmount,
-    amountPaid: 0,
-    remainingBalance: totalAmount,
-    status: OrderStatus.OrderReceived,
-    paymentStatus: PaymentStatus.Pending,
-    createdBy: new Types.ObjectId(superAdminId),
-    createdAt: new Date(),
-  });
-
-  const profile = await Profile.findOne({ userId: customer._id });
-  if (profile) {
-    await emailService
-      .sendOrderConfirmation(
-        customer.email,
-        profile.firstName,
-        order.orderNumber,
-        orderItems,
-        totalAmount,
-      )
-      .catch((err) => console.error("Error sending email", err));
-  }
-
-  io.to("admin-room").emit("new-order", {
-    orderId: order._id,
-    orderNumber: order.orderNumber,
-    message: "New order created by super admin",
-  });
-
-  // ✅ CREATE DATABASE NOTIFICATIONS
   try {
-    // 1. Notify the customer
-    await notificationService.createForUser(customer._id, {
-      type: 'order-created',
-      title: 'Order Created for You',
-      message: `An order #${order.orderNumber} has been created for you by admin`,
-      data: {
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        totalAmount,
+    const customer = await User.findById(customerId).session(session);
+    if (!customer) throw new Error("Customer not found");
+
+    const items = data.items;
+    if (!items || items.length === 0) {
+      throw new Error("You must select at least one product");
+    }
+
+    const seenProductIds = new Set<string>();
+    const orderItems = [];
+    let totalAmount = 0;
+
+    const productIds = items.map((i) => i.productId);
+    const products = await Product.find({ _id: { $in: productIds } }).session(session);
+    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+    for (const item of items) {
+      const product = productMap.get(item.productId.toString());
+      const productId = item.productId.toString();
+
+      if (seenProductIds.has(productId)) {
+        throw new Error("Cannot order the same product multiple times");
+      }
+
+      seenProductIds.add(productId);
+
+      if (!product) {
+        throw new Error(`Product not found`);
+      }
+
+      if (item.quantity < product.minOrder) {
+        throw new Error(
+          `${product.name} minimum order quantity is ${product.minOrder}`,
+        );
+      }
+
+      orderItems.push({
+        productId: item.productId,
+        productName: product.name,
+        quantity: item.quantity,
+        price: product.price,
+      });
+
+      totalAmount += product.price * item.quantity;
+    }
+
+    const orderNumber = await generateOrderNumber();
+    
+    const [order] = await Order.create(
+      [{
+        userId: customer._id,
         items: orderItems,
-        createdBy: superAdminId
-      },
-      link: `/dashboards/customer/orders/${order._id}`
+        totalAmount: totalAmount,
+        amountPaid: 0,
+        remainingBalance: totalAmount,
+        orderNumber,
+        status: OrderStatus.OrderReceived,
+        paymentStatus: PaymentStatus.Pending,
+        createdBy: new Types.ObjectId(superAdminId),
+        createdAt: new Date(),
+      }],
+      { session },
+    );
+
+    const profile = await Profile.findOne({ userId: customer._id }).session(session);
+    
+    await session.commitTransaction();
+    session.endSession();
+
+    if (profile) {
+      await emailService
+        .sendOrderConfirmation(
+          customer.email,
+          profile.firstName,
+          order.orderNumber,
+          orderItems,
+          totalAmount,
+        )
+        .catch((err) => console.error("Error sending email", err));
+    }
+
+    io.to("admin-room").emit("new-order", {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      message: "New order created by super admin",
     });
 
-    // 2. Notify all admins (excluding the creator)
-    const superAdmin = await User.findById(superAdminId);
-    await notificationService.createForAdmins({
-      type: 'admin-order-created',
-      title: 'Order Created by Admin',
-      message: `Order #${order.orderNumber} was created for customer by ${superAdmin?.email || 'admin'}`,
-      data: {
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        customerId: customer._id,
-        customerName: profile?.firstName ? `${profile.firstName} ${profile.lastName}` : 'Customer',
-        totalAmount,
-        itemCount: orderItems.length,
-        createdBy: superAdminId
-      },
-      link: `/dashboards/admin/orders/${order._id}`
-    }); // Exclude the creator
-    
-  } catch (notifErr) {
-    console.error('Failed to create order notifications:', notifErr);
-  }
+    try {
+      await notificationService.createForUser(customer._id, {
+        type: 'order-created',
+        title: 'Order Created for You',
+        message: `An order #${order.orderNumber} has been created for you by admin`,
+        data: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          totalAmount,
+          items: orderItems,
+          createdBy: superAdminId
+        },
+        link: `/dashboards/customer/orders/${order._id}`
+      });
 
-  return order;
+      const superAdmin = await User.findById(superAdminId);
+      await notificationService.createForAdmins({
+        type: 'admin-order-created',
+        title: 'Order Created by Admin',
+        message: `Order #${order.orderNumber} was created for customer by ${superAdmin?.email || 'admin'}`,
+        data: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          customerId: customer._id,
+          customerName: profile?.firstName ? `${profile.firstName} ${profile.lastName}` : 'Customer',
+          totalAmount,
+          itemCount: orderItems.length,
+          createdBy: superAdminId
+        },
+        link: `/dashboards/admin/orders/${order._id}`
+      });
+      
+    } catch (notifErr) {
+      console.error('Failed to create order notifications:', notifErr);
+    }
+
+    return order;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
-// ==================== UPDATE ORDER ====================
 export const updateOrder = async (
   orderId: string,
   data: Partial<IOrderModel>,
   userId: string,
   userRole: string,
 ): Promise<IOrderModel> => {
-  const order = await Order.findById(orderId);
-  if (!order) throw new Error("Order not found");
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  const isOwner = order.userId.toString() === userId;
-  const isAdmin =
-    userRole === UserRole.SuperAdmin || userRole === UserRole.Admin;
+  try {
+    const order = await Order.findById(orderId).session(session);
+    if (!order) throw new Error("Order not found");
 
-  if (!isOwner && !isAdmin) {
-    throw new Error("Unauthorized to update this order");
-  }
+    const isOwner = order.userId.toString() === userId;
+    const isAdmin = userRole === UserRole.SuperAdmin || userRole === UserRole.Admin;
 
-  // Restrict what customers can update
-  if (isOwner && !isAdmin) {
-    const allowedFields = ["shippingAddress", "phoneNumber", "notes"];
-    const updates = Object.keys(data);
+    if (!isOwner && !isAdmin) {
+      throw new Error("Unauthorized to update this order");
+    }
 
-    for (const field of updates) {
-      if (!allowedFields.includes(field)) {
-        throw new Error(`You cannot update the '${field}' field`);
+    if (isOwner && !isAdmin) {
+      const allowedFields = ["shippingAddress", "phoneNumber", "notes"];
+      const updates = Object.keys(data);
+
+      for (const field of updates) {
+        if (!allowedFields.includes(field)) {
+          throw new Error(`You cannot update the '${field}' field`);
+        }
       }
     }
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      data,
+      { new: true, runValidators: true, session },
+    );
+
+    if (!updatedOrder) throw new Error("Failed to update order");
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return updatedOrder;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-
-  const updatedOrder = await Order.findByIdAndUpdate(orderId, data, {
-    new: true,
-    runValidators: true,
-  });
-
-  if (!updatedOrder) throw new Error("Failed to update order");
-
-  return updatedOrder;
 };
 
-// ==================== DELETE ORDER ====================
 export const deleteOrder = async (
   orderId: string,
   userId: string,
   userRole: string,
 ): Promise<string> => {
-  const order = await Order.findById(orderId);
-  if (!order) throw new Error("Order not found");
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  const isOwner = order.userId.toString() === userId;
-  const isSuperAdmin = userRole === UserRole.SuperAdmin;
-
-  if (!isOwner && !isSuperAdmin) {
-    throw new Error(
-      "Only the order owner or Super Admin can delete this order",
-    );
-  }
-
-  if (
-    order.status !== OrderStatus.Pending &&
-    order.status !== OrderStatus.OrderReceived &&
-    !isSuperAdmin
-  ) {
-    throw new Error("Cannot delete order once it's been processed");
-  }
-
-  await Order.findByIdAndDelete(orderId);
-  
-  // ✅ CREATE DATABASE NOTIFICATIONS
   try {
-    // Notify customer if deleted by admin
-    if (isSuperAdmin && !isOwner) {
-      await notificationService.createForUser(order.userId, {
-        type: 'order-deleted',
-        title: 'Order Deleted',
-        message: `Order #${order.orderNumber} has been deleted by admin`,
-        data: {
-          orderId: order._id,
-          orderNumber: order.orderNumber,
-          deletedBy: userId
-        },
-        link: `/dashboards/customer/orders`
-      });
+    const order = await Order.findById(orderId).session(session);
+    if (!order) throw new Error("Order not found");
 
-      // Notify other admins about deletion
-      await notificationService.createForAdmins({
-        type: 'admin-order-deleted',
-        title: 'Order Deleted',
-        message: `Order #${order.orderNumber} was deleted by admin`,
-        data: {
-          orderId: order._id,
-          orderNumber: order.orderNumber,
-          customerId: order.userId,
-          deletedBy: userId
-        },
-        link: `/dashboards/admin/orders`
-      }); // Exclude the deleter
+    const isOwner = order.userId.toString() === userId;
+    const isSuperAdmin = userRole === UserRole.SuperAdmin;
+
+    if (!isOwner && !isSuperAdmin) {
+      throw new Error(
+        "Only the order owner or Super Admin can delete this order",
+      );
     }
-  } catch (notifErr) {
-    console.error('Failed to create order deletion notification:', notifErr);
-  }
 
-  return "Order deleted successfully";
+    if (
+      order.status !== OrderStatus.Pending &&
+      order.status !== OrderStatus.OrderReceived &&
+      !isSuperAdmin
+    ) {
+      throw new Error("Cannot delete order once it's been processed");
+    }
+
+    await Order.findByIdAndDelete(orderId).session(session);
+    await session.commitTransaction();
+    session.endSession();
+    
+    try {
+      if (isSuperAdmin && !isOwner) {
+        await notificationService.createForUser(order.userId, {
+          type: 'order-deleted',
+          title: 'Order Deleted',
+          message: `Order #${order.orderNumber} has been deleted by admin`,
+          data: {
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            deletedBy: userId
+          },
+          link: `/dashboards/customer/orders`
+        });
+
+        await notificationService.createForAdmins({
+          type: 'admin-order-deleted',
+          title: 'Order Deleted',
+          message: `Order #${order.orderNumber} was deleted by admin`,
+          data: {
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            customerId: order.userId,
+            deletedBy: userId
+          },
+          link: `/dashboards/admin/orders`
+        });
+      }
+    } catch (notifErr) {
+      console.error('Failed to create order deletion notification:', notifErr);
+    }
+
+    return "Order deleted successfully";
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
-// ==================== GET ORDER BY ID ====================
 export const getOrderById = async (
   id: string,
   userId: string,
@@ -515,7 +521,6 @@ export const getOrderById = async (
   return order;
 };
 
-// ==================== GET USER ORDERS ====================
 export const getUserOrders = async (
   userId: string,
   page: number = 1,
@@ -557,7 +562,6 @@ export const getUserOrders = async (
   };
 };
 
-// ==================== UPDATE ORDER STATUS ====================
 export const updateOrderStatus = async (
   orderId: string,
   newStatus: OrderStatus,
@@ -565,246 +569,281 @@ export const updateOrderStatus = async (
   userRole: string,
   io: Server,
 ): Promise<IOrderModel> => {
-  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
-    throw new Error("Unauthorized to update order status");
-  }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  const order = await Order.findById(orderId);
-  if (!order) throw new Error("Order not found");
-
-  const allowedTransitions = validStatusTransitions[order.status];
-  if (!allowedTransitions.includes(newStatus)) {
-    throw new Error(`Cannot transition from ${order.status} to ${newStatus}`);
-  }
-
-  const oldStatus = order.status;
-  order.status = newStatus;
-  await order.save();
-
-  // Get user and profile for notifications
-  const user = await User.findById(order.userId);
-  const profile = await Profile.findOne({ userId: order.userId });
-
-  // ==================== STATUS-SPECIFIC ACTIONS ====================
-
-  // ----- AWAITING FINAL PAYMENT (when part payment order is completed) -----
-  if (newStatus === OrderStatus.AwaitingFinalPayment) {
-    // Emit socket notification to customer
-    io.to(`user-${order.userId}`).emit("order-awaiting-final-payment", {
-      orderId: order._id,
-      orderNumber: order.orderNumber,
-      amount: order.remainingBalance,
-      message: "Your order is complete! Please pay the remaining balance for shipping.",
-    });
-
-    // Send email to customer about final payment
-    if (user && profile) {
-      await emailService
-        .sendFinalPaymentReminder(
-          user.email,
-          profile.firstName,
-          order.orderNumber,
-          order.remainingBalance,
-        )
-        .catch((err: any) =>
-          console.error("Error sending final payment reminder email:", err),
-        );
-    }
-
-    // Notify admins
-    io.to("admin-room").emit("order-awaiting-final-payment", {
-      orderId: order._id,
-      orderNumber: order.orderNumber,
-      customerName: profile?.firstName || "Customer",
-      amount: order.remainingBalance,
-    });
-  }
-
-  // ----- COMPLETED (production complete - ready to select shipping) -----
-  if (newStatus === OrderStatus.Completed) {
-    // Emit socket notification to customer
-    io.to(`user-${order.userId}`).emit("order-ready-for-shipping-selection", {
-      orderId: order._id,
-      orderNumber: order.orderNumber,
-      message: "Your order is ready! Please log in to select a shipping method.",
-    });
-
-    // Send email to customer about shipping selection
-    if (user && profile) {
-      await emailService
-        .sendShippingSelectionReminder(
-          user.email,
-          profile.firstName,
-          order.orderNumber,
-          `${process.env.FRONTEND_URL}/orders/${order.orderNumber}/shipping`,
-        )
-        .catch((err: any) =>
-          console.error("Error sending shipping selection email:", err),
-        );
-    }
-
-    // Notify admins
-    io.to("admin-room").emit("order-ready-for-shipping-selection", {
-      orderId: order._id,
-      orderNumber: order.orderNumber,
-      customerName: profile?.firstName || "Customer",
-    });
-  }
-
-  // ----- READY FOR SHIPPING (customer has selected shipping method) -----
-  if (newStatus === OrderStatus.ReadyForShipping) {
-    io.to("admin-room").emit("order-ready-for-shipping", {
-      orderId: order._id,
-      orderNumber: order.orderNumber,
-    });
-  }
-
-  // ----- SHIPPED -----
-  if (newStatus === OrderStatus.Shipped) {
-    // Notify customer that order has been shipped
-    io.to(`user-${order.userId}`).emit("order-shipped", {
-      orderId: order._id,
-      orderNumber: order.orderNumber,
-      message: "Your order has been shipped!",
-    });
-
-    if (user && profile) {
-      await emailService
-        .sendOrderShipped(
-          user.email,
-          profile.firstName,
-          order.orderNumber,
-        )
-        .catch((err) =>
-          console.error("Error sending order shipped email:", err),
-        );
-    }
-  }
-
-  // ----- DELIVERED -----
-  if (newStatus === OrderStatus.Delivered) {
-    if (user && profile) {
-      await emailService
-        .sendOrderDelivered(user.email, profile.firstName, order.orderNumber)
-        .catch((err) =>
-          console.error("Error sending order delivered email", err),
-        );
-    }
-  }
-
-  // ----- CANCELLED -----
-  if (newStatus === OrderStatus.Cancelled) {
-    if (user && profile) {
-      await emailService
-        .sendOrderCancelled(
-          user.email,
-          profile.firstName,
-          order.orderNumber,
-        )
-        .catch((err) =>
-          console.error("Error sending order cancelled email:", err),
-        );
-    }
-  }
-
-  // Notify customer of status change via socket (general)
-  io.to(`user-${order.userId}`).emit("order-status-updated", {
-    orderId: order._id,
-    orderNumber: order.orderNumber,
-    status: newStatus,
-    oldStatus,
-  });
-
-  // ✅ CREATE DATABASE NOTIFICATIONS
   try {
-    // Notify the customer
-    let title = 'Order Status Updated';
-    let message = `Order #${order.orderNumber} status changed from ${oldStatus} to ${newStatus}`;
-    
-    // Custom messages for important statuses
-    if (newStatus === OrderStatus.Delivered) {
-      title = 'Order Delivered';
-      message = `Order #${order.orderNumber} has been delivered!`;
-    } else if (newStatus === OrderStatus.InProduction) {
-      title = 'Order In Production';
-      message = `Order #${order.orderNumber} is now in production`;
-    } else if (newStatus === OrderStatus.ReadyForShipping) {
-      title = 'Order Ready for Shipping';
-      message = `Order #${order.orderNumber} is ready for shipping`;
-    } else if (newStatus === OrderStatus.AwaitingInvoice) {
-      title = 'Order Awaiting Invoice';
-      message = `Order #${order.orderNumber} is awaiting invoice generation`;
-    } else if (newStatus === OrderStatus.FilesUploaded) {
-      title = 'Briefs Submitted';
-      message = `Customization briefs submitted for order #${order.orderNumber}`;
-    } else if (newStatus === OrderStatus.AwaitingFinalPayment) {
-      title = 'Final Payment Required';
-      message = `Order #${order.orderNumber} is complete! Please pay the remaining balance of ${order.remainingBalance} to proceed with shipping.`;
-    } else if (newStatus === OrderStatus.Completed) {
-      title = 'Order Ready for Shipping Selection';
-      message = `Order #${order.orderNumber} is ready! Please log in to select a shipping method.`;
-    } else if (newStatus === OrderStatus.Shipped) {
-      title = 'Order Shipped';
-      message = `Order #${order.orderNumber} has been shipped!`;
+    if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
+      throw new Error("Unauthorized to update order status");
     }
-    
-    await notificationService.createForUser(order.userId, {
-      type: 'order-status-updated',
-      title,
-      message,
-      data: {
+
+    const order = await Order.findById(orderId).session(session);
+    if (!order) throw new Error("Order not found");
+
+    const allowedTransitions = validStatusTransitions[order.status];
+    if (!allowedTransitions.includes(newStatus)) {
+      throw new Error(`Cannot transition from ${order.status} to ${newStatus}`);
+    }
+
+    const oldStatus = order.status;
+    order.status = newStatus;
+    await order.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    const user = await User.findById(order.userId);
+    const profile = await Profile.findOne({ userId: order.userId });
+
+    if (newStatus === OrderStatus.AwaitingPartPayment) {
+      io.to(`user-${order.userId}`).emit("order-awaiting-part-payment", {
         orderId: order._id,
         orderNumber: order.orderNumber,
-        oldStatus,
-        newStatus,
-        updatedBy: userId,
-        ...(newStatus === OrderStatus.AwaitingFinalPayment && { amount: order.remainingBalance }),
-        ...(newStatus === OrderStatus.Completed && { shippingSelectionLink: `/orders/${order.orderNumber}/shipping` }),
-      },
-      link: newStatus === OrderStatus.Completed 
-        ? `/orders/${order.orderNumber}/shipping`
-        : `/dashboards/customer/orders/${order._id}`
+        depositAmount: order.requiredDeposit || order.totalAmount * 0.3,
+        totalAmount: order.totalAmount,
+        message: `A deposit of ₦${(order.requiredDeposit || order.totalAmount * 0.3).toLocaleString()} is required to proceed with your order.`,
+      });
+
+      if (user && profile) {
+        await emailService
+          .sendPaymentConfirmation(
+            user.email,
+            profile.firstName,
+            order.orderNumber,
+            order.requiredDeposit || order.totalAmount * 0.3,
+            "part",
+            "Bank Transfer or Paystack",
+            order.totalAmount - (order.requiredDeposit || order.totalAmount * 0.3),
+          )
+          .catch((err: any) =>
+            console.error("Error sending part payment email:", err),
+          );
+      }
+
+      io.to("admin-room").emit("order-awaiting-part-payment", {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        customerName: profile?.firstName || "Customer",
+        depositAmount: order.requiredDeposit || order.totalAmount * 0.3,
+        totalAmount: order.totalAmount,
+      });
+    }
+
+    if (newStatus === OrderStatus.AwaitingFinalPayment) {
+      io.to(`user-${order.userId}`).emit("order-awaiting-final-payment", {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        amount: order.remainingBalance,
+        message: "Your order is complete! Please pay the remaining balance for shipping.",
+      });
+
+      if (user && profile) {
+        await emailService
+          .sendFinalPaymentReminder(
+            user.email,
+            profile.firstName,
+            order.orderNumber,
+            order.remainingBalance,
+          )
+          .catch((err: any) =>
+            console.error("Error sending final payment reminder email:", err),
+          );
+      }
+
+      io.to("admin-room").emit("order-awaiting-final-payment", {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        customerName: profile?.firstName || "Customer",
+        amount: order.remainingBalance,
+      });
+    }
+
+    if (newStatus === OrderStatus.Completed) {
+      io.to(`user-${order.userId}`).emit("order-ready-for-shipping-selection", {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        message: "Your order is ready! Please log in to select a shipping method.",
+      });
+
+      if (user && profile) {
+        await emailService
+          .sendShippingSelectionReminder(
+            user.email,
+            profile.firstName,
+            order.orderNumber,
+            `${process.env.FRONTEND_URL}/orders/${order.orderNumber}/shipping`,
+          )
+          .catch((err: any) =>
+            console.error("Error sending shipping selection email:", err),
+          );
+      }
+
+      io.to("admin-room").emit("order-ready-for-shipping-selection", {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        customerName: profile?.firstName || "Customer",
+      });
+    }
+
+    if (newStatus === OrderStatus.ReadyForShipping) {
+      io.to("admin-room").emit("order-ready-for-shipping", {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+      });
+    }
+
+    if (newStatus === OrderStatus.Shipped) {
+      io.to(`user-${order.userId}`).emit("order-shipped", {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        message: "Your order has been shipped!",
+      });
+
+      if (user && profile) {
+        await emailService
+          .sendOrderShipped(
+            user.email,
+            profile.firstName,
+            order.orderNumber,
+          )
+          .catch((err) =>
+            console.error("Error sending order shipped email:", err),
+          );
+      }
+    }
+
+    if (newStatus === OrderStatus.Delivered) {
+      if (user && profile) {
+        await emailService
+          .sendOrderDelivered(user.email, profile.firstName, order.orderNumber)
+          .catch((err) =>
+            console.error("Error sending order delivered email", err),
+          );
+      }
+    }
+
+    if (newStatus === OrderStatus.Cancelled) {
+      if (user && profile) {
+        await emailService
+          .sendOrderCancelled(
+            user.email,
+            profile.firstName,
+            order.orderNumber,
+          )
+          .catch((err) =>
+            console.error("Error sending order cancelled email:", err),
+          );
+      }
+    }
+
+    io.to(`user-${order.userId}`).emit("order-status-updated", {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      status: newStatus,
+      oldStatus,
     });
 
-    // Notify admins about status change (for significant statuses)
-    const significantStatuses = [
-      OrderStatus.AwaitingInvoice,
-      OrderStatus.InProduction,
-      OrderStatus.ReadyForShipping,
-      OrderStatus.Delivered,
-      OrderStatus.Cancelled,
-      OrderStatus.AwaitingFinalPayment,
-      OrderStatus.Completed,
-      OrderStatus.Shipped,
-    ];
-
-    if (significantStatuses.includes(newStatus)) {
-      await notificationService.createForAdmins({
-        type: 'admin-order-status-updated',
-        title: 'Order Status Updated',
-        message: `Order #${order.orderNumber} status changed from ${oldStatus} to ${newStatus}`,
+    try {
+      let title = 'Order Status Updated';
+      let message = `Order #${order.orderNumber} status changed from ${oldStatus} to ${newStatus}`;
+      
+      if (newStatus === OrderStatus.AwaitingPartPayment) {
+        title = 'Part Payment Required';
+        message = `A deposit of ₦${(order.requiredDeposit || order.totalAmount * 0.3).toLocaleString()} is required for order #${order.orderNumber}`;
+      } else if (newStatus === OrderStatus.Delivered) {
+        title = 'Order Delivered';
+        message = `Order #${order.orderNumber} has been delivered!`;
+      } else if (newStatus === OrderStatus.InProduction) {
+        title = 'Order In Production';
+        message = `Order #${order.orderNumber} is now in production`;
+      } else if (newStatus === OrderStatus.ReadyForShipping) {
+        title = 'Order Ready for Shipping';
+        message = `Order #${order.orderNumber} is ready for shipping`;
+      } else if (newStatus === OrderStatus.AwaitingInvoice) {
+        title = 'Order Awaiting Invoice';
+        message = `Order #${order.orderNumber} is awaiting invoice generation`;
+      } else if (newStatus === OrderStatus.FilesUploaded) {
+        title = 'Briefs Submitted';
+        message = `Customization briefs submitted for order #${order.orderNumber}`;
+      } else if (newStatus === OrderStatus.AwaitingFinalPayment) {
+        title = 'Final Payment Required';
+        message = `Order #${order.orderNumber} is complete! Please pay the remaining balance of ₦${order.remainingBalance} to proceed with shipping.`;
+      } else if (newStatus === OrderStatus.Completed) {
+        title = 'Order Ready for Shipping Selection';
+        message = `Order #${order.orderNumber} is ready! Please log in to select a shipping method.`;
+      } else if (newStatus === OrderStatus.Shipped) {
+        title = 'Order Shipped';
+        message = `Order #${order.orderNumber} has been shipped!`;
+      }
+      
+      await notificationService.createForUser(order.userId, {
+        type: 'order-status-updated',
+        title,
+        message,
         data: {
           orderId: order._id,
           orderNumber: order.orderNumber,
-          customerId: order.userId,
           oldStatus,
           newStatus,
           updatedBy: userId,
+          ...(newStatus === OrderStatus.AwaitingPartPayment && { 
+            depositAmount: order.requiredDeposit || order.totalAmount * 0.3,
+            totalAmount: order.totalAmount 
+          }),
           ...(newStatus === OrderStatus.AwaitingFinalPayment && { amount: order.remainingBalance }),
-          ...(newStatus === OrderStatus.Completed && { requiresShippingSelection: true }),
+          ...(newStatus === OrderStatus.Completed && { shippingSelectionLink: `/orders/${order.orderNumber}/shipping` }),
         },
-        link: `/dashboards/admin/orders/${order._id}`
+        link: newStatus === OrderStatus.Completed 
+          ? `/orders/${order.orderNumber}/shipping`
+          : `/dashboards/customer/orders/${order._id}`
       });
-    }
-    
-  } catch (notifErr) {
-    console.error('Failed to create order status notification:', notifErr);
-  }
 
-  return order;
+      const significantStatuses = [
+        OrderStatus.AwaitingPartPayment,
+        OrderStatus.AwaitingInvoice,
+        OrderStatus.InProduction,
+        OrderStatus.ReadyForShipping,
+        OrderStatus.Delivered,
+        OrderStatus.Cancelled,
+        OrderStatus.AwaitingFinalPayment,
+        OrderStatus.Completed,
+        OrderStatus.Shipped,
+      ];
+
+      if (significantStatuses.includes(newStatus)) {
+        await notificationService.createForAdmins({
+          type: 'admin-order-status-updated',
+          title: 'Order Status Updated',
+          message: `Order #${order.orderNumber} status changed from ${oldStatus} to ${newStatus}`,
+          data: {
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            customerId: order.userId,
+            oldStatus,
+            newStatus,
+            updatedBy: userId,
+            ...(newStatus === OrderStatus.AwaitingPartPayment && { 
+              depositAmount: order.requiredDeposit || order.totalAmount * 0.3,
+              totalAmount: order.totalAmount 
+            }),
+            ...(newStatus === OrderStatus.AwaitingFinalPayment && { amount: order.remainingBalance }),
+            ...(newStatus === OrderStatus.Completed && { requiresShippingSelection: true }),
+          },
+          link: `/dashboards/admin/orders/${order._id}`
+        });
+      }
+      
+    } catch (notifErr) {
+      console.error('Failed to create order status notification:', notifErr);
+    }
+
+    return order;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
-// ==================== GET ALL ORDERS (Admin) ====================
 export const getAllOrders = async (
   userRole: string,
   page: number = 1,
@@ -821,26 +860,21 @@ export const getAllOrders = async (
 
   const query: any = {};
 
-  // Apply status filter
   if (filters?.status) {
     query.status = filters.status;
   }
 
-  // Apply payment status filter
   if (filters?.paymentStatus) {
     query.paymentStatus = filters.paymentStatus;
   }
 
-  // Apply search filter (order number, customer email, product name)
   if (filters?.search && filters.search.trim() !== '') {
     const searchRegex = new RegExp(filters.search, 'i');
     
-    // Find users that match the search (for customer email)
     const matchingUsers = await User.find({
       email: searchRegex
     }).select('_id');
     
-    // Find profiles that match the search (for customer name)
     const matchingProfiles = await Profile.find({
       $or: [
         { firstName: searchRegex },
@@ -854,13 +888,11 @@ export const getAllOrders = async (
       ...matchingProfiles.map(p => p.userId)
     ];
 
-    // Build the search query
     query.$or = [
       { orderNumber: searchRegex },
       { 'items.productName': searchRegex }
     ];
 
-    // Add userIds to the OR array if any users matched
     if (userIds.length > 0) {
       query.$or.push({ userId: { $in: userIds } });
     }
@@ -897,7 +929,6 @@ export const getAllOrders = async (
   };
 };
 
-// ==================== GET ORDERS READY FOR INVOICE ====================
 export const getOrdersReadyForInvoice = async (
   userRole: string,
 ): Promise<IOrderModel[]> => {
@@ -908,7 +939,7 @@ export const getOrdersReadyForInvoice = async (
   }
 
   return Order.find({
-    status: OrderStatus.AwaitingInvoice, // Changed from FilesUploaded to AwaitingInvoice
+    status: OrderStatus.AwaitingInvoice,
     invoiceId: { $exists: false },
   })
     .populate("userId", "email fullname")
@@ -917,30 +948,38 @@ export const getOrdersReadyForInvoice = async (
     .exec();
 };
 
-// ==================== MARK ORDER AS AWAITING INVOICE ====================
 export const markOrderAsAwaitingInvoice = async (
   orderId: string,
   userRole: string,
 ): Promise<IOrderModel> => {
-  if (userRole !== UserRole.SuperAdmin && userRole !== UserRole.Admin) {
-    throw new Error("Unauthorized - Only admin can mark order as awaiting invoice");
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    if (userRole !== UserRole.SuperAdmin && userRole !== UserRole.Admin) {
+      throw new Error("Unauthorized - Only admin can mark order as awaiting invoice");
+    }
+
+    const order = await Order.findById(orderId).session(session);
+    if (!order) throw new Error("Order not found");
+
+    if (order.status !== OrderStatus.FilesUploaded) {
+      throw new Error(`Order must be in FilesUploaded status to mark as awaiting invoice. Current status: ${order.status}`);
+    }
+
+    order.status = OrderStatus.AwaitingInvoice;
+    await order.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    return order;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-
-  const order = await Order.findById(orderId);
-  if (!order) throw new Error("Order not found");
-
-  // Check if order is in correct state
-  if (order.status !== OrderStatus.FilesUploaded) {
-    throw new Error(`Order must be in FilesUploaded status to mark as awaiting invoice. Current status: ${order.status}`);
-  }
-
-  order.status = OrderStatus.AwaitingInvoice;
-  await order.save();
-
-  return order;
 };
 
-// ==================== SEARCH BY ORDER NUMBER ====================
 export const searchByOrderNumber = async (
   orderNumber: string,
   userId: string,
@@ -955,11 +994,7 @@ export const searchByOrderNumber = async (
 
   if (!order) throw new Error("Order not found");
 
-  // Check authorization:
-  // - Admins and SuperAdmins can view any order
-  // - Customers can only view their own orders
-   if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
-    // Get the actual ID from the populated user object
+  if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
     const orderUserId = order.userId._id?.toString() || order.userId.toString();
     
     if (orderUserId !== userId) {
@@ -970,7 +1005,6 @@ export const searchByOrderNumber = async (
   return order;
 };
 
-// ==================== FILTER ORDERS (Admin) ====================
 export const filterOrders = async (
   filters: {
     status?: OrderStatus;
@@ -1050,7 +1084,6 @@ export const filterOrders = async (
   };
 };
 
-// ==================== GET PAID ORDERS ====================
 export const getPaidOrders = async (
   userRole: string,
   page: number = 1,
@@ -1088,7 +1121,6 @@ export const getPaidOrders = async (
   };
 };
 
-// ==================== GET PARTIALLY PAID ORDERS ====================
 export const getPartiallyPaidOrders = async (
   userRole: string,
   page: number = 1,
@@ -1126,7 +1158,6 @@ export const getPartiallyPaidOrders = async (
   };
 };
 
-// ==================== GET PENDING PAYMENT ORDERS ====================
 export const getPendingPaymentOrders = async (
   userRole: string,
   page: number = 1,
@@ -1164,7 +1195,6 @@ export const getPendingPaymentOrders = async (
   };
 };
 
-// ==================== GET ORDERS READY FOR SHIPPING ====================
 export const getOrdersReadyForShipping = async (
   userRole: string,
   page: number = 1,
@@ -1202,7 +1232,6 @@ export const getOrdersReadyForShipping = async (
   };
 };
 
-// ==================== UPDATE PAYMENT AFTER TRANSACTION ====================
 export const updateOrderPayment = async (
   orderId: string,
   paymentData: {
@@ -1211,36 +1240,59 @@ export const updateOrderPayment = async (
     remainingBalance: number;
   },
 ): Promise<IOrderModel> => {
-  const order = await Order.findById(orderId);
-  if (!order) throw new Error("Order not found");
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  order.amountPaid = paymentData.amountPaid;
-  order.paymentStatus = paymentData.paymentStatus;
-  order.remainingBalance = paymentData.remainingBalance;
+  try {
+    const order = await Order.findById(orderId).session(session);
+    if (!order) throw new Error("Order not found");
 
-  await order.save();
-  return order;
+    order.amountPaid = paymentData.amountPaid;
+    order.paymentStatus = paymentData.paymentStatus;
+    order.remainingBalance = paymentData.remainingBalance;
+
+    await order.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    return order;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
-// ==================== LINK INVOICE TO ORDER ====================
 export const linkInvoiceToOrder = async (
   orderId: string,
   invoiceId: Types.ObjectId,
   paymentType: "full" | "part",
   depositAmount?: number,
 ): Promise<IOrderModel> => {
-  const order = await Order.findById(orderId);
-  if (!order) throw new Error("Order not found");
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  order.invoiceId = invoiceId;
-  order.requiredPaymentType = paymentType;
-  if (depositAmount) {
-    order.requiredDeposit = depositAmount;
+  try {
+    const order = await Order.findById(orderId).session(session);
+    if (!order) throw new Error("Order not found");
+
+    order.invoiceId = invoiceId;
+    order.requiredPaymentType = paymentType;
+    if (depositAmount) {
+      order.requiredDeposit = depositAmount;
+    }
+    order.status = OrderStatus.InvoiceSent;
+
+    await order.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    return order;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-  order.status = OrderStatus.InvoiceSent;
-
-  await order.save();
-  return order;
 };
 
 export const addItemToOrderService = async (
@@ -1249,67 +1301,74 @@ export const addItemToOrderService = async (
   productId: string,
   quantity: number
 ) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  const order = await Order.findOne({ _id: orderId, userId });
+  try {
+    const order = await Order.findOne({ _id: orderId, userId }).session(session);
 
-  if (!order) {
-    throw new Error("Order not found");
-  }
-
-  const allowedStatuses = [
-    OrderStatus.Pending,
-    OrderStatus.OrderReceived,
-    OrderStatus.FilesUploaded,
-    OrderStatus.AwaitingInvoice
-  ];
-
-  if (!allowedStatuses.includes(order.status)) {
-    throw new Error("Cannot add items to order in current status");
-  }
-
-  const product = await Product.findById(productId);
-
-  if (!product) {
-    throw new Error("Product not found");
-  }
-
-  const newItem = {
-    productId: new Types.ObjectId(productId),
-    productName: product.name,
-    quantity,
-    price: product.price,
-
-    productSnapshot: {
-      name: product.name,
-      description: product.description,
-      dimension: product.dimension,
-      minOrder: product.minOrder,
-      material: product.material,
-    },
-  };
-
-  const existingItem = order.items.find(
-  (item) => item.productId.toString() === productId
-  );
-
-    if (existingItem) {
-    existingItem.quantity += quantity;
-    } else {
-    order.items.push(newItem);
+    if (!order) {
+      throw new Error("Order not found");
     }
 
+    const allowedStatuses = [
+      OrderStatus.Pending,
+      OrderStatus.OrderReceived,
+      OrderStatus.FilesUploaded,
+      OrderStatus.AwaitingInvoice
+    ];
 
-  const itemTotal = product.price * quantity;
+    if (!allowedStatuses.includes(order.status)) {
+      throw new Error("Cannot add items to order in current status");
+    }
 
-  order.totalAmount += itemTotal;
-  order.remainingBalance += itemTotal;
+    const product = await Product.findById(productId).session(session);
 
-  await order.save();
+    if (!product) {
+      throw new Error("Product not found");
+    }
 
-  return order;
+    const newItem = {
+      productId: new Types.ObjectId(productId),
+      productName: product.name,
+      quantity,
+      price: product.price,
+      productSnapshot: {
+        name: product.name,
+        description: product.description,
+        dimension: product.dimension,
+        minOrder: product.minOrder,
+        material: product.material,
+      },
+    };
+
+    const existingItem = order.items.find(
+      (item) => item.productId.toString() === productId
+    );
+
+    if (existingItem) {
+      existingItem.quantity += quantity;
+    } else {
+      order.items.push(newItem);
+    }
+
+    const itemTotal = product.price * quantity;
+
+    order.totalAmount += itemTotal;
+    order.remainingBalance += itemTotal;
+
+    await order.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    return order;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
-// ==================== GET USER ACTIVE ORDERS ====================
 export const getUserActiveOrders = async (
   userId: string,
   statuses: OrderStatus[] = [

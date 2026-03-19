@@ -1,6 +1,5 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
-import ejs from "ejs";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -9,7 +8,60 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const projectRoot = path.resolve(__dirname, "..");
+const projectRoot = path.resolve(__dirname, "..", "..");
+
+// Type definitions
+interface EmailOptions {
+  to: string;
+  subject: string;
+  template: string;
+  data: Record<string, any>;
+}
+
+interface EmailData {
+  name: string;
+  orderNumber?: string;
+  items?: string;
+  total?: number;
+  deposit?: string;
+  trackUrl?: string;
+  invoiceNumber?: string;
+  depositAmount?: number;
+  dueDate?: string;
+  invoiceUrl?: string;
+  productName?: string;
+  designUrl?: string;
+  productionTime?: string;
+  estimatedDelivery?: string;
+  amount?: number;
+  paymentType?: string;
+  paymentMethod?: string;
+  remainingBalance?: number;
+  orderUrl?: string;
+  transactionId?: string;
+  status?: string;
+  notes?: string;
+  paymentUrl?: string;
+  shippingUrl?: string;
+  carrier?: string;
+  trackingNumber?: string;
+  shippingAddress?: string;
+  reviewUrl?: string;
+  supportUrl?: string;
+  shippingMethod?: string;
+  shippingCost?: number;
+  address?: string;
+  recipientName?: string;
+  recipientPhone?: string;
+  storeAddress?: string;
+  storeHours?: string;
+  resetLink?: string;
+  customerName?: string;
+  customerEmail?: string;
+  briefDescription?: string;
+  hasAttachments?: string;
+  adminUrl?: string;
+}
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || "smtp.gmail.com",
@@ -24,65 +76,25 @@ const transporter = nodemailer.createTransport({
   rateLimit: 10,
 });
 
-// Template cache
-const templateCache = new Map<string, { content: string; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
 // Path to email templates
-const TEMPLATE_PATH = path.resolve(projectRoot, "templates", "email");
+const TEMPLATE_PATH = path.resolve(projectRoot, "src", "templates", "email");
 
 const getTemplate = async (templateName: string): Promise<string> => {
-  const cached = templateCache.get(templateName);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.content;
-  }
-
   const templatePath = path.join(TEMPLATE_PATH, templateName);
 
   try {
     const template = await fs.readFile(templatePath, "utf-8");
-    templateCache.set(templateName, {
-      content: template,
-      timestamp: Date.now(),
-    });
     return template;
   } catch (error) {
-    console.error(
-      `Email template ${templateName} not found at ${templatePath}`,
-    );
+    console.error(`Email template ${templateName} not found at ${templatePath}`);
     // Return a simple fallback template
-    return `<div><h1>Notification</h1><p>Hello <%= name %></p></div>`;
+    return `<div style="font-family: Arial, sans-serif; padding: 20px;">
+              <h1>Notification from Ample Printhub</h1>
+              <p>Hello {{name}},</p>
+              <p>This is a notification from Ample Printhub.</p>
+            </div>`;
   }
 };
-
-const getLogoAttachment = async () => {
-  const logoPath = path.resolve(
-    projectRoot,
-    "public",
-    "images",
-    "ample_logo.png",
-  );
-  try {
-    await fs.access(logoPath);
-    return [
-      {
-        filename: "ample_logo.png",
-        path: logoPath,
-        cid: "ample_logo",
-      },
-    ];
-  } catch {
-    console.warn("Logo file not found - sending without logo");
-    return [];
-  }
-};
-
-interface EmailOptions {
-  to: string;
-  subject: string;
-  template: string;
-  data: Record<string, any>;
-}
 
 const sendEmail = async ({
   to,
@@ -91,48 +103,24 @@ const sendEmail = async ({
   data,
 }: EmailOptions): Promise<void> => {
   try {
-    // Get the main template
-    const mainTemplate = await getTemplate("emailTemplate.ejs");
+    // Get the template
+    let html = await getTemplate(template);
 
-    // Get the content template
-    const contentTemplate = await getTemplate(template);
-
-    // Prepare the data with defaults
-    const templateData = {
-      ...data,
-      frontendUrl: process.env.FRONTEND_URL || "https://www.ampleprinthub.com",
-      year: new Date().getFullYear(),
-      email: to,
-      header: data.header || getHeaderFromTemplate(template),
-      buttonText: data.buttonText,
-      buttonUrl: data.buttonUrl,
-      unsubscribeUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/unsubscribe?email=${to}`,
-      privacyUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/privacy`,
-    };
-
-    // Render the content template first to get the body HTML
-    const bodyContent = await ejs.render(contentTemplate, templateData, {
-      async: true,
+    // Simple variable replacement
+    Object.keys(data).forEach(key => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      const value = data[key] !== undefined ? String(data[key]) : '';
+      html = html.replace(regex, value);
     });
 
-    // Then render the main template with the body content
-    const html = await ejs.render(
-      mainTemplate,
-      {
-        ...templateData,
-        bodyContent,
-      },
-      { async: true },
-    );
-
-    const attachments = await getLogoAttachment();
+    // Replace year
+    html = html.replace(/{{year}}/g, new Date().getFullYear().toString());
 
     await transporter.sendMail({
       from: `"${process.env.COMPANY_NAME || "Ample Printhub"}" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html,
-      attachments,
     });
 
     console.log(`✅ Email sent to ${to}: ${subject}`);
@@ -141,38 +129,14 @@ const sendEmail = async ({
   }
 };
 
-// Helper function to get header from template name
-const getHeaderFromTemplate = (template: string): string => {
-  const headers: Record<string, string> = {
-    "welcome.ejs": "Welcome to Ample Printhub!",
-    "order-confirmation.ejs": "Order Confirmed!",
-    "invoice-ready.ejs": "Your Invoice is Ready",
-    "design-ready.ejs": "Your Design is Ready!",
-    "design-approved.ejs": "Design Approved!",
-    "order-shipped.ejs": "Your Order is on the Way!",
-    "order-delivered.ejs": "Order Delivered!",
-    "password-reset.ejs": "Reset Your Password",
-    "admin-new-order.ejs": "New Order Received",
-    "admin-new-brief.ejs": "New Customization Brief",
-    "payment-confirmation.ejs": "Payment Received!",
-    "receipt-uploaded.ejs": "Receipt Received",
-    "payment-verified.ejs": "Payment Verification",
-    "shipping-created.ejs": "Shipping Update",
-    "final-payment-reminder.ejs": "Final Payment Required",
-    "shipping-selection-reminder.ejs": "Shipping Selection Required",
-    "order-cancelled.ejs": "Order Cancelled",
-  };
-  return headers[template] || "Notification from Ample Printhub";
-};
-
 // ==================== CUSTOMER EMAILS ====================
 
-export const sendWelcomeEmail = (to: string, name: string) =>
+export const sendWelcomeEmail = (to: string, name: string): Promise<void> =>
   sendEmail({
     to,
     subject: "Welcome to Ample Printhub!",
-    template: "welcome.ejs",
-    data: { name, header: "Welcome to Ample Printhub!" },
+    template: "welcome.html",
+    data: { name },
   });
 
 export const sendOrderConfirmation = (
@@ -182,20 +146,18 @@ export const sendOrderConfirmation = (
   items: any[],
   total: number,
   deposit?: boolean,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject: `Order Confirmation: ${orderNumber}`,
-    template: "order-confirmation.ejs",
+    template: "order-confirmation.html",
     data: {
       name,
       orderNumber,
-      items,
-      total,
-      deposit,
-      header: "Order Confirmed!",
-      buttonText: "Track Order",
-      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}`,
+      items: JSON.stringify(items),
+      total: total.toString(),
+      deposit: deposit ? "Yes" : "No",
+      trackUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
     },
   });
 
@@ -207,21 +169,19 @@ export const sendInvoiceReady = (
   total: number,
   depositAmount?: number,
   dueDate?: string,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject: `Invoice Ready: ${invoiceNumber}`,
-    template: "invoice-ready.ejs",
+    template: "invoice-ready.html",
     data: {
       name,
       orderNumber,
       invoiceNumber,
-      total,
-      depositAmount,
-      dueDate,
-      header: "Your Invoice is Ready",
-      buttonText: "View Invoice",
-      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/invoices/${invoiceNumber}`,
+      total: total.toString(),
+      depositAmount: depositAmount || 0,
+      dueDate: dueDate || "Not specified",
+      invoiceUrl: `${process.env.FRONTEND_URL}/invoices/${invoiceNumber}`,
     },
   });
 
@@ -230,20 +190,17 @@ export const sendDesignReady = (
   name: string,
   orderNumber: string,
   productName: string,
-  designPreviewUrl: string,
-) =>
+  url: string,
+): Promise<void> =>
   sendEmail({
     to,
     subject: `Design Ready for Review: ${orderNumber}`,
-    template: "design-ready.ejs",
+    template: "design-ready.html",
     data: {
       name,
       orderNumber,
       productName,
-      designPreviewUrl,
-      header: "Your Design is Ready!",
-      buttonText: "Review Design",
-      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}/design`,
+      designUrl: url,
     },
   });
 
@@ -252,22 +209,17 @@ export const sendDesignApproved = (
   name: string,
   orderNumber: string,
   productName: string,
-  productionTime: string,
-  estimatedDelivery: string,
-) =>
+  url: string
+): Promise<void> =>
   sendEmail({
     to,
     subject: `Design Approved: ${orderNumber}`,
-    template: "design-approved.ejs",
+    template: "design-approved.html",
     data: {
       name,
       orderNumber,
       productName,
-      productionTime,
-      estimatedDelivery,
-      header: "Design Approved!",
-      buttonText: "Track Production",
-      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}`,
+      trackUrl: url,
     },
   });
 
@@ -279,21 +231,19 @@ export const sendPaymentConfirmation = (
   paymentType: string,
   paymentMethod: string,
   remainingBalance: number,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject: `Payment Received for Order ${orderNumber}`,
-    template: "payment-confirmation.ejs",
+    template: "payment-confirmation.html",
     data: {
       name,
       orderNumber,
-      amount,
+      amount: amount.toString(),
       paymentType,
       paymentMethod,
-      remainingBalance,
-      header: "Payment Received!",
-      buttonText: "View Order",
-      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}`,
+      remainingBalance: remainingBalance.toString(),
+      orderUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
     },
   });
 
@@ -303,19 +253,17 @@ export const sendReceiptUploaded = (
   orderNumber: string,
   amount: number,
   transactionId: string,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
-    subject: `Receipt Received - Pending Verification`,
-    template: "receipt-uploaded.ejs",
+    subject: "Receipt Received - Pending Verification",
+    template: "receipt-uploaded.html",
     data: {
       name,
       orderNumber,
-      amount,
+      amount: amount.toString(),
       transactionId,
-      header: "Receipt Received",
-      buttonText: "View Order",
-      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}`,
+      orderUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
     },
   });
 
@@ -327,27 +275,22 @@ export const sendPaymentVerified = (
   transactionId: string,
   status: "approved" | "rejected",
   notes?: string,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject:
       status === "approved"
         ? "Payment Verified Successfully"
         : "Payment Verification Failed",
-    template: "payment-verified.ejs",
+    template: "payment-verified.html",
     data: {
       name,
       orderNumber,
-      amount,
+      amount: amount.toString(),
       transactionId,
       status,
-      notes,
-      header:
-        status === "approved"
-          ? "Payment Verified! ✅"
-          : "Payment Verification Failed ❌",
-      buttonText: "View Order",
-      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}`,
+      notes: notes || "",
+      orderUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
     },
   });
 
@@ -358,18 +301,16 @@ export const sendFinalPaymentReminder = (
   name: string,
   orderNumber: string,
   amount: number,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject: `Final Payment Required for Order #${orderNumber}`,
-    template: "final-payment-reminder.ejs",
+    template: "final-payment-reminder.html",
     data: {
       name,
       orderNumber,
-      amount: amount.toLocaleString(),
-      header: "Final Payment Required",
-      buttonText: "Make Payment",
-      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}/payment`,
+      amount: amount.toString(),
+      paymentUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}/payment`,
     },
   });
 
@@ -378,17 +319,15 @@ export const sendShippingSelectionReminder = (
   name: string,
   orderNumber: string,
   link: string,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject: `Order #${orderNumber} Ready for Shipping Selection`,
-    template: "shipping-selection-reminder.ejs",
+    template: "shipping-selection-reminder.html",
     data: {
       name,
       orderNumber,
-      header: "Shipping Selection Required",
-      buttonText: "Select Shipping Method",
-      buttonUrl: link,
+      shippingUrl: link,
     },
   });
 
@@ -401,22 +340,19 @@ export const sendOrderShipped = (
   estimatedDelivery?: string,
   shippingAddress?: string,
   trackingUrl?: string,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject: `Order #${orderNumber} Has Been Shipped!`,
-    template: "order-shipped.ejs",
+    template: "order-shipped.html",
     data: {
       name,
       orderNumber,
-      carrier,
-      trackingNumber,
-      estimatedDelivery,
-      shippingAddress,
-      trackingUrl,
-      header: "Your Order is on the Way!",
-      buttonText: trackingUrl ? "Track Package" : "View Order",
-      buttonUrl: trackingUrl || `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}/tracking`,
+      carrier: carrier || "Not specified",
+      trackingNumber: trackingNumber || "Not available",
+      estimatedDelivery: estimatedDelivery || "To be confirmed",
+      shippingAddress: shippingAddress || "Address not specified",
+      trackUrl: trackingUrl || `${process.env.FRONTEND_URL}/orders/${orderNumber}/tracking`,
     },
   });
 
@@ -424,17 +360,15 @@ export const sendOrderDelivered = (
   to: string,
   name: string,
   orderNumber: string,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject: `Order Delivered: ${orderNumber}`,
-    template: "order-delivered.ejs",
+    template: "order-delivered.html",
     data: {
       name,
       orderNumber,
-      header: "Order Delivered!",
-      buttonText: "Leave a Review",
-      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}/review`,
+      reviewUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}/review`,
     },
   });
 
@@ -442,17 +376,15 @@ export const sendOrderCancelled = (
   to: string,
   name: string,
   orderNumber: string,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject: `Order #${orderNumber} Has Been Cancelled`,
-    template: "order-cancelled.ejs",
+    template: "order-cancelled.html",
     data: {
       name,
       orderNumber,
-      header: "Order Cancelled",
-      buttonText: "Contact Support",
-      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/support`,
+      supportUrl: `${process.env.FRONTEND_URL}/support`,
     },
   });
 
@@ -467,33 +399,25 @@ export const sendShippingCreated = (
   recipientPhone?: string,
   storeAddress?: string,
   storeHours?: string,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject:
       shippingMethod === "delivery"
         ? "Shipping Arranged"
         : "Order Ready for Pickup",
-    template: "shipping-created.ejs",
+    template: "shipping-created.html",
     data: {
       name,
       orderNumber,
       shippingMethod,
-      shippingCost,
-      address,
-      recipientName,
-      recipientPhone,
-      storeAddress:
-        storeAddress ||
-        process.env.STORE_ADDRESS ||
-        "5 Boyle Street Shomolu, Lagos",
-      storeHours: storeHours || process.env.STORE_HOURS || "Mon-Fri 9am-5pm",
-      header:
-        shippingMethod === "delivery"
-          ? "Your Order is on the Way! 🚚"
-          : "Ready for Pickup! 🏢",
-      buttonText: "View Order",
-      buttonUrl: `${process.env.FRONTEND_URL || "https://www.ampleprinthub.com"}/orders/${orderNumber}`,
+      shippingCost: shippingCost.toString(),
+      address: address || "",
+      recipientName: recipientName || "",
+      recipientPhone: recipientPhone || "",
+      storeAddress: storeAddress || "5 Boyle Street Shomolu, Lagos",
+      storeHours: storeHours || "Mon-Fri 9am-5pm",
+      orderUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
     },
   });
 
@@ -503,17 +427,14 @@ export const sendPasswordReset = (
   to: string,
   name: string,
   resetLink: string,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject: "Password Reset Request",
-    template: "password-reset.ejs",
+    template: "password-reset.html",
     data: {
       name,
       resetLink,
-      header: "Reset Your Password",
-      buttonText: "Reset Password",
-      buttonUrl: resetLink,
     },
   });
 
@@ -526,21 +447,18 @@ export const sendAdminNewOrder = (
   customerEmail: string,
   total: number,
   items: any[],
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject: `New Order: ${orderNumber}`,
-    template: "admin-new-order.ejs",
+    template: "admin-new-order.html",
     data: {
       orderNumber,
       customerName,
       customerEmail,
-      total,
-      items,
-      name: "Admin",
-      header: "New Order Received",
-      buttonText: "View Order",
-      buttonUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}`,
+      total: total.toString(),
+      items: JSON.stringify(items),
+      adminUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}`,
     },
   });
 
@@ -551,21 +469,18 @@ export const sendAdminNewBrief = (
   productName: string,
   briefDescription: string,
   hasAttachments: boolean,
-) =>
+): Promise<void> =>
   sendEmail({
     to,
     subject: `New Brief: ${orderNumber}`,
-    template: "admin-new-brief.ejs",
+    template: "admin-new-brief.html",
     data: {
       orderNumber,
       customerName,
       productName,
       briefDescription,
-      hasAttachments,
-      name: "Admin",
-      header: "New Customization Brief",
-      buttonText: "View Brief",
-      buttonUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}/brief`,
+      hasAttachments: hasAttachments ? "Yes" : "No",
+      adminUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}/brief`,
     },
   });
 

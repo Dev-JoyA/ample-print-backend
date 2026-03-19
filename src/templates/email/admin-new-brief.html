@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>New Customization Brief - Ample Printhub</title>
+    <style>
+        /* Reset styles */
+        body, table, td, p, a {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            font-size: 100%;
+            font: inherit;
+            vertical-align: baseline;
+        }
+        
+        body {
+            background-color: #f4f7fb;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 20px;
+        }
+        
+        table {
+            border-collapse: collapse;
+            mso-table-lspace: 0;
+            mso-table-rspace: 0;
+        }
+        
+        /* Container */
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* Header */
+        .email-header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .logo {
+            max-width: 180px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        
+        .header-title {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-subtitle {
+            color: #94a3b8;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        
+        /* Content */
+        .email-content {
+            padding: 40px 30px;
+            background-color: #ffffff;
+        }
+        
+        .greeting {
+            color: #1e293b;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            color: #475569;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        
+        /* Order Details Box */
+        .order-details {
+            background-color: #f8fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .order-details h3 {
+            color: #1e293b;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 20px 0;
+        }
+        
+        .details-table {
+            width: 100%;
+        }
+        
+        .details-table td {
+            padding: 8px 0;
+            vertical-align: top;
+        }
+        
+        .details-table td:first-child {
+            width: 35%;
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .details-table td:last-child {
+            width: 65%;
+            color: #1e293b;
+            font-weight: 500;
+        }
+        
+        /* Brief Description */
+        .brief-box {
+            background-color: #f1f5f9;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0 15px 0;
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .brief-box p {
+            color: #334155;
+            font-size: 14px;
+            font-style: italic;
+            margin: 0;
+        }
+        
+        .brief-label {
+            display: inline-block;
+            background-color: #3b82f6;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 30px;
+            margin-bottom: 10px;
+        }
+        
+        /* Attachment indicator */
+        .attachment-badge {
+            background-color: #f1f5f9;
+            border-radius: 30px;
+            padding: 12px 18px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .attachment-icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+        
+        .attachment-text {
+            color: #475569;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .attachment-list {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .attachment-tag {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 30px;
+            padding: 6px 12px;
+            font-size: 13px;
+            color: #475569;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* Button */
+        .button-container {
+            text-align: center;
+            margin: 35px 0 20px;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .button:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(239, 68, 68, 0.3);
+        }
+        
+        /* Metadata */
+        .metadata {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 25px 0;
+        }
+        
+        .metadata-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        
+        .metadata-item:last-child {
+            border-bottom: none;
+        }
+        
+        .metadata-label {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .metadata-value {
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        /* Footer */
+        .email-footer {
+            background-color: #f8fafc;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .footer-text {
+            color: #64748b;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        .social-links {
+            margin: 20px 0;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            margin: 0 8px;
+            text-decoration: none;
+            font-size: 20px;
+        }
+        
+        .divider {
+            height: 1px;
+            background-color: #e2e8f0;
+            margin: 20px 0;
+        }
+        
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-content {
+                padding: 30px 20px;
+            }
+            
+            .order-details {
+                padding: 20px;
+            }
+            
+            .details-table td {
+                display: block;
+                width: 100% !important;
+                padding: 4px 0;
+            }
+            
+            .details-table td:first-child {
+                margin-bottom: 0;
+            }
+            
+            .attachment-list {
+                flex-direction: column;
+            }
+            
+            .button {
+                display: block;
+                margin: 0 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="email-header">
+            <img src="cid:ample_logo" alt="Ample Printhub" class="logo" width="180" height="auto">
+            <h1 class="header-title">New Customization Brief</h1>
+            <p class="header-subtitle">Action Required - Respond Within 24-48 Hours</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="email-content">
+            <p class="greeting">Hello {{name}},</p>
+            
+            <p class="message">A customer has submitted a new customization brief for your review. Please log in to the admin dashboard to respond.</p>
+            
+            <!-- Order Details -->
+            <div class="order-details">
+                <h3>📋 Brief Details</h3>
+                <table class="details-table">
+                    <tr>
+                        <td><strong>Order Number:</strong></td>
+                        <td><span style="background-color: #f1f5f9; padding: 4px 10px; border-radius: 30px; font-family: monospace;">{{orderNumber}}</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Customer:</strong></td>
+                        <td>{{customerName}}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Product:</strong></td>
+                        <td><strong style="color: #ef4444;">{{productName}}</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Submitted:</strong></td>
+                        <td>{{submittedDate}}</td>
+                    </tr>
+                </table>
+                
+                <!-- Brief Description -->
+                {{#if briefDescription}}
+                <div class="brief-box">
+                    <span class="brief-label">Customer Request</span>
+                    <p>"{{briefDescription}}"</p>
+                </div>
+                {{/if}}
+                
+                <!-- Attachments Section -->
+                {{#if hasAttachments}}
+                <div class="attachment-badge">
+                    <span class="attachment-icon">📎</span>
+                    <span class="attachment-text">This brief includes attachments:</span>
+                </div>
+                <div class="attachment-list">
+                    {{#if hasImage}}
+                    <span class="attachment-tag">🖼️ Reference Image</span>
+                    {{/if}}
+                    {{#if hasLogo}}
+                    <span class="attachment-tag">🎨 Logo</span>
+                    {{/if}}
+                    {{#if hasVoiceNote}}
+                    <span class="attachment-tag">🎤 Voice Note</span>
+                    {{/if}}
+                    {{#if hasVideo}}
+                    <span class="attachment-tag">🎥 Video</span>
+                    {{/if}}
+                </div>
+                {{/if}}
+            </div>
+            
+            <!-- Quick Metadata -->
+            <div class="metadata">
+                <div class="metadata-item">
+                    <span class="metadata-label">Priority Level:</span>
+                    <span class="metadata-value" style="color: #ef4444;">High</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">Response Needed By:</span>
+                    <span class="metadata-value">{{responseDeadline}}</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">Current Queue:</span>
+                    <span class="metadata-value">{{queuePosition}} pending briefs</span>
+                </div>
+            </div>
+            
+            <p style="color: #475569; margin-bottom: 20px;">Please review this brief carefully and respond with design concepts or questions for the customer.</p>
+            
+            <!-- Action Button -->
+            <div class="button-container">
+                <a href="{{adminUrl}}" class="button">View & Respond to Brief</a>
+            </div>
+            
+            <!-- Note -->
+            <p style="color: #94a3b8; font-size: 14px; margin-top: 30px; text-align: center; background-color: #fff3cd; padding: 15px; border-radius: 8px; color: #856404;">
+                <strong>⏰ Time Sensitive:</strong> Please respond within 24-48 hours to ensure timely order processing and customer satisfaction.
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="email-footer">
+            <div class="social-links">
+                <a href="https://facebook.com/ampleprinthub">📘</a>
+                <a href="https://instagram.com/ampleprinthub">📷</a>
+                <a href="https://twitter.com/ampleprinthub">🐦</a>
+                <a href="https://tiktok.com/@ampleprinthub">🎵</a>
+            </div>
+            <p class="footer-text">© {{year}} Ample Printhub. All rights reserved.</p>
+            <p class="footer-text">5 Boyle Street, Shomolu, Lagos</p>
+            <p class="footer-text">
+                <a href="{{privacyUrl}}" style="color: #64748b; text-decoration: underline;">Privacy Policy</a> |
+                <a href="{{unsubscribeUrl}}" style="color: #64748b; text-decoration: underline;">Unsubscribe</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

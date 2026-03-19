@@ -1,5 +1,5 @@
+import mongoose, { Types } from "mongoose";
 import { Feedback, IFeedback, FeedBackStatus } from "../model/feedback.js";
-import { Types } from "mongoose";
 import { Order } from "../../order/model/orderModel.js";
 import { Design } from "../../design/model/designModel.js";
 import { User, UserRole } from "../../users/model/userModel.js";
@@ -17,7 +17,6 @@ interface FeedbackFilterOptions {
   endDate?: Date;
 }
 
-// ==================== CREATE CUSTOMER FEEDBACK ====================
 export const createCustomerFeedback = async (
   data: {
     orderId: string;
@@ -28,215 +27,237 @@ export const createCustomerFeedback = async (
   userId: string,
   io: Server,
 ): Promise<IFeedback> => {
-  // Validate order exists and belongs to customer
-  const order = await Order.findOne({
-    _id: data.orderId,
-    userId: userId,
-  });
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (!order) {
-    throw new Error("Order not found or unauthorized");
-  }
-
-  // Validate message exists
-  if (!data.message || data.message.trim().length === 0) {
-    throw new Error("Feedback message is required");
-  }
-
-  // If designId is provided, validate it belongs to this order
-  if (data.designId) {
-    const design = await Design.findOne({
-      _id: data.designId,
-      orderId: data.orderId,
-    }).populate("productId");
-
-    if (!design) {
-      throw new Error("Design not found for this order");
-    }
-  }
-
-  // Create feedback
-  const feedback = new Feedback({
-    userId: new Types.ObjectId(userId),
-    orderId: new Types.ObjectId(data.orderId),
-    ...(data.designId && { designId: new Types.ObjectId(data.designId) }),
-    message: data.message,
-    attachment: data.attachments || [],
-    status: FeedBackStatus.Pending,
-  });
-
-  await feedback.save();
-
-  // Populate for response
-  await feedback.populate([
-    { path: "userId", select: "fullname email" },
-    { path: "orderId", select: "orderNumber" },
-    { 
-      path: "designId", 
-      populate: { path: "productId", select: "name price images" }
-    },
-  ]);
-
-  // Get user profile for customer name
-  const profile = await Profile.findOne({ userId });
-
-  // ===== SOCKET NOTIFICATIONS =====
-  const notificationData = {
-    feedbackId: feedback._id,
-    orderId: feedback.orderId,
-    orderNumber: (feedback.orderId as any).orderNumber,
-    ...(data.designId && { 
-      designId: data.designId,
-      productName: (feedback.designId as any)?.productId?.name || "Unknown Product"
-    }),
-    message:
-      data.message.substring(0, 50) + (data.message.length > 50 ? "..." : ""),
-    customerName: (feedback.userId as any)?.fullname || profile?.firstName || "Customer",
-    priority: "high",
-    timestamp: new Date(),
-  };
-
-  io.to("admin-room").emit("new-feedback", notificationData);
-  io.to("superadmin-room").emit("new-feedback", notificationData);
-
-  // ✅ CREATE DATABASE NOTIFICATIONS FOR ADMINS
   try {
-    await notificationService.createForAdmins({
-      type: 'new-feedback',
-      title: 'New Feedback Received',
-      message: `Customer ${profile?.firstName || 'Customer'} submitted feedback for order #${(feedback.orderId as any).orderNumber}`,
-      data: {
-        feedbackId: feedback._id,
-        orderId: feedback.orderId,
-        orderNumber: (feedback.orderId as any).orderNumber,
-        designId: data.designId,
-        productName: (feedback.designId as any)?.productId?.name,
-        messagePreview: notificationData.message,
-        customerId: userId,
-        customerName: profile?.firstName || 'Customer',
-        hasAttachments: !!(data.attachments && data.attachments.length > 0)
+    const order = await Order.findOne({
+      _id: data.orderId,
+      userId: userId,
+    }).session(session);
+
+    if (!order) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Order not found or unauthorized");
+    }
+
+    if (!data.message || data.message.trim().length === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Feedback message is required");
+    }
+
+    if (data.designId) {
+      const design = await Design.findOne({
+        _id: data.designId,
+        orderId: data.orderId,
+      }).populate("productId").session(session);
+
+      if (!design) {
+        await session.abortTransaction();
+        session.endSession();
+        throw new Error("Design not found for this order");
+      }
+    }
+
+    const [feedback] = await Feedback.create(
+      [{
+        userId: new Types.ObjectId(userId),
+        orderId: new Types.ObjectId(data.orderId),
+        ...(data.designId && { designId: new Types.ObjectId(data.designId) }),
+        message: data.message,
+        attachment: data.attachments || [],
+        status: FeedBackStatus.Pending,
+      }],
+      { session },
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    await feedback.populate([
+      { path: "userId", select: "fullname email" },
+      { path: "orderId", select: "orderNumber" },
+      { 
+        path: "designId", 
+        populate: { path: "productId", select: "name price images" }
       },
-      link: `/dashboards/admin/feedback/${feedback._id}`
+    ]);
+
+    const profile = await Profile.findOne({ userId });
+
+    const notificationData = {
+      feedbackId: feedback._id,
+      orderId: feedback.orderId,
+      orderNumber: (feedback.orderId as any).orderNumber,
+      ...(data.designId && { 
+        designId: data.designId,
+        productName: (feedback.designId as any)?.productId?.name || "Unknown Product"
+      }),
+      message: data.message.substring(0, 50) + (data.message.length > 50 ? "..." : ""),
+      customerName: (feedback.userId as any)?.fullname || profile?.firstName || "Customer",
+      priority: "high",
+      timestamp: new Date(),
+    };
+
+    io.to("admin-room").emit("new-feedback", notificationData);
+    io.to("superadmin-room").emit("new-feedback", notificationData);
+
+    try {
+      await notificationService.createForAdmins({
+        type: 'new-feedback',
+        title: 'New Feedback Received',
+        message: `Customer ${profile?.firstName || 'Customer'} submitted feedback for order #${(feedback.orderId as any).orderNumber}`,
+        data: {
+          feedbackId: feedback._id,
+          orderId: feedback.orderId,
+          orderNumber: (feedback.orderId as any).orderNumber,
+          designId: data.designId,
+          productName: (feedback.designId as any)?.productId?.name,
+          messagePreview: notificationData.message,
+          customerId: userId,
+          customerName: profile?.firstName || 'Customer',
+          hasAttachments: !!(data.attachments && data.attachments.length > 0)
+        },
+        link: `/dashboards/admin/feedback/${feedback._id}`
+      });
+      
+    } catch (notifErr: any) {
+      console.error('Failed to create admin feedback notification:', notifErr.message);
+    }
+
+    const pendingCount = await Feedback.countDocuments({
+      status: FeedBackStatus.Pending,
     });
     
-  } catch (notifErr) {
-    console.error('Failed to create admin feedback notification:', notifErr);
+    io.to("admin-room").emit("pending-feedback-count", {
+      count: pendingCount,
+      timestamp: new Date(),
+    });
+
+    return feedback;
+  } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-
-  // Update pending count for admin badges
-  const pendingCount = await Feedback.countDocuments({
-    status: FeedBackStatus.Pending,
-  });
-  io.to("admin-room").emit("pending-feedback-count", {
-    count: pendingCount,
-    timestamp: new Date(),
-  });
-
-  return feedback;
 };
 
 export const adminRespondToFeedback = async (
   feedbackId: string,
   response: string,
-  attachments: string[],  // Add this parameter
+  attachments: string[],
   adminId: string,
   io: Server,
 ): Promise<IFeedback> => {
-  // Validate response
-  if (!response || response.trim().length === 0) {
-    throw new Error("Admin response cannot be empty");
-  }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  const feedback = await Feedback.findById(feedbackId);
-
-  if (!feedback) {
-    throw new Error("Feedback not found");
-  }
-
-  // Check if already resolved
-  if (feedback.status === FeedBackStatus.Resolved) {
-    throw new Error("This feedback has already been resolved");
-  }
-
-  const order = await Order.findById(feedback.orderId).select("orderNumber userId");
-  if (!order) {
-    throw new Error("Order not found");
-  }
-
-  // Get admin details for notification
-  const admin = await User.findById(adminId);
-  const adminProfile = await Profile.findOne({ userId: adminId });
-
-  // Update feedback with response and attachments
-  feedback.adminResponse = response;
-  feedback.respondedBy = new Types.ObjectId(adminId);
-  feedback.adminResponseAt = new Date();
-  feedback.status = FeedBackStatus.Reviewed;
-  
-  // Add attachments if your schema supports it
-  // You might need to add this field to your Feedback model
-  if (attachments && attachments.length > 0) {
-    (feedback as any).adminAttachments = attachments;
-  }
-
-  await feedback.save();
-
-  // Populate for response
-  await feedback.populate([
-    { path: "userId", select: "fullname email" },
-    { path: "orderId", select: "orderNumber" },
-    { path: "respondedBy", select: "fullname email" },
-    { 
-      path: "designId", 
-      populate: { path: "productId", select: "name price images" }
-    },
-  ]);
-
-  // ===== SOCKET NOTIFICATIONS =====
-  io.to(`user-${feedback.userId}`).emit("feedback-response", {
-    feedbackId: feedback._id,
-    orderId: feedback.orderId,
-    orderNumber: order.orderNumber,
-    ...(feedback.designId && { designId: feedback.designId }),
-    message: "Admin has responded to your feedback",
-    response: response,
-    timestamp: new Date(),
-  });
-
-  // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
   try {
-    await notificationService.createForUser(feedback.userId, {
-      type: 'feedback-response',
-      title: 'Response to Your Feedback',
-      message: `Admin has responded to your feedback for order #${order.orderNumber}`,
-      data: {
-        feedbackId: feedback._id,
-        orderId: feedback.orderId,
-        orderNumber: order.orderNumber,
-        designId: feedback.designId,
-        response: response.substring(0, 100) + (response.length > 100 ? '...' : ''),
-        adminName: adminProfile?.firstName || admin?.email || 'Admin',
-        adminId
+    if (!response || response.trim().length === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Admin response cannot be empty");
+    }
+
+    const feedback = await Feedback.findById(feedbackId).session(session);
+
+    if (!feedback) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Feedback not found");
+    }
+
+    if (feedback.status === FeedBackStatus.Resolved) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("This feedback has already been resolved");
+    }
+
+    const order = await Order.findById(feedback.orderId)
+      .select("orderNumber userId")
+      .session(session);
+      
+    if (!order) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Order not found");
+    }
+
+    const admin = await User.findById(adminId).session(session);
+    const adminProfile = await Profile.findOne({ userId: adminId }).session(session);
+
+    feedback.adminResponse = response;
+    feedback.respondedBy = new Types.ObjectId(adminId);
+    feedback.adminResponseAt = new Date();
+    feedback.status = FeedBackStatus.Reviewed;
+    
+    if (attachments && attachments.length > 0) {
+      (feedback as any).adminAttachments = attachments;
+    }
+
+    await feedback.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    await feedback.populate([
+      { path: "userId", select: "fullname email" },
+      { path: "orderId", select: "orderNumber" },
+      { path: "respondedBy", select: "fullname email" },
+      { 
+        path: "designId", 
+        populate: { path: "productId", select: "name price images" }
       },
-      link: `/orders/${order._id}/feedback`
+    ]);
+
+    io.to(`user-${feedback.userId}`).emit("feedback-response", {
+      feedbackId: feedback._id,
+      orderId: feedback.orderId,
+      orderNumber: order.orderNumber,
+      ...(feedback.designId && { designId: feedback.designId }),
+      message: "Admin has responded to your feedback",
+      response: response,
+      timestamp: new Date(),
     });
-  } catch (notifErr) {
-    console.error('Failed to create feedback response notification:', notifErr);
+
+    try {
+      await notificationService.createForUser(feedback.userId, {
+        type: 'feedback-response',
+        title: 'Response to Your Feedback',
+        message: `Admin has responded to your feedback for order #${order.orderNumber}`,
+        data: {
+          feedbackId: feedback._id,
+          orderId: feedback.orderId,
+          orderNumber: order.orderNumber,
+          designId: feedback.designId,
+          response: response.substring(0, 100) + (response.length > 100 ? '...' : ''),
+          adminName: adminProfile?.firstName || admin?.email || 'Admin',
+          adminId
+        },
+        link: `/orders/${order._id}/feedback`
+      });
+    } catch (notifErr: any) {
+      console.error('Failed to create feedback response notification:', notifErr.message);
+    }
+
+    const pendingCount = await Feedback.countDocuments({
+      status: FeedBackStatus.Pending,
+    });
+    
+    io.to("admin-room").emit("pending-feedback-count", {
+      count: pendingCount,
+      timestamp: new Date(),
+    });
+
+    return feedback;
+  } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-
-  // Update pending count for admin badges
-  const pendingCount = await Feedback.countDocuments({
-    status: FeedBackStatus.Pending,
-  });
-  io.to("admin-room").emit("pending-feedback-count", {
-    count: pendingCount,
-    timestamp: new Date(),
-  });
-
-  return feedback;
 };
 
-// ==================== UPDATE FEEDBACK STATUS ====================
 export const updateFeedbackStatus = async (
   feedbackId: string,
   status: FeedBackStatus,
@@ -244,110 +265,117 @@ export const updateFeedbackStatus = async (
   userRole: string,
   io: Server,
 ): Promise<IFeedback> => {
-  const feedback = await Feedback.findById(feedbackId);
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (!feedback) {
-    throw new Error("Feedback not found");
-  }
+  try {
+    const feedback = await Feedback.findById(feedbackId).session(session);
 
-  // Role-based validation
-  if (userRole === "Customer") {
-    // Customers cannot update feedback status
-    throw new Error("Customers are not allowed to update feedback status");
-  }
-
-  // Don't allow changing resolved feedback
-  if (
-    feedback.status === FeedBackStatus.Resolved &&
-    status !== FeedBackStatus.Resolved
-  ) {
-    throw new Error("Cannot change status of resolved feedback");
-  }
-
-  const oldStatus = feedback.status;
-  feedback.status = status;
-  await feedback.save();
-
-  const order = await Order.findById(feedback.orderId).select("orderNumber");
-  const user = await User.findById(feedback.userId);
-  const profile = await Profile.findOne({ userId: feedback.userId });
-
-  // Populate for response
-  await feedback.populate([
-    { path: "userId", select: "fullname email" },
-    { path: "orderId", select: "orderNumber" },
-    { 
-      path: "designId", 
-      populate: { path: "productId", select: "name price images" }
-    },
-  ]);
-
-  // ===== SOCKET NOTIFICATIONS =====
-  const statusData = {
-    feedbackId: feedback._id,
-    orderId: feedback.orderId,
-    orderNumber: order?.orderNumber,
-    oldStatus,
-    newStatus: status,
-    updatedBy: userRole,
-    timestamp: new Date(),
-  };
-
-  io.to(`user-${feedback.userId}`).emit("feedback-status-updated", statusData);
-  io.to("admin-room").emit("feedback-status-updated", statusData);
-
-  // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
-  if (user && order) {
-    try {
-      let title = 'Feedback Status Updated';
-      let message = `Your feedback for order #${order.orderNumber} status changed from ${oldStatus} to ${status}`;
-      
-      if (status === FeedBackStatus.Resolved) {
-        title = 'Feedback Resolved';
-        message = `Your feedback for order #${order.orderNumber} has been marked as resolved`;
-      } else if (status === FeedBackStatus.Reviewed) {
-        title = 'Feedback Reviewed';
-        message = `Your feedback for order #${order.orderNumber} has been reviewed`;
-      }
-
-      await notificationService.createForUser(feedback.userId, {
-        type: 'feedback-status-updated',
-        title,
-        message,
-        data: {
-          feedbackId: feedback._id,
-          orderId: feedback.orderId,
-          orderNumber: order.orderNumber,
-          oldStatus,
-          newStatus: status,
-          updatedBy: userId,
-          updaterRole: userRole
-        },
-        link: `/orders/${order._id}/feedback`
-      });
-    } catch (notifErr) {
-      console.error('Failed to create feedback status notification:', notifErr);
+    if (!feedback) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Feedback not found");
     }
-  }
 
-  // Update pending count if status changed to/from pending
-  if (
-    oldStatus === FeedBackStatus.Pending ||
-    status === FeedBackStatus.Pending
-  ) {
-    const pendingCount = await Feedback.countDocuments({
-      status: FeedBackStatus.Pending,
-    });
-    io.to("admin-room").emit("pending-feedback-count", {
-      count: pendingCount,
+    if (userRole === "Customer") {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Customers are not allowed to update feedback status");
+    }
+
+    if (feedback.status === FeedBackStatus.Resolved && status !== FeedBackStatus.Resolved) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Cannot change status of resolved feedback");
+    }
+
+    const oldStatus = feedback.status;
+    feedback.status = status;
+    await feedback.save({ session });
+
+    const order = await Order.findById(feedback.orderId)
+      .select("orderNumber")
+      .session(session);
+      
+    const user = await User.findById(feedback.userId).session(session);
+    const profile = await Profile.findOne({ userId: feedback.userId }).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    await feedback.populate([
+      { path: "userId", select: "fullname email" },
+      { path: "orderId", select: "orderNumber" },
+      { 
+        path: "designId", 
+        populate: { path: "productId", select: "name price images" }
+      },
+    ]);
+
+    const statusData = {
+      feedbackId: feedback._id,
+      orderId: feedback.orderId,
+      orderNumber: order?.orderNumber,
+      oldStatus,
+      newStatus: status,
+      updatedBy: userRole,
       timestamp: new Date(),
-    });
-  }
+    };
 
-  return feedback;
+    io.to(`user-${feedback.userId}`).emit("feedback-status-updated", statusData);
+    io.to("admin-room").emit("feedback-status-updated", statusData);
+
+    if (user && order) {
+      try {
+        let title = 'Feedback Status Updated';
+        let message = `Your feedback for order #${order.orderNumber} status changed from ${oldStatus} to ${status}`;
+        
+        if (status === FeedBackStatus.Resolved) {
+          title = 'Feedback Resolved';
+          message = `Your feedback for order #${order.orderNumber} has been marked as resolved`;
+        } else if (status === FeedBackStatus.Reviewed) {
+          title = 'Feedback Reviewed';
+          message = `Your feedback for order #${order.orderNumber} has been reviewed`;
+        }
+
+        await notificationService.createForUser(feedback.userId, {
+          type: 'feedback-status-updated',
+          title,
+          message,
+          data: {
+            feedbackId: feedback._id,
+            orderId: feedback.orderId,
+            orderNumber: order.orderNumber,
+            oldStatus,
+            newStatus: status,
+            updatedBy: userId,
+            updaterRole: userRole
+          },
+          link: `/orders/${order._id}/feedback`
+        });
+      } catch (notifErr: any) {
+        console.error('Failed to create feedback status notification:', notifErr.message);
+      }
+    }
+
+    if (oldStatus === FeedBackStatus.Pending || status === FeedBackStatus.Pending) {
+      const pendingCount = await Feedback.countDocuments({
+        status: FeedBackStatus.Pending,
+      });
+      io.to("admin-room").emit("pending-feedback-count", {
+        count: pendingCount,
+        timestamp: new Date(),
+      });
+    }
+
+    return feedback;
+  } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
-// ==================== GET ALL FEEDBACK (NEW) ====================
 export const getAllFeedback = async (options: FeedbackFilterOptions): Promise<{
   feedback: IFeedback[];
   total: number;
@@ -393,7 +421,6 @@ export const getAllFeedback = async (options: FeedbackFilterOptions): Promise<{
   };
 };
 
-// ==================== FILTER FEEDBACK (NEW) ====================
 export const filterFeedback = async (filters: FeedbackFilterOptions): Promise<{
   feedback: IFeedback[];
   total: number;
@@ -449,7 +476,6 @@ export const filterFeedback = async (filters: FeedbackFilterOptions): Promise<{
   };
 };
 
-// ==================== GET PENDING FEEDBACK ====================
 export const getPendingFeedback = async (
   page: number = 1,
   limit: number = 10,
@@ -485,7 +511,6 @@ export const getPendingFeedback = async (
   };
 };
 
-// ==================== GET FEEDBACK BY ID ====================
 export const getFeedbackById = async (
   feedbackId: string,
   userId: string,
@@ -505,7 +530,6 @@ export const getFeedbackById = async (
     throw new Error("Feedback not found");
   }
 
-  // Check authorization
   if (userRole === "Customer" && feedback.userId.toString() !== userId) {
     throw new Error("Unauthorized to view this feedback");
   }
@@ -513,7 +537,6 @@ export const getFeedbackById = async (
   return feedback;
 };
 
-// ==================== GET FEEDBACK BY ORDER ID ====================
 export const getFeedbackByOrderId = async (
   orderId: string,
   userId: string,
@@ -524,7 +547,6 @@ export const getFeedbackByOrderId = async (
     throw new Error("Order not found");
   }
 
-  // Check authorization
   if (userRole === "Customer" && order.userId.toString() !== userId) {
     throw new Error("Unauthorized to view feedback for this order");
   }
@@ -544,7 +566,7 @@ export const getUserFeedback = async (
   userId: string,
   page: number = 1,
   limit: number = 10,
-  status?: FeedBackStatus, // Add this parameter
+  status?: FeedBackStatus,
 ): Promise<{
   feedback: IFeedback[];
   total: number;
@@ -555,7 +577,6 @@ export const getUserFeedback = async (
   
   const query: any = { userId: new Types.ObjectId(userId) };
   
-  // Add status filter if provided
   if (status) {
     query.status = status;
   }
@@ -583,61 +604,77 @@ export const getUserFeedback = async (
   };
 };
 
-// ==================== DELETE FEEDBACK ====================
 export const deleteFeedback = async (
   feedbackId: string,
   userId: string,
   userRole: string,
   io: Server,
 ): Promise<{ message: string }> => {
-  const feedback = await Feedback.findById(feedbackId);
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (!feedback) {
-    throw new Error("Feedback not found");
-  }
+  try {
+    const feedback = await Feedback.findById(feedbackId).session(session);
 
-  // Role-based deletion
-  if (userRole === "Customer") {
-    // Customers can only delete their own pending feedback
-    if (feedback.userId.toString() !== userId) {
-      throw new Error("Unauthorized to delete this feedback");
+    if (!feedback) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Feedback not found");
     }
 
-    if (feedback.status !== FeedBackStatus.Pending) {
-      throw new Error("Can only delete pending feedback");
+    if (userRole === "Customer") {
+      if (feedback.userId.toString() !== userId) {
+        await session.abortTransaction();
+        session.endSession();
+        throw new Error("Unauthorized to delete this feedback");
+      }
+
+      if (feedback.status !== FeedBackStatus.Pending) {
+        await session.abortTransaction();
+        session.endSession();
+        throw new Error("Can only delete pending feedback");
+      }
     }
+
+    const order = await Order.findById(feedback.orderId)
+      .select("orderNumber")
+      .session(session);
+      
+    const user = await User.findById(feedback.userId).session(session);
+    const profile = await Profile.findOne({ userId: feedback.userId }).session(session);
+
+    await Feedback.findByIdAndDelete(feedbackId).session(session);
+    await session.commitTransaction();
+    session.endSession();
+
+    io.to(`user-${feedback.userId}`).emit("feedback-deleted", {
+      feedbackId: feedback._id,
+      orderId: feedback.orderId,
+      orderNumber: order?.orderNumber,
+      message: "Feedback has been removed",
+      timestamp: new Date(),
+    });
+
+    io.to("admin-room").emit("feedback-deleted", {
+      feedbackId: feedback._id,
+      orderId: feedback.orderId,
+      orderNumber: order?.orderNumber,
+      timestamp: new Date(),
+    });
+
+    const pendingCount = await Feedback.countDocuments({
+      status: FeedBackStatus.Pending,
+    });
+    
+    io.to("admin-room").emit("pending-feedback-count", {
+      count: pendingCount,
+      timestamp: new Date(),
+    });
+
+    return { message: "Feedback deleted successfully" };
+  } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-
-  const order = await Order.findById(feedback.orderId).select("orderNumber");
-  const user = await User.findById(feedback.userId);
-  const profile = await Profile.findOne({ userId: feedback.userId });
-
-  await Feedback.findByIdAndDelete(feedbackId);
-
-  // ===== SOCKET NOTIFICATIONS =====
-  io.to(`user-${feedback.userId}`).emit("feedback-deleted", {
-    feedbackId: feedback._id,
-    orderId: feedback.orderId,
-    orderNumber: order?.orderNumber,
-    message: "Feedback has been removed",
-    timestamp: new Date(),
-  });
-
-  io.to("admin-room").emit("feedback-deleted", {
-    feedbackId: feedback._id,
-    orderId: feedback.orderId,
-    orderNumber: order?.orderNumber,
-    timestamp: new Date(),
-  });
-
-  // Update pending count
-  const pendingCount = await Feedback.countDocuments({
-    status: FeedBackStatus.Pending,
-  });
-  io.to("admin-room").emit("pending-feedback-count", {
-    count: pendingCount,
-    timestamp: new Date(),
-  });
-
-  return { message: "Feedback deleted successfully" };
 };

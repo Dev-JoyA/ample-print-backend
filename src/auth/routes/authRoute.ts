@@ -28,15 +28,21 @@ import {
 
 const router = Router();
 
+// ==================== PUBLIC ROUTES ====================
 router.post("/sign-up", signUpController);
 router.post("/sign-in", signInController);
+router.post("/forgot-password", forgotPasswordController);
+router.post("/effect-forgot-password", effectForgotPasswordController);
+router.post("/logout", logoutController);
+router.post("/refresh-token", refreshTokenController);
+
+// ==================== SUPER ADMIN ONLY ROUTES ====================
 router.post(
   "/admin-sign-up",
   authMiddleware,
   checkSuperAdmin,
   createAdminController,
 );
-router.post("/superadmin-sign-up", createSuperAdminController);
 router.post(
   "/deactivate-admin",
   authMiddleware,
@@ -49,10 +55,11 @@ router.post(
   checkSuperAdmin,
   reactivateAdminController,
 );
-router.post("/forgot-password", forgotPasswordController);
-router.post("/effect-forgot-password", effectForgotPasswordController);
-router.post("/logout", logoutController);
-router.post("/refresh-token", refreshTokenController);
+
+// ==================== SUPER ADMIN CREATION (PROTECTED - ONCE) ====================
+router.post("/superadmin-sign-up", createSuperAdminController);
+
+// ==================== AUTHENTICATED ROUTES ====================
 router.post(
   "/reset-password/:userId",
   authMiddleware,
@@ -60,6 +67,7 @@ router.post(
   resetPasswordController,
 );
 
+// ==================== TOKEN VERIFICATION ROUTES ====================
 router.get("/verify-token", (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
   
@@ -68,7 +76,10 @@ router.get("/verify-token", (req: Request, res: Response) => {
   
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     console.log("No token provided");
-    return res.status(401).json({ message: "Unauthorized: No token provided" });
+    return res.status(401).json({ 
+      success: false,
+      message: "No token provided" 
+    });
   }
 
   const token = authHeader.split(" ")[1];
@@ -77,10 +88,18 @@ router.get("/verify-token", (req: Request, res: Response) => {
   try {
     const decoded = verifyToken(token);
     console.log("Token verified successfully:", decoded);
-    res.json({ valid: true, user: decoded });
+    res.json({ 
+      success: true,
+      valid: true, 
+      user: decoded 
+    });
   } catch (error: any) {
     console.error("Token verification failed:", error.message);
-    res.status(401).json({ valid: false, message: "Invalid token" });
+    res.status(401).json({ 
+      success: false,
+      valid: false, 
+      message: "Invalid token" 
+    });
   }
 });
 
@@ -99,7 +118,11 @@ router.get(
     const token = generateToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
-    res.json({ token, refreshToken });
+    res.json({ 
+      success: true,
+      token, 
+      refreshToken 
+    });
   },
 );
 
@@ -108,69 +131,57 @@ router.post(
   authenticateToken,
   (req: Request, res: Response) => {
     const refreshToken = generateRefreshToken(req.user!);
-    res.json({ refreshToken });
+    res.json({ 
+      success: true,
+      refreshToken 
+    });
   },
 );
 
-// ----------------------
-// Google OAuth
-// ----------------------
+// ==================== GOOGLE OAUTH ROUTES ====================
 router.get(
   "/google",
   passport.authenticate("google", { 
     scope: ["email", "profile"],
     session: false, 
-}),
+  }),
 );
 
 router.get(
   "/google/callback",
   passport.authenticate("google", { session: false }),
   (req: Request, res: Response) => {
-    const user = req.user as any;
+    try {
+      const user = req.user as any;
 
-    if (!user) {
-      return res.status(401).json({ message: "Google authentication failed" });
+      if (!user) {
+        return res.redirect(`${process.env.FRONTEND_URL}/auth/sign-in?error=google_auth_failed`);
+      }
+
+      const payload = {
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+      };
+
+      const token = generateToken(payload);
+      const refreshToken = generateRefreshToken(payload);
+      const role = user.role.toLowerCase();
+      const redirectUrl = `${process.env.FRONTEND_URL}/auth/google/callback?token=${token}&refresh=${refreshToken}&role=${role}`;
+
+      return res.redirect(302, redirectUrl);
+    } catch (error: any) {
+      console.error("Google OAuth callback error:", error.message);
+      return res.redirect(`${process.env.FRONTEND_URL}/auth/sign-in?error=google_auth_failed`);
     }
-
-    const payload = {
-      userId: user._id,
-      email: user.email,
-      role: user.role,
-    };
-
-    const token = generateToken(payload);
-    const refreshToken = generateRefreshToken(payload);
-    const role = user.role.toLowerCase();
-    const redirectUrl = `${process.env.FRONTEND_URL}/auth/google/callback?token=${token}&refresh=${refreshToken}&role=${role}`;
-
-    return res.redirect(302, redirectUrl);
-
   }
 );
 
-// router.get("/google/success", (req: Request, res: Response) => {
-//   const user = req.user as any;
-
-//   const payload = {
-//     userId: user._id,
-//     email: user.email,
-//     role: user.role,
-//   };
-
-//   const token = generateToken(payload);
-//   const refreshToken = generateRefreshToken(payload);
-
-//   res.status(200).json({
-//     message: "Google OAuth successful",
-//     token,
-//     refreshToken,
-//     user,
-//   });
-// });
-
 router.get("/google/failure", (req: Request, res: Response) => {
-  res.status(401).json({ message: "Google OAuth failed" });
+  res.status(401).json({ 
+    success: false,
+    message: "Google OAuth failed" 
+  });
 });
 
 export default router;

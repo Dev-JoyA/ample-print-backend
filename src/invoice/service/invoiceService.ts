@@ -42,7 +42,6 @@ export interface PaginatedInvoices {
   pages: number;
 }
 
-// ==================== CREATE INVOICE (Super Admin only) ====================
 export const createInvoice = async (
   orderId: string,
   data: {
@@ -72,7 +71,6 @@ export const createInvoice = async (
       throw new Error("Order not found for creating invoice");
     }
 
-    // Check if invoice already exists
     const existingInvoice = await Invoice.findOne({
       orderId: order._id,
     }).session(session);
@@ -80,11 +78,9 @@ export const createInvoice = async (
       throw new Error("Invoice already exists for this order");
     }
 
-    // ===== UPDATE ORDER WITH NEW PRICES =====
     let subtotal = 0;
     
     if (data.items && data.items.length > 0) {
-      // Create a map of productId to new total price
       const priceMap = new Map();
       data.items.forEach(item => {
         priceMap.set(item.productId.toString(), {
@@ -93,31 +89,23 @@ export const createInvoice = async (
         });
       });
 
-      // Update each item in the order
       order.items.forEach(item => {
         const productId = item.productId.toString();
         const newPriceData = priceMap.get(productId);
         
         if (newPriceData) {
-          // Calculate new unit price based on total price and quantity
           const newUnitPrice = newPriceData.totalPrice / newPriceData.quantity;
-          
-          // Update the item
           item.price = newUnitPrice;
-          
           console.log(`Updated item ${item.productName}: new unit price = ${newUnitPrice}`);
         }
       });
     }
 
-    // Calculate subtotal based on updated prices
     subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
-    // Apply discount to get final total
     const discount = data.discount || 0;
     const totalAmount = subtotal - discount;
     
-    // Update order with the FINAL amount (after discount)
     order.totalAmount = totalAmount;
     order.remainingBalance = totalAmount - (order.amountPaid || 0);
     
@@ -131,10 +119,8 @@ export const createInvoice = async (
       remainingAmount = totalAmount - depositAmount;
     }
 
-    // Generate invoice number
     const invoiceNumber = await generateInvoiceNumber();
 
-    // Create invoice
     const [invoice] = await Invoice.create(
       [
         {
@@ -167,7 +153,6 @@ export const createInvoice = async (
       { session },
     );
 
-    // Update order with invoice details
     order.invoiceId = invoice._id;
     order.requiredPaymentType = data.paymentType;
     if (data.paymentType === "part") {
@@ -178,11 +163,9 @@ export const createInvoice = async (
 
     await session.commitTransaction();
 
-    // Get user details for notifications
     const user = await User.findById(order.userId);
     const profile = await Profile.findOne({ userId: order.userId });
 
-    // Socket notifications
     io.to("admin-room").emit("new-invoice", {
       invoiceId: invoice._id,
       orderId: order._id,
@@ -198,7 +181,6 @@ export const createInvoice = async (
       createdBy: superAdminId,
     });
 
-    // Email notification to customer
     if (user && profile) {
       const dueDateStr = data.dueDate.toLocaleDateString();
 
@@ -223,9 +205,7 @@ export const createInvoice = async (
       });
     }
 
-    // ✅ CREATE DATABASE NOTIFICATIONS
     try {
-      // 1. Notify the customer
       await notificationService.createForUser(order.userId, {
         type: 'invoice-created',
         title: 'Invoice Created',
@@ -242,7 +222,6 @@ export const createInvoice = async (
         link: `/dashboards/customer/invoices/${invoice._id}`
       });
 
-      // 2. Notify all admins and super admins (excluding the one who created it)
       await notificationService.createForAdmins({
         type: 'admin-invoice-created',
         title: 'New Invoice Created',
@@ -257,7 +236,7 @@ export const createInvoice = async (
           createdBy: superAdminId
         },
         link: `/dashboards/admin/invoices/${invoice._id}`
-      }); // Exclude the creator
+      });
       
     } catch (notifErr) {
       console.error('Failed to create notifications:', notifErr);
@@ -272,9 +251,8 @@ export const createInvoice = async (
   }
 };
 
-// ==================== CREATE SHIPPING INVOICE (Admin only) ====================
 export const createShippingInvoice = async (
-   orderId: string,
+  orderId: string,
   shippingId: string,
   data: {
     shippingCost: number;
@@ -293,16 +271,13 @@ export const createShippingInvoice = async (
       throw new Error("Order not found");
     }
 
-    // Get shipping record
     const shipping = await Shipping.findById(shippingId).session(session);
     if (!shipping) {
       throw new Error("Shipping record not found");
     }
 
-    // Generate invoice number
     const invoiceNumber = await generateInvoiceNumber();
 
-    // Create shipping invoice
     const [invoice] = await Invoice.create(
       [
         {
@@ -337,12 +312,10 @@ export const createShippingInvoice = async (
       { session },
     );
 
-    // Update shipping record with invoice ID and shipping cost
     shipping.shippingInvoiceId = invoice._id;
-    shipping.shippingCost = data.shippingCost; // Update the shipping cost
+    shipping.shippingCost = data.shippingCost;
     await shipping.save({ session });
 
-    // Update order with shipping ID (if not already set)
     if (!order.shippingId) {
       order.shippingId = new mongoose.Types.ObjectId(shippingId);
     }
@@ -350,11 +323,9 @@ export const createShippingInvoice = async (
 
     await session.commitTransaction();
 
-    // Get user details for notifications
     const user = await User.findById(order.userId);
     const profile = await Profile.findOne({ userId: order.userId });
 
-    // Socket notifications
     io.to("admin-room").emit("new-shipping-invoice", {
       invoiceId: invoice._id,
       orderId: order._id,
@@ -369,9 +340,7 @@ export const createShippingInvoice = async (
       amount: data.shippingCost,
     });
 
-    // ✅ CREATE DATABASE NOTIFICATIONS
     try {
-      // 1. Notify the customer
       await notificationService.createForUser(order.userId, {
         type: 'shipping-invoice-created',
         title: 'Shipping Invoice Created',
@@ -387,7 +356,6 @@ export const createShippingInvoice = async (
         link: `/dashboards/customer/invoices/${invoice._id}`
       });
 
-      // 2. Notify all admins and super admins
       await notificationService.createForAdmins({
         type: 'admin-shipping-invoice-created',
         title: 'Shipping Invoice Created',
@@ -401,7 +369,7 @@ export const createShippingInvoice = async (
           customerId: order.userId
         },
         link: `/dashboards/admin/invoices/${invoice._id}`
-      }); // Exclude the creator
+      });
       
     } catch (notifErr) {
       console.error('Failed to create shipping invoice notifications:', notifErr);
@@ -442,7 +410,6 @@ export const createShippingInvoice = async (
   }
 };
 
-// ==================== UPDATE INVOICE ====================
 export const updateInvoice = async (
   invoiceId: string,
   data: Partial<IInvoice> & { 
@@ -466,7 +433,6 @@ export const updateInvoice = async (
       throw new Error("Invoice not found");
     }
 
-    // Only allow updates to draft invoices
     if (invoice.status !== InvoiceStatus.Draft) {
       throw new Error("Cannot update invoice that has been sent or paid");
     }
@@ -476,13 +442,10 @@ export const updateInvoice = async (
       throw new Error("Order not found");
     }
 
-    // Track what changed for notifications
     const oldTotal = invoice.totalAmount;
     const oldDeposit = invoice.depositAmount;
 
-    // If custom items are provided, update the order prices too
     if (data.customItems && data.customItems.length > 0) {
-      // Create a map of productId to new total price
       const priceMap = new Map();
       data.customItems.forEach(item => {
         priceMap.set(item.productId.toString(), {
@@ -491,7 +454,6 @@ export const updateInvoice = async (
         });
       });
 
-      // Update order items with new prices
       order.items.forEach(item => {
         const productId = item.productId.toString();
         const newPriceData = priceMap.get(productId);
@@ -502,21 +464,14 @@ export const updateInvoice = async (
         }
       });
 
-      // Calculate new subtotal based on updated order items
       const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      
-      // Get discount (either from data or keep existing)
       const discount = data.discount !== undefined ? data.discount : invoice.discount;
-      
-      // Calculate final total with discount
       const totalAmount = subtotal - discount;
       
-      // Update order with discounted amount
       order.totalAmount = totalAmount;
       order.remainingBalance = totalAmount - (order.amountPaid || 0);
       await order.save({ session });
 
-      // Update invoice items based on updated order items
       invoice.items = order.items.map(item => ({
         description: item.productName,
         quantity: item.quantity,
@@ -524,17 +479,14 @@ export const updateInvoice = async (
         total: item.price * item.quantity
       }));
 
-      // Update invoice financial fields
       invoice.subtotal = subtotal;
       invoice.discount = discount;
       invoice.totalAmount = totalAmount;
 
-      // Recalculate remaining for part payment
       if (invoice.invoiceType === InvoiceType.Main) {
         invoice.remainingAmount = totalAmount - invoice.amountPaid;
       }
     } else {
-      // Update other fields if no items change
       if (data.discount !== undefined) {
         invoice.discount = data.discount;
         invoice.totalAmount = invoice.subtotal - invoice.discount;
@@ -545,7 +497,6 @@ export const updateInvoice = async (
       }
     }
 
-    // Update metadata fields
     if (data.notes !== undefined) invoice.notes = data.notes;
     if (data.paymentInstructions !== undefined) invoice.paymentInstructions = data.paymentInstructions;
     if (data.dueDate !== undefined) invoice.dueDate = data.dueDate;
@@ -553,17 +504,16 @@ export const updateInvoice = async (
     await invoice.save({ session });
     await session.commitTransaction();
 
-    // Get order for notifications
     const orderForNotif = await Order.findById(invoice.orderId);
    
     if (!orderForNotif) {
       console.error('Order not found for invoice:', invoice.orderId);
       return invoice; 
     }
+    
     const user = await User.findById(orderForNotif?.userId);
     const profile = await Profile.findOne({ userId: orderForNotif?.userId });
 
-    // Socket notifications
     io.to("admin-room").emit("invoice-updated", {
       invoiceId: invoice._id,
       orderId: invoice.orderId,
@@ -578,7 +528,6 @@ export const updateInvoice = async (
       status: invoice.status,
     });
 
-    // ✅ CREATE DATABASE NOTIFICATIONS
     if (user) {
       io.to(`user-${user._id}`).emit("invoice-updated", {
         invoiceId: invoice._id,
@@ -587,7 +536,6 @@ export const updateInvoice = async (
         totalAmount: invoice.totalAmount,
       });
 
-      // Notify customer if amount changed
       if (oldTotal !== invoice.totalAmount || oldDeposit !== invoice.depositAmount) {
         try {
           await notificationService.createForUser(user._id, {
@@ -607,7 +555,6 @@ export const updateInvoice = async (
             link: `/dashboards/customer/invoices/${invoice._id}`
           });
 
-          // Also notify admins about the update
           await notificationService.createForAdmins({
             type: 'admin-invoice-updated',
             title: 'Invoice Updated',
@@ -622,7 +569,7 @@ export const updateInvoice = async (
               updatedBy: userId
             },
             link: `/dashboards/admin/invoices/${invoice._id}`
-          }); // Exclude the updater
+          });
           
         } catch (notifErr) {
           console.error('Failed to create invoice update notifications:', notifErr);
@@ -630,7 +577,6 @@ export const updateInvoice = async (
       }
     }
 
-    // Email notification if amount changed
     if (user && profile && orderForNotif) {
       if (oldTotal !== invoice.totalAmount || oldDeposit !== invoice.depositAmount) {
         await emailService
@@ -658,312 +604,322 @@ export const updateInvoice = async (
   }
 };
 
-// ==================== DELETE INVOICE ====================
 export const deleteInvoice = async (
   invoiceId: string,
   userRole: string,
   io: Server,
 ): Promise<{ message: string }> => {
-  const invoice = await Invoice.findById(invoiceId);
-  if (!invoice) {
-    throw new Error("Invoice not found");
-  }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  // Only allow deletion of draft invoices
-  if (invoice.status !== InvoiceStatus.Draft) {
-    throw new Error("Cannot delete invoice that has been sent or paid");
-  }
+  try {
+    const invoice = await Invoice.findById(invoiceId).session(session);
+    if (!invoice) {
+      throw new Error("Invoice not found");
+    }
 
-  const order = await Order.findById(invoice.orderId);
+    if (invoice.status !== InvoiceStatus.Draft) {
+      throw new Error("Cannot delete invoice that has been sent or paid");
+    }
 
-  await Invoice.findByIdAndDelete(invoiceId);
+    const order = await Order.findById(invoice.orderId).session(session);
 
-  // Socket notifications
-  io.to("admin-room").emit("invoice-deleted", {
-    invoiceId: invoice._id,
-    orderId: invoice.orderId,
-    orderNumber: order?.orderNumber,
-  });
+    await Invoice.findByIdAndDelete(invoiceId).session(session);
+    await session.commitTransaction();
 
-  if (order) {
-    const user = await User.findById(order.userId);
-    if (user) {
-      io.to(`user-${user._id}`).emit("invoice-deleted", {
-        invoiceId: invoice._id,
-        orderId: invoice.orderId,
-        orderNumber: order.orderNumber,
-      });
+    io.to("admin-room").emit("invoice-deleted", {
+      invoiceId: invoice._id,
+      orderId: invoice.orderId,
+      orderNumber: order?.orderNumber,
+    });
 
-      // ✅ CREATE DATABASE NOTIFICATION FOR CUSTOMER
-      try {
-        await notificationService.createForUser(user._id, {
-          type: 'invoice-deleted',
-          title: 'Invoice Deleted',
-          message: `Invoice #${invoice.invoiceNumber} for order #${order.orderNumber} has been deleted`,
-          data: {
-            invoiceId: invoice._id,
-            orderId: order._id,
-            orderNumber: order.orderNumber,
-            invoiceNumber: invoice.invoiceNumber
-          },
-          link: `/dashboards/customer/orders/${order._id}`
+    if (order) {
+      const user = await User.findById(order.userId);
+      if (user) {
+        io.to(`user-${user._id}`).emit("invoice-deleted", {
+          invoiceId: invoice._id,
+          orderId: invoice.orderId,
+          orderNumber: order.orderNumber,
         });
 
-        // Notify admins about deletion
-        await notificationService.createForAdmins({
-          type: 'admin-invoice-deleted',
-          title: 'Invoice Deleted',
-          message: `Invoice #${invoice.invoiceNumber} for order #${order.orderNumber} was deleted`,
-          data: {
-            invoiceId: invoice._id,
-            orderId: order._id,
-            orderNumber: order.orderNumber,
-            invoiceNumber: invoice.invoiceNumber
-          },
-          link: `/dashboards/admin/orders/${order._id}`
-        });
-        
-      } catch (notifErr) {
-        console.error('Failed to create invoice deletion notifications:', notifErr);
+        try {
+          await notificationService.createForUser(user._id, {
+            type: 'invoice-deleted',
+            title: 'Invoice Deleted',
+            message: `Invoice #${invoice.invoiceNumber} for order #${order.orderNumber} has been deleted`,
+            data: {
+              invoiceId: invoice._id,
+              orderId: order._id,
+              orderNumber: order.orderNumber,
+              invoiceNumber: invoice.invoiceNumber
+            },
+            link: `/dashboards/customer/orders/${order._id}`
+          });
+
+          await notificationService.createForAdmins({
+            type: 'admin-invoice-deleted',
+            title: 'Invoice Deleted',
+            message: `Invoice #${invoice.invoiceNumber} for order #${order.orderNumber} was deleted`,
+            data: {
+              invoiceId: invoice._id,
+              orderId: order._id,
+              orderNumber: order.orderNumber,
+              invoiceNumber: invoice.invoiceNumber
+            },
+            link: `/dashboards/admin/orders/${order._id}`
+          });
+          
+        } catch (notifErr) {
+          console.error('Failed to create invoice deletion notifications:', notifErr);
+        }
       }
     }
-  }
 
-  return { message: "Invoice deleted successfully" };
+    return { message: "Invoice deleted successfully" };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };
 
-// ==================== SEND INVOICE TO CUSTOMER ====================
 export const sendInvoiceToCustomer = async (
   invoiceId: string,
   userId: string,
   userRole: string,
   io: Server,
 ): Promise<IInvoice> => {
-  const invoice = await Invoice.findById(invoiceId)
-    .populate({
-      path: "orderId",
-      populate: { path: "userId" },
-    })
-    .exec();
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (!invoice) {
-    throw new Error("Invoice not found");
-  }
-
-  if (invoice.status !== InvoiceStatus.Draft) {
-    throw new Error("Invoice has already been sent");
-  }
-
-  const order = invoice.orderId as any;
-  const user = await User.findById(order.userId);
-  const profile = await Profile.findOne({ userId: order.userId });
-
-  if (!user || !profile) {
-    throw new Error("User or profile not found");
-  }
-
-  // Update invoice status
-  invoice.status = InvoiceStatus.Sent;
-  await invoice.save();
-
-  // Send email
-  await emailService
-    .sendInvoiceReady(
-      user.email,
-      profile.firstName,
-      order.orderNumber,
-      invoice.invoiceNumber,
-      invoice.totalAmount,
-      invoice.depositAmount || undefined,
-      invoice.dueDate.toLocaleDateString(),
-    )
-    .catch((err) => console.error("Error sending invoice email:", err));
-
-  // Socket notifications
-  io.to(`user-${user._id}`).emit("invoice-sent", {
-    invoiceId: invoice._id,
-    orderId: order._id,
-    orderNumber: order.orderNumber,
-    totalAmount: invoice.totalAmount,
-    dueDate: invoice.dueDate,
-  });
-
-  io.to("admin-room").emit("invoice-sent", {
-    invoiceId: invoice._id,
-    orderId: order._id,
-    orderNumber: order.orderNumber,
-  });
-
-  // ✅ CREATE DATABASE NOTIFICATIONS
   try {
-    // 1. Notify the customer
-    await notificationService.createForUser(order.userId, {
-      type: 'invoice-sent',
-      title: 'Invoice Sent',
-      message: `Invoice #${invoice.invoiceNumber} has been sent to you. Total: ₦${invoice.totalAmount.toLocaleString()}`,
-      data: {
-        invoiceId: invoice._id,
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        invoiceNumber: invoice.invoiceNumber,
-        totalAmount: invoice.totalAmount,
-        depositAmount: invoice.depositAmount || undefined,
-        dueDate: invoice.dueDate
-      },
-      link: `/dashboards/customer/invoices/${invoice._id}`
-    });
+    const invoice = await Invoice.findById(invoiceId)
+      .populate({
+        path: "orderId",
+        populate: { path: "userId" },
+      })
+      .session(session);
 
-    // 2. Notify admins that invoice was sent
-    await notificationService.createForAdmins({
-      type: 'admin-invoice-sent',
-      title: 'Invoice Sent to Customer',
-      message: `Invoice #${invoice.invoiceNumber} was sent to customer for order #${order.orderNumber}`,
-      data: {
-        invoiceId: invoice._id,
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        invoiceNumber: invoice.invoiceNumber,
-        totalAmount: invoice.totalAmount,
-        customerId: order.userId
-      },
-      link: `/dashboards/admin/invoices/${invoice._id}`
-    }); // Exclude the sender
-    
-  } catch (notifErr) {
-    console.error('Failed to create invoice sent notifications:', notifErr);
-  }
-
-  return invoice;
-};
-
-// ==================== UPDATE INVOICE PAYMENT STATUS (called by payment service) ====================
-export const updateInvoicePayment = async (
-  invoiceId: string,
-  paymentAmount: number,
-  transactionId: string,
-  io: Server,
-): Promise<IInvoice> => {
-  const invoice = await Invoice.findById(invoiceId);
-  if (!invoice) {
-    throw new Error("Invoice not found");
-  }
-
-  // Add transaction to invoice
-  invoice.transactions = invoice.transactions || [];
-  invoice.transactions.push(new mongoose.Types.ObjectId(transactionId));
-
-  // Update payment amounts
-  invoice.amountPaid = (invoice.amountPaid || 0) + paymentAmount;
-  invoice.remainingAmount = invoice.totalAmount - invoice.amountPaid;
-
-  // Update status based on payment
-  if (invoice.remainingAmount <= 0) {
-    invoice.status = InvoiceStatus.Paid;
-    invoice.paidAt = new Date();
-  } else if (invoice.amountPaid > 0) {
-    invoice.status = InvoiceStatus.PartiallyPaid;
-  }
-
-  await invoice.save();
-
-  // Get order for notifications
-  const order = await Order.findById(invoice.orderId);
-  const user = await User.findById(order?.userId);
-  const profile = await Profile.findOne({ userId: order?.userId });
-
-  // Socket notifications
-  if (user && profile && order) {
-    if (invoice.status === InvoiceStatus.Paid) {
-      await emailService
-        .sendOrderDelivered(user.email, profile.firstName, order.orderNumber)
-        .catch((err) => console.error("Error sending payment email:", err));
+    if (!invoice) {
+      throw new Error("Invoice not found");
     }
 
-    io.to(`user-${user._id}`).emit("invoice-payment-updated", {
+    if (invoice.status !== InvoiceStatus.Draft) {
+      throw new Error("Invoice has already been sent");
+    }
+
+    const order = invoice.orderId as any;
+    const user = await User.findById(order.userId).session(session);
+    const profile = await Profile.findOne({ userId: order.userId }).session(session);
+
+    if (!user || !profile) {
+      throw new Error("User or profile not found");
+    }
+
+    invoice.status = InvoiceStatus.Sent;
+    await invoice.save({ session });
+    await session.commitTransaction();
+
+    await emailService
+      .sendInvoiceReady(
+        user.email,
+        profile.firstName,
+        order.orderNumber,
+        invoice.invoiceNumber,
+        invoice.totalAmount,
+        invoice.depositAmount || undefined,
+        invoice.dueDate.toLocaleDateString(),
+      )
+      .catch((err) => console.error("Error sending invoice email:", err));
+
+    io.to(`user-${user._id}`).emit("invoice-sent", {
       invoiceId: invoice._id,
       orderId: order._id,
       orderNumber: order.orderNumber,
-      amountPaid: invoice.amountPaid,
-      remainingAmount: invoice.remainingAmount,
-      status: invoice.status,
+      totalAmount: invoice.totalAmount,
+      dueDate: invoice.dueDate,
     });
-  }
 
-  io.to("admin-room").emit("invoice-payment-updated", {
-    invoiceId: invoice._id,
-    orderId: invoice.orderId,
-    orderNumber: order?.orderNumber,
-    status: invoice.status,
-    amountPaid: invoice.amountPaid,
-  });
+    io.to("admin-room").emit("invoice-sent", {
+      invoiceId: invoice._id,
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+    });
 
-  // ✅ CREATE DATABASE NOTIFICATIONS
-  if (order) {
     try {
-      let title = 'Payment Received';
-      let message = `Payment of ₦${paymentAmount.toLocaleString()} received for invoice #${invoice.invoiceNumber}`;
-      
-      if (invoice.status === InvoiceStatus.Paid) {
-        title = 'Invoice Paid';
-        message = `Invoice #${invoice.invoiceNumber} has been fully paid`;
-      } else if (invoice.status === InvoiceStatus.PartiallyPaid) {
-        title = 'Partial Payment Received';
-        message = `Partial payment of ₦${paymentAmount.toLocaleString()} received for invoice #${invoice.invoiceNumber}`;
-      }
-      
-      // 1. Notify the customer
       await notificationService.createForUser(order.userId, {
-        type: 'invoice-payment-updated',
-        title,
-        message,
+        type: 'invoice-sent',
+        title: 'Invoice Sent',
+        message: `Invoice #${invoice.invoiceNumber} has been sent to you. Total: ₦${invoice.totalAmount.toLocaleString()}`,
         data: {
           invoiceId: invoice._id,
           orderId: order._id,
           orderNumber: order.orderNumber,
           invoiceNumber: invoice.invoiceNumber,
-          amountPaid: paymentAmount,
-          totalPaid: invoice.amountPaid,
-          remainingAmount: invoice.remainingAmount,
-          status: invoice.status
+          totalAmount: invoice.totalAmount,
+          depositAmount: invoice.depositAmount || undefined,
+          dueDate: invoice.dueDate
         },
         link: `/dashboards/customer/invoices/${invoice._id}`
       });
 
-      // 2. Notify admins about the payment
       await notificationService.createForAdmins({
-        type: 'admin-payment-received',
-        title: 'Payment Received',
-        message: `Payment of ₦${paymentAmount.toLocaleString()} received for invoice #${invoice.invoiceNumber}`,
+        type: 'admin-invoice-sent',
+        title: 'Invoice Sent to Customer',
+        message: `Invoice #${invoice.invoiceNumber} was sent to customer for order #${order.orderNumber}`,
         data: {
           invoiceId: invoice._id,
           orderId: order._id,
           orderNumber: order.orderNumber,
           invoiceNumber: invoice.invoiceNumber,
-          amountPaid: paymentAmount,
-          totalPaid: invoice.amountPaid,
-          remainingAmount: invoice.remainingAmount,
-          status: invoice.status,
+          totalAmount: invoice.totalAmount,
           customerId: order.userId
         },
         link: `/dashboards/admin/invoices/${invoice._id}`
       });
       
     } catch (notifErr) {
-      console.error('Failed to create payment notifications:', notifErr);
+      console.error('Failed to create invoice sent notifications:', notifErr);
     }
-  }
 
-  return invoice;
+    return invoice;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };
 
-// ==================== GET ALL INVOICES (Admin) ====================
+export const updateInvoicePayment = async (
+  invoiceId: string,
+  paymentAmount: number,
+  transactionId: string,
+  io: Server,
+): Promise<IInvoice> => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const invoice = await Invoice.findById(invoiceId).session(session);
+    if (!invoice) {
+      throw new Error("Invoice not found");
+    }
+
+    invoice.transactions = invoice.transactions || [];
+    invoice.transactions.push(new mongoose.Types.ObjectId(transactionId));
+
+    invoice.amountPaid = (invoice.amountPaid || 0) + paymentAmount;
+    invoice.remainingAmount = invoice.totalAmount - invoice.amountPaid;
+
+    if (invoice.remainingAmount <= 0) {
+      invoice.status = InvoiceStatus.Paid;
+      invoice.paidAt = new Date();
+    } else if (invoice.amountPaid > 0) {
+      invoice.status = InvoiceStatus.PartiallyPaid;
+    }
+
+    await invoice.save({ session });
+    await session.commitTransaction();
+
+    const order = await Order.findById(invoice.orderId);
+    const user = await User.findById(order?.userId);
+    const profile = await Profile.findOne({ userId: order?.userId });
+
+    if (user && profile && order) {
+      if (invoice.status === InvoiceStatus.Paid) {
+        await emailService
+          .sendOrderDelivered(user.email, profile.firstName, order.orderNumber)
+          .catch((err) => console.error("Error sending payment email:", err));
+      }
+
+      io.to(`user-${user._id}`).emit("invoice-payment-updated", {
+        invoiceId: invoice._id,
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        amountPaid: invoice.amountPaid,
+        remainingAmount: invoice.remainingAmount,
+        status: invoice.status,
+      });
+    }
+
+    io.to("admin-room").emit("invoice-payment-updated", {
+      invoiceId: invoice._id,
+      orderId: invoice.orderId,
+      orderNumber: order?.orderNumber,
+      status: invoice.status,
+      amountPaid: invoice.amountPaid,
+    });
+
+    if (order) {
+      try {
+        let title = 'Payment Received';
+        let message = `Payment of ₦${paymentAmount.toLocaleString()} received for invoice #${invoice.invoiceNumber}`;
+        
+        if (invoice.status === InvoiceStatus.Paid) {
+          title = 'Invoice Paid';
+          message = `Invoice #${invoice.invoiceNumber} has been fully paid`;
+        } else if (invoice.status === InvoiceStatus.PartiallyPaid) {
+          title = 'Partial Payment Received';
+          message = `Partial payment of ₦${paymentAmount.toLocaleString()} received for invoice #${invoice.invoiceNumber}`;
+        }
+        
+        await notificationService.createForUser(order.userId, {
+          type: 'invoice-payment-updated',
+          title,
+          message,
+          data: {
+            invoiceId: invoice._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            invoiceNumber: invoice.invoiceNumber,
+            amountPaid: paymentAmount,
+            totalPaid: invoice.amountPaid,
+            remainingAmount: invoice.remainingAmount,
+            status: invoice.status
+          },
+          link: `/dashboards/customer/invoices/${invoice._id}`
+        });
+
+        await notificationService.createForAdmins({
+          type: 'admin-payment-received',
+          title: 'Payment Received',
+          message: `Payment of ₦${paymentAmount.toLocaleString()} received for invoice #${invoice.invoiceNumber}`,
+          data: {
+            invoiceId: invoice._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            invoiceNumber: invoice.invoiceNumber,
+            amountPaid: paymentAmount,
+            totalPaid: invoice.amountPaid,
+            remainingAmount: invoice.remainingAmount,
+            status: invoice.status,
+            customerId: order.userId
+          },
+          link: `/dashboards/admin/invoices/${invoice._id}`
+        });
+        
+      } catch (notifErr) {
+        console.error('Failed to create payment notifications:', notifErr);
+      }
+    }
+
+    return invoice;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
 export const getAllInvoices = async (
   page: number = 1,
   limit: number = 10,
 ): Promise<PaginatedInvoices> => {
   const skip = (page - 1) * limit;
 
-  // Check if Transaction model is registered
   const modelNames = mongoose.modelNames();
   const canPopulateTransactions = modelNames.includes('Transaction');
 
@@ -976,7 +932,6 @@ export const getAllInvoices = async (
     .skip(skip)
     .limit(limit);
 
-  // Only populate transactions if the model exists
   if (canPopulateTransactions) {
     query.populate("transactions");
   }
@@ -995,13 +950,11 @@ export const getAllInvoices = async (
   };
 };
 
-// ==================== GET INVOICE BY ID ====================
 export const getInvoiceById = async (
   invoiceId: string,
   userId: string,
   userRole: string,
 ): Promise<IInvoice | null> => {
-  // Check if Transaction model is registered
   const modelNames = mongoose.modelNames();
   const canPopulateTransactions = modelNames.includes('Transaction');
 
@@ -1011,7 +964,6 @@ export const getInvoiceById = async (
       populate: { path: "userId", select: "email fullname" },
     });
 
-  // Only populate transactions if the model exists
   if (canPopulateTransactions) {
     query.populate("transactions");
   }
@@ -1024,7 +976,6 @@ export const getInvoiceById = async (
 
   const order = invoice.orderId as any;
 
-  // Check authorization
   if (userRole === "Customer" && order.userId._id.toString() !== userId) {
     throw new Error("Unauthorized to view this invoice");
   }
@@ -1032,13 +983,11 @@ export const getInvoiceById = async (
   return invoice;
 };
 
-// ==================== GET INVOICE BY INVOICE NUMBER ====================
 export const getInvoiceByNumber = async (
   invoiceNumber: string,
   userId: string,
   userRole: string,
 ): Promise<IInvoice | null> => {
-  // Check if Transaction model is registered
   const modelNames = mongoose.modelNames();
   const canPopulateTransactions = modelNames.includes('Transaction');
 
@@ -1048,7 +997,6 @@ export const getInvoiceByNumber = async (
       populate: { path: "userId", select: "email fullname" },
     });
 
-  // Only populate transactions if the model exists
   if (canPopulateTransactions) {
     query.populate("transactions");
   }
@@ -1061,7 +1009,6 @@ export const getInvoiceByNumber = async (
 
   const order = invoice.orderId as any;
 
-  // Check authorization
   if (userRole === "Customer" && order.userId._id.toString() !== userId) {
     throw new Error("Unauthorized to view this invoice");
   }
@@ -1069,7 +1016,6 @@ export const getInvoiceByNumber = async (
   return invoice;
 };
 
-// ==================== GET INVOICE BY ORDER ID ====================
 export const getInvoiceByOrderId = async (
   orderId: string,
   userId: string,
@@ -1080,12 +1026,10 @@ export const getInvoiceByOrderId = async (
     throw new Error("Order not found");
   }
 
-  // Check authorization
   if (userRole === "Customer" && order.userId.toString() !== userId) {
     throw new Error("Unauthorized to view this invoice");
   }
 
-  // Check if Transaction model is registered
   const modelNames = mongoose.modelNames();
   const canPopulateTransactions = modelNames.includes('Transaction');
 
@@ -1095,7 +1039,6 @@ export const getInvoiceByOrderId = async (
       populate: { path: "userId", select: "email fullname" },
     });
 
-  // Only populate transactions if the model exists
   if (canPopulateTransactions) {
     query.populate("transactions");
   }
@@ -1105,7 +1048,6 @@ export const getInvoiceByOrderId = async (
   return invoice;
 };
 
-// ==================== GET INVOICE BY ORDER NUMBER ====================
 export const getInvoiceByOrderNumber = async (
   orderNumber: string,
   userId: string,
@@ -1116,12 +1058,10 @@ export const getInvoiceByOrderNumber = async (
     throw new Error("Order not found");
   }
 
-  // Check authorization
   if (userRole === "Customer" && order.userId.toString() !== userId) {
     throw new Error("Unauthorized to view this invoice");
   }
 
-  // Check if Transaction model is registered
   const modelNames = mongoose.modelNames();
   const canPopulateTransactions = modelNames.includes('Transaction');
 
@@ -1131,7 +1071,6 @@ export const getInvoiceByOrderNumber = async (
       populate: { path: "userId", select: "email fullname" },
     });
 
-  // Only populate transactions if the model exists
   if (canPopulateTransactions) {
     query.populate("transactions");
   }
@@ -1141,19 +1080,16 @@ export const getInvoiceByOrderNumber = async (
   return invoice;
 };
 
-// ==================== GET USER INVOICES ====================
 export const getUserInvoices = async (
   userId: string,
   page: number = 1,
   limit: number = 10,
 ): Promise<PaginatedInvoices> => {
-  // Find all orders by user
   const orders = await Order.find({ userId }).select("_id").exec();
   const orderIds = orders.map((o) => o._id);
 
   const skip = (page - 1) * limit;
 
-  // Check if Transaction model is registered
   const modelNames = mongoose.modelNames();
   const canPopulateTransactions = modelNames.includes('Transaction');
 
@@ -1163,7 +1099,6 @@ export const getUserInvoices = async (
     .skip(skip)
     .limit(limit);
 
-  // Only populate transactions if the model exists
   if (canPopulateTransactions) {
     query.populate("transactions");
   }
@@ -1182,7 +1117,6 @@ export const getUserInvoices = async (
   };
 };
 
-// ==================== FILTER INVOICES (Admin) ====================
 export const filterInvoices = async (
   filters: InvoiceFilter,
 ): Promise<PaginatedInvoices> => {
@@ -1207,21 +1141,18 @@ export const filterInvoices = async (
   if (invoiceType) query.invoiceType = invoiceType;
   if (orderId) query.orderId = new mongoose.Types.ObjectId(orderId);
 
-  // Date range filter
   if (startDate || endDate) {
     query.createdAt = {};
     if (startDate) query.createdAt.$gte = startDate;
     if (endDate) query.createdAt.$lte = endDate;
   }
 
-  // Amount range filter
   if (minAmount !== undefined || maxAmount !== undefined) {
     query.totalAmount = {};
     if (minAmount !== undefined) query.totalAmount.$gte = minAmount;
     if (maxAmount !== undefined) query.totalAmount.$lte = maxAmount;
   }
 
-  // If userId provided, filter by user's orders
   if (userId) {
     const orders = await Order.find({
       userId: new mongoose.Types.ObjectId(userId),
@@ -1236,7 +1167,6 @@ export const filterInvoices = async (
   const sortOptions: any = {};
   sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
 
-  // Check if Transaction model is registered
   const modelNames = mongoose.modelNames();
   const canPopulateTransactions = modelNames.includes('Transaction');
 
@@ -1249,7 +1179,6 @@ export const filterInvoices = async (
     .skip(skip)
     .limit(limit);
 
-  // Only populate transactions if the model exists
   if (canPopulateTransactions) {
     findQuery.populate("transactions");
   }
