@@ -37,5 +37,8 @@ const DesignSchema = new Schema({
 }, {
     timestamps: true,
 });
+DesignSchema.index({ orderId: 1, version: -1 }); // For getting latest version
+DesignSchema.index({ productId: 1, createdAt: -1 }); // For product designs
+DesignSchema.index({ isApproved: 1, orderId: 1 });
 export const Design = model("Design", DesignSchema);
 //# sourceMappingURL=designModel.js.map

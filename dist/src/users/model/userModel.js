@@ -14,7 +14,9 @@ const UserSchema = new Schema({
     },
     password: {
         type: String,
-        required: true,
+        required: function () {
+            return !this.googleId;
+        },
     },
     role: {
         type: String,
@@ -27,8 +29,20 @@ const UserSchema = new Schema({
         index: true,
         required: true,
     },
+    googleId: {
+        type: String,
+        sparse: true,
+    },
 }, {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+UserSchema.virtual('profile', {
+    ref: 'Profile',
+    localField: '_id',
+    foreignField: 'userId',
+    justOne: true
 });
 export const User = model("User", UserSchema);
 //# sourceMappingURL=userModel.js.map

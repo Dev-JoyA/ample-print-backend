@@ -1,5 +1,48 @@
 import { User, UserRole } from "../users/model/userModel.js";
 import mongoose from "mongoose";
+import { Design } from "../design/model/designModel.js";
+import { Order } from "../order/model/orderModel.js";
+export const checkDesignOwnership = async (req, res, next) => {
+    try {
+        const loggedInUser = req.user;
+        const { designId } = req.params; // Get designId from params
+        if (!loggedInUser || !loggedInUser._id) {
+            return res.status(403).json({
+                message: "Unauthorized: You do not have permission to modify this design",
+            });
+        }
+        // SuperAdmin bypass
+        if (loggedInUser.role === UserRole.SuperAdmin) {
+            return next();
+        }
+        // Find the design
+        const design = await Design.findById(designId);
+        if (!design) {
+            return res.status(404).json({ message: "Design not found" });
+        }
+        // Find the order associated with this design
+        const order = await Order.findById(design.orderId);
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+        // Check if the logged-in user owns the order
+        const loggedId = new mongoose.Types.ObjectId(loggedInUser._id);
+        const orderUserId = new mongoose.Types.ObjectId(order.userId.toString());
+        if (!loggedId.equals(orderUserId)) {
+            return res.status(403).json({
+                message: "Unauthorized: You do not own this design",
+            });
+        }
+        // Attach design and order to request for later use
+        req.design = design;
+        req.order = order;
+        next();
+    }
+    catch (err) {
+        console.error("Design ownership check error:", err);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
 export const checkRole = (roles) => async (req, res, next) => {
     try {
         const userRole = req.user?.role;

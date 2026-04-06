@@ -18,6 +18,7 @@ import mongoose from "mongoose";
 import { generateInvoiceNumber } from "../../utils/invoiceUtils.js";
 import { Transaction } from "../../payments/model/transactionModel.js";
 import { Shipping } from "../../shipping/model/shippingModel.js";
+import { BankAccount } from "../../bankAccount/model/bankAccountModel.js";
 
 export interface InvoiceFilter {
   status?: InvoiceStatus;
@@ -119,6 +120,13 @@ export const createInvoice = async (
       remainingAmount = totalAmount - depositAmount;
     }
 
+    const activeBank = await BankAccount.findOne({ isActive: true })
+      .sort({ updatedAt: -1 })
+      .exec();
+    const defaultPaymentInstructions = activeBank
+      ? `Bank transfer to ${activeBank.bankName} ${activeBank.accountNumber} (${activeBank.accountName})`
+      : "Bank transfer";
+
     const invoiceNumber = await generateInvoiceNumber();
 
     const [invoice] = await Invoice.create(
@@ -146,7 +154,7 @@ export const createInvoice = async (
           dueDate: data.dueDate,
           notes: data.notes,
           paymentInstructions:
-            data.paymentInstructions || "Bank transfer to GTBank 0123456789",
+            data.paymentInstructions || defaultPaymentInstructions,
           transactions: [],
         },
       ],
@@ -193,6 +201,14 @@ export const createInvoice = async (
           invoice.totalAmount,
           depositAmount || undefined,
           dueDateStr,
+          invoice.items as any,
+          activeBank
+            ? {
+                accountName: activeBank.accountName,
+                accountNumber: activeBank.accountNumber,
+                bankName: activeBank.bankName,
+              }
+            : undefined,
         )
         .catch((err) => console.error("Error sending invoice email:", err));
 
@@ -277,6 +293,12 @@ export const createShippingInvoice = async (
     }
 
     const invoiceNumber = await generateInvoiceNumber();
+    const activeBank = await BankAccount.findOne({ isActive: true })
+      .sort({ updatedAt: -1 })
+      .exec();
+    const defaultPaymentInstructions = activeBank
+      ? `Shipping payment - Bank transfer to ${activeBank.bankName} ${activeBank.accountNumber} (${activeBank.accountName})`
+      : "Shipping payment - Bank transfer";
 
     const [invoice] = await Invoice.create(
       [
@@ -304,7 +326,7 @@ export const createShippingInvoice = async (
           issueDate: new Date(),
           dueDate: data.dueDate,
           notes: data.notes,
-          paymentInstructions: "Shipping payment - Bank transfer",
+          paymentInstructions: defaultPaymentInstructions,
           shippingId: new mongoose.Types.ObjectId(shippingId),
           transactions: [],
         },
@@ -387,6 +409,14 @@ export const createShippingInvoice = async (
           data.shippingCost,
           undefined,
           dueDateStr,
+          invoice.items as any,
+          activeBank
+            ? {
+                accountName: activeBank.accountName,
+                accountNumber: activeBank.accountNumber,
+                bankName: activeBank.bankName,
+              }
+            : undefined,
         )
         .catch((err) =>
           console.error("Error sending shipping invoice email:", err),
@@ -579,6 +609,9 @@ export const updateInvoice = async (
 
     if (user && profile && orderForNotif) {
       if (oldTotal !== invoice.totalAmount || oldDeposit !== invoice.depositAmount) {
+        const activeBank = await BankAccount.findOne({ isActive: true })
+          .sort({ updatedAt: -1 })
+          .exec();
         await emailService
           .sendInvoiceReady(
             user.email,
@@ -588,6 +621,14 @@ export const updateInvoice = async (
             invoice.totalAmount,
             invoice.depositAmount || undefined,
             invoice.dueDate.toLocaleDateString(),
+            invoice.items as any,
+            activeBank
+              ? {
+                  accountName: activeBank.accountName,
+                  accountNumber: activeBank.accountNumber,
+                  bankName: activeBank.bankName,
+                }
+              : undefined,
           )
           .catch((err) =>
             console.error("Error sending invoice update email:", err),
@@ -721,6 +762,10 @@ export const sendInvoiceToCustomer = async (
     await invoice.save({ session });
     await session.commitTransaction();
 
+    const activeBank = await BankAccount.findOne({ isActive: true })
+      .sort({ updatedAt: -1 })
+      .exec();
+
     await emailService
       .sendInvoiceReady(
         user.email,
@@ -730,6 +775,14 @@ export const sendInvoiceToCustomer = async (
         invoice.totalAmount,
         invoice.depositAmount || undefined,
         invoice.dueDate.toLocaleDateString(),
+        invoice.items as any,
+        activeBank
+          ? {
+              accountName: activeBank.accountName,
+              accountNumber: activeBank.accountNumber,
+              bankName: activeBank.bankName,
+            }
+          : undefined,
       )
       .catch((err) => console.error("Error sending invoice email:", err));
 

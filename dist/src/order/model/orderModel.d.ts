@@ -1,7 +1,6 @@
 import { Types, Document } from "mongoose";
 export declare enum PaymentStatus {
     Pending = "Pending",
-    DepositPaid = "DepositPaid",
     PartPayment = "PartPayment",
     Completed = "Completed",
     Failed = "Failed",
@@ -11,9 +10,8 @@ export declare enum OrderStatus {
     Pending = "Pending",
     OrderReceived = "OrderReceived",
     FilesUploaded = "FilesUploaded",
+    AwaitingInvoice = "AwaitingInvoice",
     InvoiceSent = "InvoiceSent",
-    AwaitingDeposit = "AwaitingDeposit",
-    DepositPaid = "DepositPaid",
     DesignUploaded = "DesignUploaded",
     UnderReview = "UnderReview",
     Approved = "Approved",
@@ -23,27 +21,40 @@ export declare enum OrderStatus {
     Completed = "Completed",
     AwaitingFinalPayment = "AwaitingFinalPayment",
     FinalPaid = "FinalPaid",
+    ReadyForShipping = "ReadyForShipping",
     Shipped = "Shipped",
     Cancelled = "Cancelled",
     Delivered = "Delivered"
 }
+export interface IOrderItem {
+    productId: Types.ObjectId;
+    productName: string;
+    quantity: number;
+    price: number;
+    productSnapshot?: {
+        name?: string;
+        description?: string;
+        dimension?: {
+            width: string;
+            height: string;
+        };
+        minOrder?: number;
+        material?: string;
+    };
+}
 export interface IOrderModel extends Document {
     userId: Types.ObjectId;
     orderNumber: string;
-    items: {
-        productId: Types.ObjectId;
-        productName: string;
-        quantity: number;
-        price: number;
-    }[];
-    deposit: number;
+    items: IOrderItem[];
     totalAmount: number;
-    filename: string;
     amountPaid: number;
     remainingBalance: number;
-    isDepositPaid: boolean;
+    requiredPaymentType?: "full" | "part";
+    requiredDeposit?: number;
     status: OrderStatus;
     paymentStatus: PaymentStatus;
+    invoiceId?: Types.ObjectId;
+    shippingId?: Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
 }

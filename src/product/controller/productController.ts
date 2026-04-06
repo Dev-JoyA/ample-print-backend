@@ -14,7 +14,7 @@ export const createCollection = async (req: Request, res: Response) => {
   }
 };
 
-export const updateCollection = async (req: Request, res: Response) => {
+export const updateCollection = async (req: Request<{ id: string }>, res: Response) => {
   try {
     const { name } = req.body;
     const { id } = req.params;
@@ -25,7 +25,7 @@ export const updateCollection = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteCollection = async (req: Request, res: Response) => {
+export const deleteCollection = async (req: Request<{ id: string }>, res: Response) => {
   try {
     const { id } = req.params;
     const message = await productService.deleteCollection(id);
@@ -46,7 +46,7 @@ export const getCollectionsPaginated = async (req: Request, res: Response) => {
   }
 };
 
-export const getCollectionById = async (req: Request, res: Response) => {
+export const getCollectionById = async (req: Request<{ id: string }>, res: Response) => {
   try {
     const { id } = req.params;
     const collection = await productService.getCollectionById(id);
@@ -58,7 +58,7 @@ export const getCollectionById = async (req: Request, res: Response) => {
 
 // ---------------- PRODUCT ---------------- //
 
-export const createProduct = async (req: Request, res: Response) => {
+export const createProduct = async (req: Request<{ collectionId: string }>, res: Response) => {
   try {
     const { collectionId } = req.params;
     const files = req.files as Express.Multer.File[];
@@ -82,7 +82,7 @@ export const createProduct = async (req: Request, res: Response) => {
   }
 };
 
-export const updateProduct = async (req: Request, res: Response) => {
+export const updateProduct = async (req: Request<{ id: string }>, res: Response) => {
   try {
     const { id } = req.params;
     const files = req.files as Express.Multer.File[];
@@ -102,7 +102,7 @@ export const updateProduct = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteProduct = async (req: Request, res: Response) => {
+export const deleteProduct = async (req: Request<{ id: string }>, res: Response) => {
   try {
     const { id } = req.params;
     const message = await productService.deleteProduct(id);
@@ -112,7 +112,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
   }
 };
 
-export const getProductById = async (req: Request, res: Response) => {
+export const getProductById = async (req: Request<{ id: string }>, res: Response) => {
   try {
     const { id } = req.params;
     const product = await productService.getProductById(id);
@@ -156,7 +156,7 @@ export const filterProducts = async (req: Request, res: Response) => {
   }
 };
 
-export const getProductsByCollectionId = async (req: Request, res: Response) => {
+export const getProductsByCollectionId = async (req: Request<{ collectionId: string }>, res: Response) => {
   try {
     const { collectionId } = req.params;
     const products = await productService.getProductsByCollectionId(collectionId);

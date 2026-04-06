@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { BankAccount } from "../bankAccount/model/bankAccountModel.js";
 
 dotenv.config();
 
@@ -62,6 +63,12 @@ interface EmailData {
   hasAttachments?: string;
   adminUrl?: string;
 }
+
+type BankAccountForEmails = {
+  accountName: string;
+  accountNumber: string;
+  bankName: string;
+};
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || "smtp.gmail.com",
@@ -169,21 +176,67 @@ export const sendInvoiceReady = (
   total: number,
   depositAmount?: number,
   dueDate?: string,
+  items?: Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>,
+  bankAccount?: BankAccountForEmails,
 ): Promise<void> =>
-  sendEmail({
-    to,
-    subject: `Invoice Ready: ${invoiceNumber}`,
-    template: "invoice-ready.html",
-    data: {
-      name,
-      orderNumber,
-      invoiceNumber,
-      total: total.toString(),
-      depositAmount: depositAmount || 0,
-      dueDate: dueDate || "Not specified",
-      invoiceUrl: `${process.env.FRONTEND_URL}/invoices/${invoiceNumber}`,
-    },
-  });
+  (async () => {
+    const activeBank =
+      bankAccount ||
+      (await BankAccount.findOne({ isActive: true })
+        .sort({ updatedAt: -1 })
+        .exec());
+
+    const money = (n?: number) => `₦${(n || 0).toLocaleString()}`;
+
+    const depositRow =
+      depositAmount && depositAmount > 0
+        ? `<tr>
+            <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #4a5568; font-weight: 600;">Deposit Required</td>
+            <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #2d3748; text-align: right;">${money(depositAmount)}</td>
+          </tr>`
+        : "";
+
+    const itemsRows =
+      items && items.length
+        ? items
+            .map(
+              (it) => `<tr>
+                <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #2d3748;">${it.description}</td>
+                <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #2d3748; text-align: center;">${it.quantity}</td>
+                <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #2d3748; text-align: right;">${money(it.unitPrice)}</td>
+                <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #2d3748; text-align: right;">${money(it.total)}</td>
+              </tr>`,
+            )
+            .join("")
+        : `<tr>
+            <td colspan="4" style="padding: 14px 10px; color: #718096; text-align: center;">Invoice items unavailable</td>
+          </tr>`;
+
+    await sendEmail({
+      to,
+      subject: `Invoice Ready: ${invoiceNumber}`,
+      template: "invoice-ready.html",
+      data: {
+        name,
+        orderNumber,
+        invoiceNumber,
+        totalFormatted: money(total),
+        total: total.toString(),
+        dueDate: dueDate || "Not specified",
+        invoiceUrl: `${process.env.FRONTEND_URL}/invoices/${invoiceNumber}`,
+        itemsRows,
+        depositRow,
+        bankAccountName: activeBank?.accountName || "Not available",
+        bankAccountNumber: activeBank?.accountNumber || "Not available",
+        bankName: activeBank?.bankName || "Not available",
+      },
+    });
+  })();
 
 export const sendDesignReady = (
   to: string,
@@ -301,18 +354,29 @@ export const sendFinalPaymentReminder = (
   name: string,
   orderNumber: string,
   amount: number,
+  bankAccount?: BankAccountForEmails,
 ): Promise<void> =>
-  sendEmail({
-    to,
-    subject: `Final Payment Required for Order #${orderNumber}`,
-    template: "final-payment-reminder.html",
-    data: {
-      name,
-      orderNumber,
-      amount: amount.toString(),
-      paymentUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}/payment`,
-    },
-  });
+  (async () => {
+    const activeBank =
+      bankAccount ||
+      (await BankAccount.findOne({ isActive: true })
+        .sort({ updatedAt: -1 })
+        .exec());
+    await sendEmail({
+      to,
+      subject: `Final Payment Required for Order #${orderNumber}`,
+      template: "final-payment-reminder.html",
+      data: {
+        name,
+        orderNumber,
+        amount: amount.toString(),
+        paymentUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}/payment`,
+        bankAccountName: activeBank?.accountName || "Not available",
+        bankAccountNumber: activeBank?.accountNumber || "Not available",
+        bankName: activeBank?.bankName || "Not available",
+      },
+    });
+  })();
 
 export const sendShippingSelectionReminder = (
   to: string,

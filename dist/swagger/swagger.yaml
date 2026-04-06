@@ -1,0 +1,3703 @@
+openapi: 3.0.3
+info:
+  title: AMPLE PRINT HUB API
+  description: |
+    Complete API documentation for AMPLE PRINT HUB - A printing company application
+    that handles collections, products, orders, customization briefs, designs, feedback,
+    and user management.
+
+    ## Key Features:
+    - Multi-role authentication (Customer, Admin, SuperAdmin)
+    - Product catalog with collections
+    - Order management with complex status tracking
+    - Customization briefs with role-based documents
+    - Design uploads with version control
+    - Feedback system for design discussions
+    - Real-time notifications via Socket.io
+  version: 2.1.0
+
+servers:
+  - url: http://localhost:4001/api/v1
+    description: Local development (PORT=4001)
+  - url: http://localhost:8000/api/v1
+    description: Local development (default PORT=8000)
+  - url: https://api.ampleprinthub.com/api/v1
+    description: Production server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Enter JWT token with format "Bearer {token}"
+
+  schemas:
+    # ==================== AUTH & USER SCHEMAS ====================
+    UserRole:
+      type: string
+      enum: [Customer, Admin, SuperAdmin]
+      description: User roles in the system
+
+    SignUpData:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - userName
+        - email
+        - password
+        - phoneNumber
+      properties:
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        userName:
+          type: string
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          format: password
+          minLength: 5
+          example: password123
+        phoneNumber:
+          type: string
+          example: "+2348012345678"
+        address:
+          type: string
+          nullable: true
+          example: "Lagos, Nigeria"
+
+    SignInData:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          format: password
+          example: password123
+
+    PasswordResetData:
+      type: object
+      required:
+        - newPassword
+        - confirmPassword
+      properties:
+        newPassword:
+          type: string
+          format: password
+          minLength: 5
+        confirmPassword:
+          type: string
+          format: password
+        token:
+          type: string
+          nullable: true
+          description: Reset token from email (for effect-forgot-password)
+
+    RefreshTokenData:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c85"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        role:
+          $ref: "#/components/schemas/UserRole"
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Profile:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c86"
+        userId:
+          type: string
+          example: "60d21b4667d0d8992e610c85"
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        userName:
+          type: string
+          example: "johndoe"
+        phoneNumber:
+          type: string
+          example: "+2348012345678"
+        address:
+          type: string
+          example: "Lagos, Nigeria"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Signed in successfully"
+        data:
+          type: object
+          properties:
+            user:
+              $ref: "#/components/schemas/User"
+            profile:
+              $ref: "#/components/schemas/Profile"
+            accessToken:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            refreshToken:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    MessageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation completed successfully"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Error message"
+
+    # ==================== DISCOUNT SCHEMAS ====================
+    Discount:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c99"
+        code:
+          type: string
+          example: "WELCOME10"
+        type:
+          type: string
+          enum: [percentage, fixed]
+          example: "percentage"
+        value:
+          type: number
+          example: 10
+        active:
+          type: boolean
+          example: true
+        minOrderAmount:
+          type: number
+          example: 5000
+        maxDiscountAmount:
+          type: number
+          example: 2000
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+        usageLimit:
+          type: integer
+          example: 100
+        usedCount:
+          type: integer
+          example: 45
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateDiscountRequest:
+      type: object
+      required:
+        - code
+        - type
+        - value
+      properties:
+        code:
+          type: string
+          example: "WELCOME10"
+        type:
+          type: string
+          enum: [percentage, fixed]
+          example: "percentage"
+        value:
+          type: number
+          example: 10
+        minOrderAmount:
+          type: number
+          example: 5000
+        maxDiscountAmount:
+          type: number
+          example: 2000
+        validFrom:
+          type: string
+          format: date
+        validUntil:
+          type: string
+          format: date
+        usageLimit:
+          type: integer
+          example: 100
+
+    ValidateDiscountRequest:
+      type: object
+      required:
+        - code
+        - amount
+      properties:
+        code:
+          type: string
+          example: "WELCOME10"
+        amount:
+          type: number
+          example: 5000
+
+    ValidateDiscountResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "WELCOME10"
+            type:
+              type: string
+              enum: [percentage, fixed]
+              example: "percentage"
+            value:
+              type: number
+              example: 10
+            discountAmount:
+              type: number
+              example: 500
+
+    # ==================== COLLECTION SCHEMAS ====================
+    Collection:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c87"
+        name:
+          type: string
+          example: "Flyers"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaginatedCollections:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        collections:
+          type: array
+          items:
+            $ref: "#/components/schemas/Collection"
+        total:
+          type: integer
+          example: 25
+        page:
+          type: integer
+          example: 1
+        pages:
+          type: integer
+          example: 3
+
+    # ==================== PRODUCT SCHEMAS ====================
+    ProductStatus:
+      type: string
+      enum: [active, inactive, archived]
+      description: Product availability status
+
+    ProductDimension:
+      type: object
+      properties:
+        width:
+          type: string
+          example: "100mm"
+        height:
+          type: string
+          example: "150mm"
+
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c88"
+        collectionId:
+          type: string
+          example: "60d21b4667d0d8992e610c87"
+        name:
+          type: string
+          example: "A5 Flyer"
+        description:
+          type: string
+          example: "High quality flyer for promotions"
+        price:
+          type: number
+          example: 50.00
+        dimension:
+          $ref: "#/components/schemas/ProductDimension"
+        minOrder:
+          type: integer
+          example: 100
+        image:
+          type: string
+          example: "/uploads/product-main.jpg"
+        filename:
+          type: string
+          example: "1642534567890-product-main.jpg"
+        images:
+          type: array
+          items:
+            type: string
+          example: ["/uploads/product-1.jpg", "/uploads/product-2.jpg"]
+        filenames:
+          type: array
+          items:
+            type: string
+          example: ["1642534567890-product-1.jpg", "1642534567890-product-2.jpg"]
+        material:
+          type: string
+          example: "Glossy paper"
+        status:
+          $ref: "#/components/schemas/ProductStatus"
+        deliveryDay:
+          type: string
+          example: "3-5 business days"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaginatedProducts:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+        total:
+          type: integer
+          example: 50
+        page:
+          type: integer
+          example: 1
+        pages:
+          type: integer
+          example: 5
+
+    # ==================== ORDER SCHEMAS ====================
+    OrderStatus:
+      type: string
+      enum: [Pending, OrderReceived, FilesUploaded, AwaitingInvoice, InvoiceSent, DesignUploaded, UnderReview, Approved, AwaitingPartPayment, PartPaymentMade, InProduction, Completed, AwaitingFinalPayment, FinalPaid, ReadyForShipping, Shipped, Cancelled, Delivered]
+      description: Current status of the order
+
+    PaymentStatus:
+      type: string
+      enum: [Pending, PartPayment, Completed, Failed, Refunded]
+      description: Payment status of the order
+
+    OrderItem:
+      type: object
+      properties:
+        productId:
+          type: string
+          example: "60d21b4667d0d8992e610c88"
+        productName:
+          type: string
+          example: "A5 Flyer"
+        quantity:
+          type: integer
+          example: 100
+        price:
+          type: number
+          example: 50.00
+
+    Order:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        userId:
+          type: string
+          example: "60d21b4667d0d8992e610c85"
+        orderNumber:
+          type: string
+          example: "ORD-2024-001"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        totalAmount:
+          type: number
+          example: 5000.00
+        amountPaid:
+          type: number
+          example: 1500.00
+        remainingBalance:
+          type: number
+          example: 3500.00
+        requiredPaymentType:
+          type: string
+          enum: [full, part]
+          nullable: true
+          example: "part"
+        requiredDeposit:
+          type: number
+          nullable: true
+          example: 1500.00
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        paymentStatus:
+          $ref: "#/components/schemas/PaymentStatus"
+        invoiceId:
+          type: string
+          nullable: true
+          example: "60d21b4667d0d8992e610c95"
+        shippingId:
+          type: string
+          nullable: true
+          example: "60d21b4667d0d8992e610c96"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateOrderData:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - productId
+              - quantity
+            properties:
+              productId:
+                type: string
+                example: "60d21b4667d0d8992e610c88"
+              quantity:
+                type: integer
+                minimum: 1
+                example: 100
+
+    UpdateOrderData:
+      type: object
+      properties:
+        shippingAddress:
+          type: string
+          example: "123 Main Street, Lagos"
+        phoneNumber:
+          type: string
+          example: "+2348012345678"
+        notes:
+          type: string
+          example: "Please call before delivery"
+
+    UpdateOrderStatusData:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+
+    PaginatedOrders:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        order:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        total:
+          type: integer
+          example: 50
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        pages:
+          type: integer
+          example: 5
+
+    # ==================== DESIGN SCHEMAS ====================
+    Design:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c90"
+        userId:
+          type: string
+          example: "60d21b4667d0d8992e610c85"
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        productId:
+          type: string
+          example: "60d21b4667d0d8992e610c88"
+        uploadedBy:
+          type: string
+          example: "60d21b4667d0d8992e610c91"
+        version:
+          type: integer
+          example: 1
+        isApproved:
+          type: boolean
+          example: false
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        designUrl:
+          type: string
+          example: "/uploads/design-main.pdf"
+        filename:
+          type: string
+          example: "1642534567890-design-main.pdf"
+        otherImage:
+          type: array
+          items:
+            type: string
+          example: ["/uploads/design-1.jpg", "/uploads/design-2.jpg"]
+        filenames:
+          type: array
+          items:
+            type: string
+          example: ["1642534567890-design-1.jpg", "1642534567890-design-2.jpg"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ==================== CUSTOMER BRIEF SCHEMAS ====================
+    CustomerBriefRole:
+      type: string
+      enum: [customer, admin, super-admin]
+      description: Role of the user who created this brief
+
+    CustomerBrief:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c92"
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        productId:
+          type: string
+          example: "60d21b4667d0d8992e610c88"
+        role:
+          $ref: "#/components/schemas/CustomerBriefRole"
+        description:
+          type: string
+          example: "I want a blue flyer with my logo on the top right corner"
+        image:
+          type: string
+          example: "/uploads/1642534567890-reference.jpg"
+        voiceNote:
+          type: string
+          example: "/uploads/1642534567890-voice.mp3"
+        video:
+          type: string
+          example: "/uploads/1642534567890-video.mp4"
+        logo:
+          type: string
+          example: "/uploads/1642534567890-logo.png"
+        designId:
+          type: string
+          example: "60d21b4667d0d8992e610c90"
+        viewed:
+          type: boolean
+          example: false
+        viewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CustomerBriefConversation:
+      type: object
+      properties:
+        customer:
+          $ref: "#/components/schemas/CustomerBrief"
+        admin:
+          $ref: "#/components/schemas/CustomerBrief"
+        superAdmin:
+          $ref: "#/components/schemas/CustomerBrief"
+
+    AdminResponseStatus:
+      type: object
+      properties:
+        hasAdminResponded:
+          type: boolean
+          example: true
+        adminBrief:
+          $ref: "#/components/schemas/CustomerBrief"
+        customerBrief:
+          $ref: "#/components/schemas/CustomerBrief"
+
+    OrderBriefStatus:
+      type: object
+      properties:
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        orderNumber:
+          type: string
+          example: "ORD-2024-001"
+        currentStatus:
+          $ref: "#/components/schemas/OrderStatus"
+        allProductsReady:
+          type: boolean
+          example: false
+        productStatus:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+              productName:
+                type: string
+              status:
+                type: string
+                enum: [no-brief, pending, viewed, responded]
+              viewed:
+                type: boolean
+              briefCount:
+                type: integer
+              lastMessage:
+                type: string
+                nullable: true
+                enum: [customer, admin]
+
+    # ==================== FEEDBACK SCHEMAS ====================
+    FeedBackStatus:
+      type: string
+      enum: [Pending, Reviewed, Resolved]
+      description: Status of the feedback
+
+    Feedback:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c93"
+        userId:
+          type: string
+          example: "60d21b4667d0d8992e610c85"
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        designId:
+          type: string
+          example: "60d21b4667d0d8992e610c90"
+          nullable: true
+        respondedBy:
+          type: string
+          example: "60d21b4667d0d8992e610c91"
+          nullable: true
+        message:
+          type: string
+          example: "The design needs to be darker, can you adjust it?"
+        attachment:
+          type: array
+          items:
+            type: string
+          example: ["/uploads/1642534567890-image.jpg"]
+        adminResponse:
+          type: string
+          example: "I've made the design darker as requested"
+          nullable: true
+        adminResponseAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          $ref: "#/components/schemas/FeedBackStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ==================== SHIPPING SCHEMAS ====================
+    ShippingMethod:
+      type: string
+      enum: [pickup, delivery]
+      description: Shipping method (pickup from store or delivery to address)
+
+    ShippingStatus:
+      type: string
+      enum: [pending, shipped, delivered]
+      description: Current status of the shipping
+
+    ShippingAddress:
+      type: object
+      required:
+        - street
+        - city
+        - state
+      properties:
+        street:
+          type: string
+          example: "123 Main Street"
+        city:
+          type: string
+          example: "Lagos"
+        state:
+          type: string
+          example: "Lagos"
+        country:
+          type: string
+          example: "Nigeria"
+          default: "Nigeria"
+
+    Shipping:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c98"
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        orderNumber:
+          type: string
+          example: "ORD-2024-001"
+        shippingMethod:
+          $ref: "#/components/schemas/ShippingMethod"
+        trackingNumber:
+          type: string
+          example: "ABC123456789"
+          nullable: true
+        recipientName:
+          type: string
+          example: "John Doe"
+        recipientPhone:
+          type: string
+          example: "+2348012345678"
+        address:
+          $ref: "#/components/schemas/ShippingAddress"
+        shippingCost:
+          type: number
+          example: 2500.00
+        shippingInvoiceId:
+          type: string
+          example: "60d21b4667d0d8992e610c95"
+          nullable: true
+        isPaid:
+          type: boolean
+          example: false
+        status:
+          $ref: "#/components/schemas/ShippingStatus"
+        trackingHistory:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                $ref: "#/components/schemas/ShippingStatus"
+              location:
+                type: string
+              description:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+        estimatedDelivery:
+          type: string
+          format: date
+          nullable: true
+        actualDelivery:
+          type: string
+          format: date
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateShippingRequest:
+      type: object
+      required:
+        - shippingMethod
+      properties:
+        shippingMethod:
+          $ref: "#/components/schemas/ShippingMethod"
+        address:
+          $ref: "#/components/schemas/ShippingAddress"
+        pickupNotes:
+          type: string
+          example: "Customer will pick up after 5pm"
+
+    UpdateTrackingRequest:
+      type: object
+      required:
+        - trackingNumber
+      properties:
+        trackingNumber:
+          type: string
+          example: "ABC123456789"
+        carrier:
+          type: string
+          example: "DHL"
+        estimatedDelivery:
+          type: string
+          format: date
+          example: "2024-01-10"
+
+    UpdateShippingStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: "#/components/schemas/ShippingStatus"
+
+    PaginatedShipping:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        shipping:
+          type: array
+          items:
+            $ref: "#/components/schemas/Shipping"
+        total:
+          type: integer
+          example: 25
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        pages:
+          type: integer
+          example: 3
+
+    # ==================== PAYMENT SCHEMAS ====================
+    TransactionStatus:
+      type: string
+      enum: [pending, completed, failed, refunded]
+      description: Status of the transaction
+
+    TransactionType:
+      type: string
+      enum: [final, part, refund]
+      description: Type of transaction
+
+    PaymentMethod:
+      type: string
+      enum: [paystack, bank_transfer]
+      description: Payment method used
+
+    Transaction:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c97"
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        orderNumber:
+          type: string
+          example: "ORD-2024-001"
+        invoiceId:
+          type: string
+          example: "60d21b4667d0d8992e610c95"
+          nullable: true
+        transactionId:
+          type: string
+          example: "TXN-1642534567890-ABC123"
+        transactionAmount:
+          type: number
+          example: 1500.00
+        transactionStatus:
+          $ref: "#/components/schemas/TransactionStatus"
+        transactionType:
+          $ref: "#/components/schemas/TransactionType"
+        paymentMethod:
+          $ref: "#/components/schemas/PaymentMethod"
+        metadata:
+          type: object
+          example: { "initializedAt": "2024-01-01T10:00:00Z" }
+        receiptUrl:
+          type: string
+          nullable: true
+        verifiedBy:
+          type: string
+          nullable: true
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaystackInitializeRequest:
+      type: object
+      required:
+        - orderId
+        - invoiceId
+        - amount
+        - transactionType
+      properties:
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        invoiceId:
+          type: string
+          example: "60d21b4667d0d8992e610c95"
+        amount:
+          type: number
+          example: 1500.00
+        transactionType:
+          $ref: "#/components/schemas/TransactionType"
+
+    PaystackInitializeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            authorizationUrl:
+              type: string
+              example: "https://checkout.paystack.com/xyz123"
+            accessCode:
+              type: string
+              example: "xyz123"
+            reference:
+              type: string
+              example: "TXN-1642534567890-ABC123"
+
+    BankTransferUploadRequest:
+      type: object
+      required:
+        - orderId
+        - invoiceId
+        - amount
+        - transactionType
+      properties:
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        invoiceId:
+          type: string
+          example: "60d21b4667d0d8992e610c95"
+        amount:
+          type: number
+          example: 1500.00
+        transactionType:
+          $ref: "#/components/schemas/TransactionType"
+        receipt:
+          type: string
+          format: binary
+          description: Receipt file (image or PDF, max 5MB)
+
+    BankTransferVerifyRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [approve, reject]
+          example: "approve"
+        notes:
+          type: string
+          example: "Payment confirmed via bank statement"
+          nullable: true
+
+    PaginatedTransactions:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        total:
+          type: integer
+          example: 25
+        page:
+          type: integer
+          example: 1
+        pages:
+          type: integer
+          example: 3
+
+    # ==================== INVOICE SCHEMAS ====================
+    InvoiceStatus:
+      type: string
+      enum: [Draft, Sent, PartiallyPaid, Paid, Overdue, Cancelled]
+      description: Status of the invoice
+
+    InvoiceType:
+      type: string
+      enum: [main, shipping, deposit]
+      description: Type of invoice
+
+    Invoice:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60d21b4667d0d8992e610c95"
+        orderId:
+          type: string
+          example: "60d21b4667d0d8992e610c89"
+        orderNumber:
+          type: string
+          example: "ORD-2024-001"
+        invoiceNumber:
+          type: string
+          example: "INV-2401-0001"
+        invoiceType:
+          $ref: "#/components/schemas/InvoiceType"
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              description:
+                type: string
+              quantity:
+                type: integer
+              unitPrice:
+                type: number
+              total:
+                type: number
+        subtotal:
+          type: number
+          example: 5000.00
+        discount:
+          type: number
+          example: 0.00
+        totalAmount:
+          type: number
+          example: 5000.00
+        depositAmount:
+          type: number
+          example: 1500.00
+        partPaymentAmount:
+          type: number
+          example: 0.00
+        remainingAmount:
+          type: number
+          example: 3500.00
+        amountPaid:
+          type: number
+          example: 0.00
+        status:
+          $ref: "#/components/schemas/InvoiceStatus"
+        transactions:
+          type: array
+          items:
+            type: string
+        shippingId:
+          type: string
+          nullable: true
+        issueDate:
+          type: string
+          format: date-time
+        dueDate:
+          type: string
+          format: date-time
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+        paymentInstructions:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateInvoiceRequest:
+      type: object
+      required:
+        - paymentType
+        - dueDate
+      properties:
+        paymentType:
+          type: string
+          enum: [full, part]
+          example: "part"
+        depositAmount:
+          type: number
+          example: 1500.00
+        discount:
+          type: number
+          example: 0.00
+        dueDate:
+          type: string
+          format: date
+          example: "2024-01-08"
+        notes:
+          type: string
+        paymentInstructions:
+          type: string
+
+    PaginatedInvoices:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        invoices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invoice"
+        total:
+          type: integer
+          example: 25
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        pages:
+          type: integer
+          example: 3
+
+    # ==================== NOTIFICATION SCHEMAS ====================
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "60d21b4667d0d8992e610c99"
+        type:
+          type: string
+          example: "order-status-updated"
+        title:
+          type: string
+          example: "Order Status Updated"
+        message:
+          type: string
+          example: "Order #ORD-2024-001 has been shipped"
+        data:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+        read:
+          type: boolean
+          example: false
+        link:
+          type: string
+          example: "/orders/60d21b4667d0d8992e610c89"
+
+    PaginatedNotifications:
+      type: object
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        total:
+          type: integer
+          example: 50
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        pages:
+          type: integer
+          example: 3
+
+paths:
+  # ==================== AUTHENTICATION ====================
+  /auth/sign-up:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpData"
+      responses:
+        "201":
+          description: User and profile created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Account created successfully"
+                  data:
+                    $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/sign-in:
+    post:
+      tags:
+        - Authentication
+      summary: Log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInData"
+      responses:
+        "200":
+          description: Authenticated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Signed in successfully"
+                  data:
+                    $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/admin-sign-up:
+    post:
+      tags:
+        - Authentication
+      summary: Create a new admin (requires superadmin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpData"
+      responses:
+        "201":
+          description: Admin created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Superadmin only
+
+  /auth/superadmin-sign-up:
+    post:
+      tags:
+        - Authentication
+      summary: Create superadmin (only once)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpData"
+      responses:
+        "201":
+          description: Superadmin created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error or superadmin already exists
+
+  /auth/deactivate-admin:
+    post:
+      tags:
+        - Authentication
+      summary: Deactivate an admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Admin deactivated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Superadmin only
+        "404":
+          description: Admin not found
+
+  /auth/reactivate-admin:
+    post:
+      tags:
+        - Authentication
+      summary: Reactivate an admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Admin reactivated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Superadmin only
+        "404":
+          description: Admin not found
+
+  /auth/forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Bad request
+
+  /auth/effect-forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Reset password using token from email
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetData"
+      responses:
+        "200":
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid or expired token
+
+  /auth/reset-password/{userId}:
+    post:
+      tags:
+        - Authentication
+      summary: Reset password by logged-in user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - newPassword
+                - confirmPassword
+              properties:
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 5
+                confirmPassword:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Not account owner
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenData"
+      responses:
+        "200":
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Bad request
+
+  /auth/refresh-token:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenData"
+      responses:
+        "200":
+          description: New tokens generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+        "401":
+          description: Invalid or expired refresh token
+
+  /auth/verify-token:
+    get:
+      tags:
+        - Authentication
+      summary: Verify access token validity
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  valid:
+                    type: boolean
+                    example: true
+                  user:
+                    type: object
+        "401":
+          description: Invalid token
+
+  # ==================== USERS ====================
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Get all users
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Get user by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+    delete:
+      tags:
+        - Users
+      summary: Delete a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /users/{userId}/profile:
+    put:
+      tags:
+        - Users
+      summary: Update user profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userName:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                phoneNumber:
+                  type: string
+                address:
+                  type: string
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    type: object
+                  profile:
+                    $ref: "#/components/schemas/Profile"
+
+  /users/{userId}/role:
+    patch:
+      tags:
+        - Users
+      summary: Change user role
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - newRole
+              properties:
+                newRole:
+                  $ref: "#/components/schemas/UserRole"
+      responses:
+        "200":
+          description: User role updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: "#/components/schemas/User"
+
+  /users/{userId}/activeness:
+    patch:
+      tags:
+        - Users
+      summary: Toggle user activeness
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User activeness toggled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ==================== DISCOUNTS ====================
+  /discounts/validate:
+    post:
+      tags:
+        - Discounts
+      summary: Validate a discount code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateDiscountRequest"
+      responses:
+        "200":
+          description: Discount is valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidateDiscountResponse"
+        "400":
+          description: Invalid or expired discount
+
+  /discounts/active:
+    get:
+      tags:
+        - Discounts
+      summary: Get all active discounts
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of active discounts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discounts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Discount"
+
+  /discounts:
+    post:
+      tags:
+        - Discounts
+      summary: Create a new discount (Super Admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDiscountRequest"
+      responses:
+        "201":
+          description: Discount created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Discount"
+    get:
+      tags:
+        - Discounts
+      summary: Get all discounts
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of discounts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discounts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Discount"
+
+  /discounts/{id}:
+    get:
+      tags:
+        - Discounts
+      summary: Get discount by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Discount found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Discount"
+    put:
+      tags:
+        - Discounts
+      summary: Update discount (Super Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDiscountRequest"
+      responses:
+        "200":
+          description: Discount updated successfully
+    delete:
+      tags:
+        - Discounts
+      summary: Delete discount (Super Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Discount deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /discounts/{id}/toggle:
+    patch:
+      tags:
+        - Discounts
+      summary: Toggle discount active status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Discount status toggled successfully
+
+  # ==================== COLLECTIONS ====================
+  /collections:
+    post:
+      tags:
+        - Collections
+      summary: Create a new collection
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+      responses:
+        "201":
+          description: Collection created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collection"
+    get:
+      tags:
+        - Collections
+      summary: Get paginated list of collections
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Paginated collections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedCollections"
+
+  /collections/{id}:
+    put:
+      tags:
+        - Collections
+      summary: Update a collection
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+      responses:
+        "200":
+          description: Collection updated successfully
+    delete:
+      tags:
+        - Collections
+      summary: Delete a collection
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Collection deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ==================== PRODUCTS ====================
+  /collections/{collectionId}/products:
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: collectionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - productData
+                - images
+              properties:
+                productData:
+                  type: string
+                  description: JSON string of product data
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "201":
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get product by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+    put:
+      tags:
+        - Products
+      summary: Update a product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                productData:
+                  type: string
+                  description: JSON string of product data
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "200":
+          description: Product updated successfully
+    delete:
+      tags:
+        - Products
+      summary: Delete a product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product deleted successfully
+
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get paginated list of products
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Paginated products
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedProducts"
+
+  /products/filter:
+    get:
+      tags:
+        - Products
+      summary: Filter products
+      parameters:
+        - in: query
+          name: priceMin
+          schema:
+            type: number
+        - in: query
+          name: priceMax
+          schema:
+            type: number
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/ProductStatus"
+        - in: query
+          name: collectionId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Filtered products
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedProducts"
+
+  # ==================== ORDERS ====================
+  /orders/create:
+    post:
+      tags:
+        - Orders
+      summary: Create a new order
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderData"
+      responses:
+        "201":
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  order:
+                    $ref: "#/components/schemas/Order"
+
+  /orders/my-orders:
+    get:
+      tags:
+        - Orders
+      summary: Get logged-in user's orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of user orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedOrders"
+
+  /orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Get order by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+    put:
+      tags:
+        - Orders
+      summary: Update order
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrderData"
+      responses:
+        "200":
+          description: Order updated successfully
+    delete:
+      tags:
+        - Orders
+      summary: Delete order
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order deleted successfully
+
+  /orders:
+    get:
+      tags:
+        - Orders
+      summary: Get all orders (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+        - in: query
+          name: paymentStatus
+          schema:
+            $ref: "#/components/schemas/PaymentStatus"
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of all orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedOrders"
+
+  /orders/{id}/status:
+    patch:
+      tags:
+        - Orders
+      summary: Update order status (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrderStatusData"
+      responses:
+        "200":
+          description: Order status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/ready-for-invoice:
+    get:
+      tags:
+        - Orders
+      summary: Get orders ready for invoice (Super Admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Orders ready for invoice
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Order"
+
+  /orders/search/{orderNumber}:
+    get:
+      tags:
+        - Orders
+      summary: Search order by order number
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  # ==================== CUSTOMER BRIEFS ====================
+  /customer-briefs/customer/orders/{orderId}/products/{productId}/brief:
+    post:
+      tags:
+        - Customer Briefs
+      summary: Submit a new customization brief
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                voiceNote:
+                  type: string
+                  format: binary
+                video:
+                  type: string
+                  format: binary
+                logo:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Brief submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerBrief"
+    put:
+      tags:
+        - Customer Briefs
+      summary: Update existing customer brief
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                voiceNote:
+                  type: string
+                  format: binary
+                video:
+                  type: string
+                  format: binary
+                logo:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Brief updated successfully
+
+  /customer-briefs/briefs/order/{orderId}/all:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Get all briefs for an order
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of briefs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustomerBrief"
+
+  /customer-briefs/customer/briefs:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Get logged-in customer's briefs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of customer briefs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedCustomerBriefs"
+
+  /customer-briefs/admin/orders/{orderId}/products/{productId}/respond:
+    post:
+      tags:
+        - Customer Briefs
+      summary: Admin responds to customer brief
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                designId:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                voiceNote:
+                  type: string
+                  format: binary
+                video:
+                  type: string
+                  format: binary
+                logo:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Admin response submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerBrief"
+    put:
+      tags:
+        - Customer Briefs
+      summary: Admin updates their response
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                designId:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                voiceNote:
+                  type: string
+                  format: binary
+                video:
+                  type: string
+                  format: binary
+                logo:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Response updated successfully
+
+  /customer-briefs/admin/briefs:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Get briefs for admin dashboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, responded, viewed, all]
+        - in: query
+          name: hasFiles
+          schema:
+            type: boolean
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of briefs for admin
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  briefs:
+                    type: array
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  pages:
+                    type: integer
+
+  /customer-briefs/briefs/{briefId}/view:
+    patch:
+      tags:
+        - Customer Briefs
+      summary: Mark brief as viewed
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: briefId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Brief marked as viewed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerBrief"
+
+  /customer-briefs/briefs/orders/{orderId}/products/{productId}:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Get full conversation for an order/product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Full conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerBriefConversation"
+
+  /customer-briefs/briefs/{briefId}:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Get brief by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: briefId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Brief details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerBrief"
+    delete:
+      tags:
+        - Customer Briefs
+      summary: Delete a brief (Super Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: briefId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Brief deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /customer-briefs/briefs/status/{orderId}/{productId}:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Check if admin has responded
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Response status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminResponseStatus"
+
+  /customer-briefs/briefs/order/{orderId}/status:
+    get:
+      tags:
+        - Customer Briefs
+      summary: Get order brief status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order brief status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderBriefStatus"
+
+  # ==================== SHIPPING ====================
+  /shipping/order/{orderId}:
+    post:
+      tags:
+        - Shipping
+      summary: Create shipping record
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateShippingRequest"
+      responses:
+        "201":
+          description: Shipping created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shipping"
+
+  /shipping/{shippingId}/tracking:
+    put:
+      tags:
+        - Shipping
+      summary: Update tracking information
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shippingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTrackingRequest"
+      responses:
+        "200":
+          description: Tracking updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shipping"
+
+  /shipping/{shippingId}/status:
+    patch:
+      tags:
+        - Shipping
+      summary: Update shipping status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shippingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateShippingStatusRequest"
+      responses:
+        "200":
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shipping"
+
+  /shipping/all:
+    get:
+      tags:
+        - Shipping
+      summary: Get all shipping records
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of shipping records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedShipping"
+
+  /shipping/filter:
+    get:
+      tags:
+        - Shipping
+      summary: Filter shipping records
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/ShippingStatus"
+        - in: query
+          name: method
+          schema:
+            $ref: "#/components/schemas/ShippingMethod"
+        - in: query
+          name: orderId
+          schema:
+            type: string
+        - in: query
+          name: userId
+          schema:
+            type: string
+        - in: query
+          name: isPaid
+          schema:
+            type: boolean
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Filtered shipping records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedShipping"
+
+  /shipping/needing-invoice:
+    get:
+      tags:
+        - Shipping
+      summary: Get shipping needing invoice
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of shipping needing invoice
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Shipping"
+                  count:
+                    type: integer
+
+  /shipping/pending:
+    get:
+      tags:
+        - Shipping
+      summary: Get pending shipping records
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of pending shipping
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Shipping"
+                  count:
+                    type: integer
+
+  /shipping/{shippingId}:
+    get:
+      tags:
+        - Shipping
+      summary: Get shipping by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: shippingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Shipping details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shipping"
+
+  /shipping/order/{orderId}:
+    get:
+      tags:
+        - Shipping
+      summary: Get shipping by order ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Shipping details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shipping"
+
+  # ==================== PAYMENTS ====================
+  /payments/paystack/initialize:
+    post:
+      tags:
+        - Payments
+      summary: Initialize Paystack payment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaystackInitializeRequest"
+      responses:
+        "200":
+          description: Payment initialized successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaystackInitializeResponse"
+
+  /payments/paystack/verify:
+    get:
+      tags:
+        - Payments
+      summary: Verify Paystack payment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: reference
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payment verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Transaction"
+
+  /payments/bank-transfer/upload-receipt:
+    post:
+      tags:
+        - Payments
+      summary: Upload bank transfer receipt
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/BankTransferUploadRequest"
+      responses:
+        "201":
+          description: Receipt uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Transaction"
+
+  /payments/bank-transfer/verify/{transactionId}:
+    post:
+      tags:
+        - Payments
+      summary: Verify bank transfer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BankTransferVerifyRequest"
+      responses:
+        "200":
+          description: Bank transfer verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Transaction"
+
+  /payments/bank-transfer/pending:
+    get:
+      tags:
+        - Payments
+      summary: Get pending bank transfers
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of pending transfers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedTransactions"
+
+  /payments/order/{orderId}:
+    get:
+      tags:
+        - Payments
+      summary: Get transactions by order ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+
+  /payments/invoice/{invoiceId}:
+    get:
+      tags:
+        - Payments
+      summary: Get transactions by invoice ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+
+  /payments/my-transactions:
+    get:
+      tags:
+        - Payments
+      summary: Get logged-in customer's transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of user's transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedTransactions"
+
+  # ==================== INVOICES ====================
+  /invoices/order/{orderId}:
+    post:
+      tags:
+        - Invoices
+      summary: Create main invoice for order
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceRequest"
+      responses:
+        "201":
+          description: Invoice created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  /invoices/{invoiceId}:
+    put:
+      tags:
+        - Invoices
+      summary: Update invoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInvoiceRequest"
+      responses:
+        "200":
+          description: Invoice updated successfully
+    delete:
+      tags:
+        - Invoices
+      summary: Delete invoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invoice deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /invoices/{invoiceId}/send:
+    post:
+      tags:
+        - Invoices
+      summary: Send invoice to customer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invoice sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  /invoices/all:
+    get:
+      tags:
+        - Invoices
+      summary: Get all invoices
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedInvoices"
+
+  /invoices/filter:
+    get:
+      tags:
+        - Invoices
+      summary: Filter invoices
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/InvoiceStatus"
+        - in: query
+          name: invoiceType
+          schema:
+            $ref: "#/components/schemas/InvoiceType"
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: minAmount
+          schema:
+            type: number
+        - in: query
+          name: maxAmount
+          schema:
+            type: number
+        - in: query
+          name: userId
+          schema:
+            type: string
+        - in: query
+          name: orderId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Filtered invoices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedInvoices"
+
+  /invoices/id/{invoiceId}:
+    get:
+      tags:
+        - Invoices
+      summary: Get invoice by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  /invoices/my-invoices:
+    get:
+      tags:
+        - Invoices
+      summary: Get logged-in customer's invoices
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of user's invoices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedInvoices"
+
+  # ==================== NOTIFICATIONS ====================
+  /notifications/history:
+    get:
+      tags:
+        - Notifications
+      summary: Get user notification history
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: read
+          schema:
+            type: boolean
+        - in: query
+          name: type
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notification history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedNotifications"
+
+  /notifications/unread-count:
+    get:
+      tags:
+        - Notifications
+      summary: Get unread notification count
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+
+  /notifications/{notificationId}/read:
+    patch:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  /notifications/mark-all-read:
+    post:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: All notifications marked as read
+
+  /notifications/{notificationId}:
+    delete:
+      tags:
+        - Notifications
+      summary: Delete a notification
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notification deleted successfully
+
+  /notifications/clear-all:
+    delete:
+      tags:
+        - Notifications
+      summary: Clear all notifications
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: All notifications cleared

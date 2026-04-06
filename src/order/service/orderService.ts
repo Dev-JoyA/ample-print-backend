@@ -13,8 +13,8 @@ import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
 import emailService from "../../utils/email.js";
 import { generateOrderNumber } from "../../utils/orderUtils.js";
-import { startServer } from "../../config/db.js";
 import { notificationService } from "../../notification/service/notificationService.js";
+import { BankAccount } from "../../bankAccount/model/bankAccountModel.js";
 
 const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.Pending]: [OrderStatus.OrderReceived, OrderStatus.Cancelled],
@@ -78,8 +78,6 @@ const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.Cancelled]: [],
   [OrderStatus.Delivered]: [],
 };
-
-await startServer();
 
 export const createOrder = async (
   userId: string,
@@ -637,12 +635,23 @@ export const updateOrderStatus = async (
       });
 
       if (user && profile) {
+        const activeBank = await BankAccount.findOne({ isActive: true })
+          .sort({ updatedAt: -1 })
+          .exec();
+
         await emailService
           .sendFinalPaymentReminder(
             user.email,
             profile.firstName,
             order.orderNumber,
             order.remainingBalance,
+            activeBank
+              ? {
+                  accountName: activeBank.accountName,
+                  accountNumber: activeBank.accountNumber,
+                  bankName: activeBank.bankName,
+                }
+              : undefined,
           )
           .catch((err: any) =>
             console.error("Error sending final payment reminder email:", err),
