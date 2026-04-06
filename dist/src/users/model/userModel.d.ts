@@ -9,6 +9,7 @@ export interface IUser extends Document {
     password: string;
     role: UserRole;
     isActive: boolean;
+    googleId?: string;
     createdAt: Date;
     updatedAt: Date;
 }

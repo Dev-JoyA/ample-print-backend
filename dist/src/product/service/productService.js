@@ -1,28 +1,86 @@
+import mongoose from "mongoose";
 import { Product } from "../model/productModel.js";
 import { Collection } from "../model/collectionModel.js";
 import { ProductStatus, } from "../model/productInterface.js";
+// ==================== COLLECTION SERVICES ====================
 export async function createCollection(name) {
-    const existing = await Collection.findOne({ name });
-    if (existing)
-        throw new Error("Collection already exists");
-    return await Collection.create({ name });
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const existing = await Collection.findOne({ name }).session(session);
+        if (existing) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new Error("Collection already exists");
+        }
+        const [collection] = await Collection.create([{ name }], { session });
+        await session.commitTransaction();
+        session.endSession();
+        return collection;
+    }
+    catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw error;
+    }
 }
 export async function updateCollection(id, name) {
-    const updated = await Collection.findById(id);
-    if (!updated)
-        throw new Error("Collection does not exist");
-    const nameExists = await Collection.findOne({ name });
-    if (nameExists)
-        throw new Error("Collection name already exist");
-    updated.name = name;
-    await updated.save();
-    return updated;
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const collection = await Collection.findById(id).session(session);
+        if (!collection) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new Error("Collection does not exist");
+        }
+        const nameExists = await Collection.findOne({
+            name,
+            _id: { $ne: id }
+        }).session(session);
+        if (nameExists) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new Error("Collection name already exists");
+        }
+        collection.name = name;
+        await collection.save({ session });
+        await session.commitTransaction();
+        session.endSession();
+        return collection;
+    }
+    catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw error;
+    }
 }
 export async function deleteCollection(id) {
-    const deleted = await Collection.findByIdAndDelete(id);
-    if (!deleted)
-        throw new Error("Collection not found");
-    return "Collection successfully deleted";
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        // Check if collection has any products
+        const productsCount = await Product.countDocuments({ collectionId: id }).session(session);
+        if (productsCount > 0) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new Error("Cannot delete collection that has products. Delete the products first.");
+        }
+        const deleted = await Collection.findByIdAndDelete(id).session(session);
+        if (!deleted) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new Error("Collection not found");
+        }
+        await session.commitTransaction();
+        session.endSession();
+        return "Collection successfully deleted";
+    }
+    catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw error;
+    }
 }
 export async function getCollectionById(id) {
     const collection = await Collection.findById(id);
@@ -31,14 +89,14 @@ export async function getCollectionById(id) {
     return collection;
 }
 export async function getAllCollections() {
-    return await Collection.find();
+    return await Collection.find().sort({ createdAt: -1 });
 }
 export async function searchCollections(search) {
     if (!search)
         return [];
     return await Collection.find({
         name: { $regex: `.*${search}.*`, $options: "i" },
-    });
+    }).sort({ createdAt: -1 });
 }
 export async function getCollectionsPaginated(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
@@ -48,47 +106,109 @@ export async function getCollectionsPaginated(page = 1, limit = 10) {
     ]);
     return { collections, total, page, limit };
 }
-// -------------------- PRODUCT SERVICES -------------------- //
+// ==================== PRODUCT SERVICES ====================
 export async function createProduct(collectionId, data) {
-    const collection = await Collection.findById(collectionId);
-    if (!collection)
-        throw new Error("Collection not found");
-    const existingProduct = await Product.findOne({ name: data.name });
-    if (existingProduct)
-        throw new Error("Product with that name already exists");
-    if (!data.name || !data.price || !data.image)
-        throw new Error("Missing required fields");
-    const newProduct = await Product.create({
-        collectionId: collection._id,
-        name: data.name,
-        description: data.description,
-        price: data.price,
-        dimension: {
-            width: data.dimension.width,
-            height: data.dimension.height,
-        },
-        minOrder: data.minOrder,
-        image: data.image,
-        filename: data.filename,
-        images: data.images || [],
-        filenames: data.filenames || [],
-        material: data.material,
-        deliveryDay: data.deliveryDay,
-        status: ProductStatus.Active,
-    });
-    return newProduct;
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const collection = await Collection.findById(collectionId).session(session);
+        if (!collection) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new Error("Collection not found");
+        }
+        const existingProduct = await Product.findOne({ name: data.name }).session(session);
+        if (existingProduct) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new Error("Product with that name already exists");
+        }
+        if (!data.name || !data.price || !data.image) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new Error("Missing required fields");
+        }
+        const [product] = await Product.create([{
+                collectionId: collection._id,
+                name: data.name,
+                description: data.description || "",
+                price: data.price,
+                dimension: {
+                    width: data.dimension?.width || null,
+                    height: data.dimension?.height || null,
+                },
+                minOrder: data.minOrder,
+                image: data.image,
+                filename: data.filename,
+                images: data.images || [],
+                filenames: data.filenames || [],
+                material: data.material,
+                deliveryDay: data.deliveryDay,
+                status: ProductStatus.Active,
+            }], { session });
+        await session.commitTransaction();
+        session.endSession();
+        return product;
+    }
+    catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw error;
+    }
 }
 export async function updateProduct(id, data) {
-    const updated = await Product.findByIdAndUpdate(id, { ...data }, { new: true, runValidators: true });
-    if (!updated)
-        throw new Error("Product not found");
-    return updated;
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        // If name is being updated, check for duplicates
+        if (data.name) {
+            const existingProduct = await Product.findOne({
+                name: data.name,
+                _id: { $ne: id }
+            }).session(session);
+            if (existingProduct) {
+                await session.abortTransaction();
+                session.endSession();
+                throw new Error("Product with that name already exists");
+            }
+        }
+        const updated = await Product.findByIdAndUpdate(id, data, { new: true, runValidators: true, session });
+        if (!updated) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new Error("Product not found");
+        }
+        await session.commitTransaction();
+        session.endSession();
+        return updated;
+    }
+    catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw error;
+    }
 }
 export async function deleteProduct(id) {
-    const deleted = await Product.findByIdAndDelete(id);
-    if (!deleted)
-        throw new Error("Product not found");
-    return "Product successfully deleted";
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        // Check if product is used in any orders (optional - depends on your business logic)
+        // You might want to check Order collection here
+        const deleted = await Product.findByIdAndDelete(id).session(session);
+        if (!deleted) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new Error("Product not found");
+        }
+        await session.commitTransaction();
+        session.endSession();
+        return "Product successfully deleted";
+    }
+    catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw error;
+    }
 }
 export async function getProductById(id) {
     const product = await Product.findById(id).populate("collectionId", "name");
@@ -97,14 +217,18 @@ export async function getProductById(id) {
     return product;
 }
 export async function getAllProducts() {
-    return await Product.find().populate("collectionId", "name");
+    return await Product.find()
+        .populate("collectionId", "name")
+        .sort({ createdAt: -1 });
 }
 export async function searchProducts(search) {
     if (!search)
         return [];
     return await Product.find({
         name: { $regex: `.*${search}.*`, $options: "i" },
-    }).populate("collectionId", "name");
+    })
+        .populate("collectionId", "name")
+        .sort({ createdAt: -1 });
 }
 export async function getProductsPaginated(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
@@ -150,8 +274,9 @@ export async function getProductsByCollectionId(collectionId) {
 export async function searchProductsByName(search, page = 1, limit = 10) {
     if (!search)
         return { products: [], total: 0, page, limit };
+    const sanitized = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const skip = (page - 1) * limit;
-    const query = { name: { $regex: `.*${search}.*`, $options: "i" } };
+    const query = { name: { $regex: sanitized, $options: "i" } };
     const [products, total] = await Promise.all([
         Product.find(query)
             .skip(skip)

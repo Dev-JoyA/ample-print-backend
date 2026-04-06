@@ -225,47 +225,68 @@
           <!-- Content -->
           <tr>
             <td class="content">
-              <h1>Your Invoice is Ready!</h1>
+              <h1>Invoice Ready</h1>
               <p>Dear <strong>{{name}}</strong>,</p>
-              <p>Your invoice for order <strong>#{{orderNumber}}</strong> has been generated and is ready for payment.</p>
+              <p>Your invoice for order <strong>#{{orderNumber}}</strong> is ready. Please find the full invoice details below.</p>
               
               <div class="order-details">
-                <h3 style="margin-top: 0; margin-bottom: 20px;">Invoice Summary</h3>
+                <h3 style="margin-top: 0; margin-bottom: 14px;">Invoice Details</h3>
                 <table>
                   <tr>
-                    <td><strong>Invoice Number:</strong></td>
-                    <td>{{invoiceNumber}}</td>
+                    <td><strong>Invoice Number</strong></td>
+                    <td style="text-align:right">{{invoiceNumber}}</td>
                   </tr>
                   <tr>
-                    <td><strong>Order Number:</strong></td>
-                    <td>{{orderNumber}}</td>
+                    <td><strong>Order Number</strong></td>
+                    <td style="text-align:right">#{{orderNumber}}</td>
                   </tr>
                   <tr>
-                    <td><strong>Total Amount:</strong></td>
-                    <td>₦{{total}}</td>
+                    <td><strong>Due Date</strong></td>
+                    <td style="text-align:right">{{dueDate}}</td>
                   </tr>
-                  {{#if depositAmount}}
+                </table>
+              </div>
+
+              <div class="order-details">
+                <h3 style="margin-top: 0; margin-bottom: 14px;">Items</h3>
+                <table style="width:100%; border-collapse: collapse;">
+                  <thead>
+                    <tr>
+                      <th style="text-align:left; padding: 10px; border-bottom: 1px solid #e2e8f0; color: #4a5568;">Description</th>
+                      <th style="text-align:center; padding: 10px; border-bottom: 1px solid #e2e8f0; color: #4a5568;">Qty</th>
+                      <th style="text-align:right; padding: 10px; border-bottom: 1px solid #e2e8f0; color: #4a5568;">Unit</th>
+                      <th style="text-align:right; padding: 10px; border-bottom: 1px solid #e2e8f0; color: #4a5568;">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {{itemsRows}}
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="order-details">
+                <h3 style="margin-top: 0; margin-bottom: 14px;">Summary</h3>
+                <table>
+                  {{depositRow}}
                   <tr>
-                    <td><strong>Deposit Required:</strong></td>
-                    <td>₦{{depositAmount}}</td>
-                  </tr>
-                  {{/if}}
-                  <tr>
-                    <td><strong>Payment Due:</strong></td>
-                    <td>{{dueDate}}</td>
+                    <td style="font-weight: 700; color: #2d3748;">Total Amount</td>
+                    <td style="text-align:right; font-weight: 700; color: #2d3748;">{{totalFormatted}}</td>
                   </tr>
                 </table>
               </div>
 
               <div class="info-box">
-                <p><strong>💳 Payment Instructions:</strong></p>
-                <p style="margin-bottom: 5px;"><strong>Bank Transfer:</strong></p>
-                <p style="margin: 0;">
-                  Log in to your dashboard to make payment via bank transfer or Paystack. Please ensure you use your invoice number as the payment reference to avoid delays in processing your order.
+                <p><strong>Payment Instructions</strong></p>
+                <p style="margin-bottom: 8px;">Use your <strong>invoice number</strong> as the payment reference.</p>
+                <p style="margin: 0;"><strong>Bank Transfer Details:</strong></p>
+                <p style="margin: 6px 0 0;">
+                  Account Name: {{bankAccountName}}<br>
+                  Account Number: {{bankAccountNumber}}<br>
+                  Bank: {{bankName}}
                 </p>
               </div>
 
-              <p>Once payment is confirmed, we'll immediately begin processing your order.</p>
+              <p>Once payment is confirmed, we’ll proceed with processing your order.</p>
               
               <div class="button-container">
                 <a href="{{invoiceUrl}}" class="button">View Invoice</a>

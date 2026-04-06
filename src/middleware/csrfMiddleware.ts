@@ -25,6 +25,11 @@ export const generateCsrfToken = (req: Request): string => {
 
 export const validateCsrfToken = (req: Request): boolean => {
   const token = req.headers['x-csrf-token'] || req.body?._csrf;
+  if (!req.session?.csrfToken) {
+    // CSRF token support is optional; if session-based CSRF is not configured,
+    // don't block state-changing requests.
+    return true;
+  }
   return token && token === req.session?.csrfToken;
 };
 

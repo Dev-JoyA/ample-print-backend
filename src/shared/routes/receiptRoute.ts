@@ -13,7 +13,7 @@ router.get("/:filename", (req: Request, res: Response) => {
   const { filename } = req.params;
   
   // Security: prevent directory traversal attacks
-  const safeFilename = path.basename(filename);
+  const safeFilename = path.basename(filename as string);
   
   // Path to receipts folder
   const receiptsPath = path.join(process.cwd(), "uploads", "receipts");

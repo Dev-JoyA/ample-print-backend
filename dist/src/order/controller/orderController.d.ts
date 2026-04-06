@@ -1,7 +1,20 @@
 import { Request, Response } from "express";
-export declare const createOrder: (req: Request, res: Response) => Promise<void>;
-export declare const updateOrder: (req: Request, res: Response) => Promise<void>;
+export declare const createOrder: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const updateOrder: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const deleteOrder: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getOrderById: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getUserOrders: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getAllOrders: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const markOrderAsAwaitingInvoice: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const searchByOrderNumber: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
-export declare const deleteOrder: (req: Request, res: Response) => Promise<void>;
-export declare const getOrderById: (req: Request, res: Response) => Promise<void>;
+export declare const updateOrderStatus: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const filterOrders: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getOrdersReadyForInvoice: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getPaidOrders: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getPartiallyPaidOrders: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getPendingPaymentOrders: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getOrdersReadyForShipping: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const superAdminCreateOrder: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const addItemToOrder: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getUserActiveOrders: (req: Request, res: Response) => Promise<void>;
 //# sourceMappingURL=orderController.d.ts.map

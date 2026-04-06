@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { IDesign } from "../model/designModel.js";
 import { Server } from "socket.io";
 export interface IDesignFilter {
@@ -18,8 +19,8 @@ export declare const approveDesign: (id: string) => Promise<IDesign>;
 export declare const getDesignById: (id: string) => Promise<IDesign>;
 export declare const getUserDesigns: (userId: string) => Promise<IDesign[]>;
 export declare const getDesignsByOrderId: (orderId: string) => Promise<IDesign[]>;
-export declare const filterDesigns: (filters: IDesignFilter) => Promise<(import("mongoose").Document<unknown, {}, IDesign, {}, {}> & IDesign & Required<{
-    _id: import("mongoose").Types.ObjectId;
+export declare const filterDesigns: (filters: IDesignFilter) => Promise<(mongoose.Document<unknown, {}, IDesign, {}, {}> & IDesign & Required<{
+    _id: mongoose.Types.ObjectId;
 }> & {
     __v: number;
 })[]>;

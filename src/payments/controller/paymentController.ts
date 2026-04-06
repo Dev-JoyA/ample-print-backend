@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import * as paymentService from "../service /paymentService.js";
+import * as paymentService from "../service/paymentService.js";
 import { TransactionType } from "../model/transactionModel.js";
 import { Types } from "mongoose";
 

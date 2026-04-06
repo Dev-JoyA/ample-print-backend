@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon --exec tsx server.ts",
-    "build": "tsc && cp -R swagger dist/swagger",
+    "build": "tsc && node --input-type=module -e \"import fs from 'fs'; fs.cpSync('swagger','dist/swagger',{recursive:true,force:true});\"",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

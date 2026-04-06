@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { getAllUsersController, getUserByIdController, updateProfileController, deleteUserController, changeUserRoleController, toggleUserActivenessController, getUserAddressController, } from "../controller/userController.js";
 import { authMiddleware } from "../../middleware/authMiddleware.js";
-import { checkAdmin, checkSuperAdmin, checkOwnership, } from "../../middleware/authorization.js";
+import { checkSuperAdmin, checkOwnership, } from "../../middleware/authorization.js";
 const router = Router();
 router.get("/", getAllUsersController);
-router.get("/:userId", authMiddleware, checkAdmin, getUserByIdController);
+router.get("/:userId", authMiddleware, getUserByIdController);
 router.get("/:userId/address", authMiddleware, checkOwnership, getUserAddressController);
 router.put("/:userId/profile", authMiddleware, checkOwnership, updateProfileController);
 router.delete("/:userId", authMiddleware, checkSuperAdmin, deleteUserController);

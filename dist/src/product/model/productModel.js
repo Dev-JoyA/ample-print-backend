@@ -16,7 +16,6 @@ const ProductSchema = new Schema({
     description: {
         type: String,
         index: true,
-        required: true,
     },
     price: {
         type: Number,
@@ -25,11 +24,9 @@ const ProductSchema = new Schema({
     dimension: {
         width: {
             type: String,
-            required: true,
         },
         height: {
             type: String,
-            required: true,
         },
     },
     minOrder: {
