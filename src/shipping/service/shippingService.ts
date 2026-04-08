@@ -244,6 +244,8 @@ export const updateShippingTracking = async (
   data: {
     trackingNumber: string;
     carrier?: string;
+    driverName?: string;
+    driverPhone?: string;
     estimatedDelivery?: Date;
   },
   adminId: string,
@@ -267,7 +269,21 @@ export const updateShippingTracking = async (
     }
 
     shipping.trackingNumber = data.trackingNumber;
+    
+    if (data.carrier) {
+      shipping.carrier = data.carrier;
+    }
+    
+    // ✅ ADD DRIVER FIELDS
+    if (data.driverName) {
+      shipping.driverName = data.driverName;
+    }
+    
+    if (data.driverPhone) {
+      shipping.driverPhone = data.driverPhone;
+    }
 
+    // Add to tracking history
     shipping.trackingHistory = shipping.trackingHistory || [];
     shipping.trackingHistory.push({
       status: ShippingStatus.Shipped,
@@ -279,6 +295,8 @@ export const updateShippingTracking = async (
     shipping.metadata = {
       ...shipping.metadata,
       carrier: data.carrier,
+      driverName: data.driverName,
+      driverPhone: data.driverPhone,
       trackingUpdatedBy: adminId,
       trackingUpdatedAt: new Date(),
     };
@@ -303,6 +321,8 @@ export const updateShippingTracking = async (
         orderNumber: order.orderNumber,
         trackingNumber: data.trackingNumber,
         carrier: data.carrier,
+        driverName: data.driverName,
+        driverPhone: data.driverPhone,
         estimatedDelivery: data.estimatedDelivery,
         status: ShippingStatus.Shipped,
       });
@@ -318,6 +338,8 @@ export const updateShippingTracking = async (
             orderNumber: order.orderNumber,
             trackingNumber: data.trackingNumber,
             carrier: data.carrier,
+            driverName: data.driverName,
+            driverPhone: data.driverPhone,
             estimatedDelivery: data.estimatedDelivery
           },
           link: `/orders/${order._id}/tracking`
@@ -350,6 +372,8 @@ export const updateShippingTracking = async (
       orderNumber: order?.orderNumber,
       trackingNumber: data.trackingNumber,
       carrier: data.carrier,
+      driverName: data.driverName,
+      driverPhone: data.driverPhone,
       estimatedDelivery: data.estimatedDelivery,
       status: ShippingStatus.Shipped,
     });
@@ -365,6 +389,8 @@ export const updateShippingTracking = async (
           orderNumber: order?.orderNumber,
           trackingNumber: data.trackingNumber,
           carrier: data.carrier,
+          driverName: data.driverName,
+          driverPhone: data.driverPhone,
           estimatedDelivery: data.estimatedDelivery,
           updatedBy: adminId,
           customerId: user?._id,
@@ -444,6 +470,8 @@ export const updateShippingStatus = async (
         orderNumber: order.orderNumber,
         status,
         trackingNumber: shipping.trackingNumber,
+        driverName: shipping.driverName,
+        driverPhone: shipping.driverPhone,
         oldStatus,
       });
 
@@ -469,7 +497,9 @@ export const updateShippingStatus = async (
             orderNumber: order.orderNumber,
             oldStatus,
             newStatus: status,
-            trackingNumber: shipping.trackingNumber
+            trackingNumber: shipping.trackingNumber,
+            driverName: shipping.driverName,
+            driverPhone: shipping.driverPhone
           },
           link: `/orders/${order._id}/tracking`
         });
@@ -490,6 +520,8 @@ export const updateShippingStatus = async (
       orderNumber: order?.orderNumber,
       status,
       oldStatus,
+      driverName: shipping.driverName,
+      driverPhone: shipping.driverPhone,
     });
 
     try {
@@ -504,6 +536,8 @@ export const updateShippingStatus = async (
           oldStatus,
           newStatus: status,
           trackingNumber: shipping.trackingNumber,
+          driverName: shipping.driverName,
+          driverPhone: shipping.driverPhone,
           updatedBy: adminId,
           customerId: user?._id,
           customerName: profile ? `${profile.firstName} ${profile.lastName}` : 'Customer'

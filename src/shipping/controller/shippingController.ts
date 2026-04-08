@@ -10,10 +10,9 @@ export const createShipping = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
     const admin = req.user as { _id: string; role: string };
-    const { orderId } = req.params;
+    const { orderId } = req.params as { orderId: string };
     const { shippingMethod, address, pickupNotes } = req.body;
 
-    // Validate required fields
     if (!shippingMethod) {
       return res.status(400).json({
         success: false,
@@ -52,18 +51,24 @@ export const createShipping = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== UPDATE SHIPPING TRACKING (Admin only) ====================
 export const updateShippingTracking = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
-    const admin = req.user as { _id: string; role: string };
-    const { shippingId } = req.params;
-    const { trackingNumber, carrier, estimatedDelivery } = req.body;
+    const user = req.user as { _id: string; role: string };
+    const { shippingId } = req.params as { shippingId: string };
+    const { trackingNumber, carrier, driverName, driverPhone, estimatedDelivery } = req.body;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
 
     if (!trackingNumber) {
       return res.status(400).json({
         success: false,
-        message: "trackingNumber is required",
+        message: "Tracking number is required",
       });
     }
 
@@ -72,11 +77,11 @@ export const updateShippingTracking = async (req: Request, res: Response) => {
       {
         trackingNumber,
         carrier,
-        estimatedDelivery: estimatedDelivery
-          ? new Date(estimatedDelivery)
-          : undefined,
+        driverName,
+        driverPhone,
+        estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : undefined,
       },
-      admin._id,
+      user._id,
       io,
     );
 
@@ -86,6 +91,7 @@ export const updateShippingTracking = async (req: Request, res: Response) => {
       data: shipping,
     });
   } catch (error: any) {
+    console.error("Error updating tracking:", error);
     res.status(400).json({
       success: false,
       message: error.message,
@@ -93,12 +99,11 @@ export const updateShippingTracking = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== UPDATE SHIPPING STATUS (Admin only) ====================
 export const updateShippingStatus = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
     const admin = req.user as { _id: string; role: string };
-    const { shippingId } = req.params;
+    const { shippingId } = req.params as { shippingId: string };
     const { status } = req.body;
 
     if (!status) {
@@ -135,11 +140,10 @@ export const updateShippingStatus = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET SHIPPING BY ID ====================
 export const getShippingById = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
-    const { shippingId } = req.params;
+    const { shippingId } = req.params as { shippingId: string };
 
     const shipping = await shippingService.getShippingById(
       shippingId,
@@ -159,11 +163,10 @@ export const getShippingById = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET SHIPPING BY ORDER ID ====================
 export const getShippingByOrderId = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
-    const { orderId } = req.params;
+    const { orderId } = req.params as { orderId: string };
 
     const shipping = await shippingService.getShippingByOrderId(
       orderId,
@@ -183,7 +186,6 @@ export const getShippingByOrderId = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET ALL SHIPPING (Admin) ====================
 export const getAllShipping = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -203,7 +205,6 @@ export const getAllShipping = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== FILTER SHIPPING (Admin) ====================
 export const filterShipping = async (req: Request, res: Response) => {
   try {
     const filters = {
@@ -241,7 +242,6 @@ export const filterShipping = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET SHIPPING NEEDING INVOICE (Admin) ====================
 export const getShippingNeedingInvoice = async (
   req: Request,
   res: Response,
@@ -262,7 +262,6 @@ export const getShippingNeedingInvoice = async (
   }
 };
 
-// ==================== GET PENDING SHIPPING (Admin) ====================
 export const getPendingShipping = async (req: Request, res: Response) => {
   try {
     const shipping = await shippingService.getPendingShipping();

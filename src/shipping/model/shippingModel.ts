@@ -17,7 +17,8 @@ export interface IShipping extends Document {
   shippingMethod: ShippingMethod;
 
   // For delivery orders
-  trackingNumber?: string; // Optional (for pickup)
+  trackingNumber?: string;
+  carrier?: string; // Optional (for pickup)
   recipientName?: string; // From profile - cannot be changed by customer
   recipientPhone?: string; // From profile - cannot be changed by customer
   address?: {
@@ -46,6 +47,8 @@ export interface IShipping extends Document {
   // Dates
   estimatedDelivery?: Date;
   actualDelivery?: Date;
+    driverName?: string;        // NEW: Driver's name
+  driverPhone?: string; 
 
   // Metadata for internal use
   metadata?: {
@@ -83,6 +86,15 @@ const ShippingSchema = new Schema<IShipping>(
     trackingNumber: {
       type: String,
       sparse: true, // Allows null/undefined for pickup
+    },
+     carrier: {
+      type: String,
+    },
+    driverName: {              // NEW
+      type: String,
+    },
+    driverPhone: {             // NEW
+      type: String,
     },
     recipientName: {
       type: String,

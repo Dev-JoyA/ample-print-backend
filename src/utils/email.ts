@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import Handlebars from "handlebars";
 import { BankAccount } from "../bankAccount/model/bankAccountModel.js";
 
 dotenv.config();
@@ -17,51 +18,6 @@ interface EmailOptions {
   subject: string;
   template: string;
   data: Record<string, any>;
-}
-
-interface EmailData {
-  name: string;
-  orderNumber?: string;
-  items?: string;
-  total?: number;
-  deposit?: string;
-  trackUrl?: string;
-  invoiceNumber?: string;
-  depositAmount?: number;
-  dueDate?: string;
-  invoiceUrl?: string;
-  productName?: string;
-  designUrl?: string;
-  productionTime?: string;
-  estimatedDelivery?: string;
-  amount?: number;
-  paymentType?: string;
-  paymentMethod?: string;
-  remainingBalance?: number;
-  orderUrl?: string;
-  transactionId?: string;
-  status?: string;
-  notes?: string;
-  paymentUrl?: string;
-  shippingUrl?: string;
-  carrier?: string;
-  trackingNumber?: string;
-  shippingAddress?: string;
-  reviewUrl?: string;
-  supportUrl?: string;
-  shippingMethod?: string;
-  shippingCost?: number;
-  address?: string;
-  recipientName?: string;
-  recipientPhone?: string;
-  storeAddress?: string;
-  storeHours?: string;
-  resetLink?: string;
-  customerName?: string;
-  customerEmail?: string;
-  briefDescription?: string;
-  hasAttachments?: string;
-  adminUrl?: string;
 }
 
 type BankAccountForEmails = {
@@ -86,21 +42,35 @@ const transporter = nodemailer.createTransport({
 // Path to email templates
 const TEMPLATE_PATH = path.resolve(projectRoot, "src", "templates", "email");
 
-const getTemplate = async (templateName: string): Promise<string> => {
+// Cache compiled templates to avoid re-reading/re-compiling on every send
+const templateCache = new Map<string, HandlebarsTemplateDelegate>();
+
+const getCompiledTemplate = async (
+  templateName: string
+): Promise<HandlebarsTemplateDelegate> => {
+  if (templateCache.has(templateName)) {
+    return templateCache.get(templateName)!;
+  }
+
   const templatePath = path.join(TEMPLATE_PATH, templateName);
 
+  let source: string;
   try {
-    const template = await fs.readFile(templatePath, "utf-8");
-    return template;
+    source = await fs.readFile(templatePath, "utf-8");
   } catch (error) {
-    console.error(`Email template ${templateName} not found at ${templatePath}`);
-    // Return a simple fallback template
-    return `<div style="font-family: Arial, sans-serif; padding: 20px;">
-              <h1>Notification from Ample Printhub</h1>
-              <p>Hello {{name}},</p>
-              <p>This is a notification from Ample Printhub.</p>
-            </div>`;
+    console.error(
+      `Email template ${templateName} not found at ${templatePath}`
+    );
+    source = `<div style="font-family: Arial, sans-serif; padding: 20px;">
+                <h1>Notification from Ample Printhub</h1>
+                <p>Hello {{name}},</p>
+                <p>This is a notification from Ample Printhub.</p>
+              </div>`;
   }
+
+  const compiled = Handlebars.compile(source);
+  templateCache.set(templateName, compiled);
+  return compiled;
 };
 
 const sendEmail = async ({
@@ -110,24 +80,25 @@ const sendEmail = async ({
   data,
 }: EmailOptions): Promise<void> => {
   try {
-    // Get the template
-    let html = await getTemplate(template);
+    const compiledTemplate = await getCompiledTemplate(template);
 
-    // Simple variable replacement
-    Object.keys(data).forEach(key => {
-      const regex = new RegExp(`{{${key}}}`, 'g');
-      const value = data[key] !== undefined ? String(data[key]) : '';
-      html = html.replace(regex, value);
+    const html = compiledTemplate({
+      ...data,
+      year: new Date().getFullYear(),
     });
-
-    // Replace year
-    html = html.replace(/{{year}}/g, new Date().getFullYear().toString());
 
     await transporter.sendMail({
       from: `"${process.env.COMPANY_NAME || "Ample Printhub"}" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html,
+      attachments: [
+        {
+        filename: "ample_logo.png",
+        path: path.resolve(projectRoot, "public", "images", "ample_logo.png"),
+        cid: "ample_logo", 
+        },
+    ],
     });
 
     console.log(`✅ Email sent to ${to}: ${subject}`);
@@ -150,9 +121,14 @@ export const sendOrderConfirmation = (
   to: string,
   name: string,
   orderNumber: string,
-  items: any[],
+  items: Array<{
+    productName: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }>,
   total: number,
-  deposit?: boolean,
+  deposit?: boolean
 ): Promise<void> =>
   sendEmail({
     to,
@@ -161,9 +137,9 @@ export const sendOrderConfirmation = (
     data: {
       name,
       orderNumber,
-      items: JSON.stringify(items),
-      total: total.toString(),
-      deposit: deposit ? "Yes" : "No",
+      items, // pass as array — Handlebars {{#each items}} handles it
+      total,
+      deposit: !!deposit,
       trackUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
     },
   });
@@ -182,7 +158,7 @@ export const sendInvoiceReady = (
     unitPrice: number;
     total: number;
   }>,
-  bankAccount?: BankAccountForEmails,
+  bankAccount?: BankAccountForEmails
 ): Promise<void> =>
   (async () => {
     const activeBank =
@@ -190,32 +166,6 @@ export const sendInvoiceReady = (
       (await BankAccount.findOne({ isActive: true })
         .sort({ updatedAt: -1 })
         .exec());
-
-    const money = (n?: number) => `₦${(n || 0).toLocaleString()}`;
-
-    const depositRow =
-      depositAmount && depositAmount > 0
-        ? `<tr>
-            <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #4a5568; font-weight: 600;">Deposit Required</td>
-            <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #2d3748; text-align: right;">${money(depositAmount)}</td>
-          </tr>`
-        : "";
-
-    const itemsRows =
-      items && items.length
-        ? items
-            .map(
-              (it) => `<tr>
-                <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #2d3748;">${it.description}</td>
-                <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #2d3748; text-align: center;">${it.quantity}</td>
-                <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #2d3748; text-align: right;">${money(it.unitPrice)}</td>
-                <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #2d3748; text-align: right;">${money(it.total)}</td>
-              </tr>`,
-            )
-            .join("")
-        : `<tr>
-            <td colspan="4" style="padding: 14px 10px; color: #718096; text-align: center;">Invoice items unavailable</td>
-          </tr>`;
 
     await sendEmail({
       to,
@@ -225,12 +175,14 @@ export const sendInvoiceReady = (
         name,
         orderNumber,
         invoiceNumber,
-        totalFormatted: money(total),
-        total: total.toString(),
+        total,
+        totalFormatted: `₦${(total || 0).toLocaleString()}`,
         dueDate: dueDate || "Not specified",
         invoiceUrl: `${process.env.FRONTEND_URL}/invoices/${invoiceNumber}`,
-        itemsRows,
-        depositRow,
+        items: items || [], // {{#each items}} in template
+        hasDeposit: depositAmount && depositAmount > 0,
+        depositAmount,
+        depositAmountFormatted: `₦${(depositAmount || 0).toLocaleString()}`,
         bankAccountName: activeBank?.accountName || "Not available",
         bankAccountNumber: activeBank?.accountNumber || "Not available",
         bankName: activeBank?.bankName || "Not available",
@@ -243,7 +195,7 @@ export const sendDesignReady = (
   name: string,
   orderNumber: string,
   productName: string,
-  url: string,
+  url: string
 ): Promise<void> =>
   sendEmail({
     to,
@@ -283,7 +235,7 @@ export const sendPaymentConfirmation = (
   amount: number,
   paymentType: string,
   paymentMethod: string,
-  remainingBalance: number,
+  remainingBalance: number
 ): Promise<void> =>
   sendEmail({
     to,
@@ -292,10 +244,10 @@ export const sendPaymentConfirmation = (
     data: {
       name,
       orderNumber,
-      amount: amount.toString(),
+      amount,
       paymentType,
       paymentMethod,
-      remainingBalance: remainingBalance.toString(),
+      remainingBalance,
       orderUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
     },
   });
@@ -305,7 +257,7 @@ export const sendReceiptUploaded = (
   name: string,
   orderNumber: string,
   amount: number,
-  transactionId: string,
+  transactionId: string
 ): Promise<void> =>
   sendEmail({
     to,
@@ -314,7 +266,7 @@ export const sendReceiptUploaded = (
     data: {
       name,
       orderNumber,
-      amount: amount.toString(),
+      amount,
       transactionId,
       orderUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
     },
@@ -327,7 +279,7 @@ export const sendPaymentVerified = (
   amount: number,
   transactionId: string,
   status: "approved" | "rejected",
-  notes?: string,
+  notes?: string
 ): Promise<void> =>
   sendEmail({
     to,
@@ -339,9 +291,11 @@ export const sendPaymentVerified = (
     data: {
       name,
       orderNumber,
-      amount: amount.toString(),
+      amount,
       transactionId,
       status,
+      isApproved: status === "approved",
+      isRejected: status === "rejected",
       notes: notes || "",
       orderUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
     },
@@ -354,7 +308,7 @@ export const sendFinalPaymentReminder = (
   name: string,
   orderNumber: string,
   amount: number,
-  bankAccount?: BankAccountForEmails,
+  bankAccount?: BankAccountForEmails
 ): Promise<void> =>
   (async () => {
     const activeBank =
@@ -362,6 +316,7 @@ export const sendFinalPaymentReminder = (
       (await BankAccount.findOne({ isActive: true })
         .sort({ updatedAt: -1 })
         .exec());
+
     await sendEmail({
       to,
       subject: `Final Payment Required for Order #${orderNumber}`,
@@ -369,7 +324,7 @@ export const sendFinalPaymentReminder = (
       data: {
         name,
         orderNumber,
-        amount: amount.toString(),
+        amount,
         paymentUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}/payment`,
         bankAccountName: activeBank?.accountName || "Not available",
         bankAccountNumber: activeBank?.accountNumber || "Not available",
@@ -382,7 +337,7 @@ export const sendShippingSelectionReminder = (
   to: string,
   name: string,
   orderNumber: string,
-  link: string,
+  link: string
 ): Promise<void> =>
   sendEmail({
     to,
@@ -403,7 +358,7 @@ export const sendOrderShipped = (
   trackingNumber?: string,
   estimatedDelivery?: string,
   shippingAddress?: string,
-  trackingUrl?: string,
+  trackingUrl?: string
 ): Promise<void> =>
   sendEmail({
     to,
@@ -416,14 +371,16 @@ export const sendOrderShipped = (
       trackingNumber: trackingNumber || "Not available",
       estimatedDelivery: estimatedDelivery || "To be confirmed",
       shippingAddress: shippingAddress || "Address not specified",
-      trackUrl: trackingUrl || `${process.env.FRONTEND_URL}/orders/${orderNumber}/tracking`,
+      trackUrl:
+        trackingUrl ||
+        `${process.env.FRONTEND_URL}/orders/${orderNumber}/tracking`,
     },
   });
 
 export const sendOrderDelivered = (
   to: string,
   name: string,
-  orderNumber: string,
+  orderNumber: string
 ): Promise<void> =>
   sendEmail({
     to,
@@ -439,7 +396,7 @@ export const sendOrderDelivered = (
 export const sendOrderCancelled = (
   to: string,
   name: string,
-  orderNumber: string,
+  orderNumber: string
 ): Promise<void> =>
   sendEmail({
     to,
@@ -462,7 +419,7 @@ export const sendShippingCreated = (
   recipientName?: string,
   recipientPhone?: string,
   storeAddress?: string,
-  storeHours?: string,
+  storeHours?: string
 ): Promise<void> =>
   sendEmail({
     to,
@@ -475,7 +432,9 @@ export const sendShippingCreated = (
       name,
       orderNumber,
       shippingMethod,
-      shippingCost: shippingCost.toString(),
+      shippingCost,
+      isDelivery: shippingMethod === "delivery",
+      isPickup: shippingMethod !== "delivery",
       address: address || "",
       recipientName: recipientName || "",
       recipientPhone: recipientPhone || "",
@@ -490,7 +449,7 @@ export const sendShippingCreated = (
 export const sendPasswordReset = (
   to: string,
   name: string,
-  resetLink: string,
+  resetLink: string
 ): Promise<void> =>
   sendEmail({
     to,
@@ -510,7 +469,12 @@ export const sendAdminNewOrder = (
   customerName: string,
   customerEmail: string,
   total: number,
-  items: any[],
+  items: Array<{
+    productName: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }>
 ): Promise<void> =>
   sendEmail({
     to,
@@ -520,8 +484,8 @@ export const sendAdminNewOrder = (
       orderNumber,
       customerName,
       customerEmail,
-      total: total.toString(),
-      items: JSON.stringify(items),
+      total,
+      items, // pass as array — Handlebars {{#each items}} handles it
       adminUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}`,
     },
   });
@@ -532,7 +496,7 @@ export const sendAdminNewBrief = (
   customerName: string,
   productName: string,
   briefDescription: string,
-  hasAttachments: boolean,
+  hasAttachments: boolean
 ): Promise<void> =>
   sendEmail({
     to,
@@ -543,7 +507,7 @@ export const sendAdminNewBrief = (
       customerName,
       productName,
       briefDescription,
-      hasAttachments: hasAttachments ? "Yes" : "No",
+      hasAttachments, // pass as boolean — {{#if hasAttachments}} works directly
       adminUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}/brief`,
     },
   });

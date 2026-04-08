@@ -90,13 +90,13 @@ app.use(compression());
 app.use(cookieParser(process.env.COOKIE_SECRET));
 
 // ==================== RATE LIMITING (after CORS) ====================
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: "Too many requests from this IP, please try again later.",
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: 100,
+//   message: "Too many requests from this IP, please try again later.",
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// });
 
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -116,7 +116,7 @@ const authLimiter = rateLimit({
   },
 });
 
-app.use("/api", limiter);
+// app.use("/api", limiter);
 app.use("/api/v1/auth", authLimiter);
 
 // ==================== BODY PARSERS ====================
