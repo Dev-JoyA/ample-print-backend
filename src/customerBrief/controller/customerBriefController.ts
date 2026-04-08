@@ -9,6 +9,12 @@ const getIO = (req: Request) => {
   return (req as any).io || req.app.get("io");
 };
 
+const getStringParam = (
+  param: string | string[] | undefined,
+): string | undefined => {
+  return Array.isArray(param) ? param[0] : param;
+};
+
 export const uploadBriefFiles = upload.fields([
   { name: "image", maxCount: 1 },
   { name: "voiceNote", maxCount: 1 },
@@ -20,7 +26,8 @@ export const uploadBriefFiles = upload.fields([
 export const submitCustomerBrief = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
-    const { orderId, productId } = req.params;
+    const orderId = getStringParam(req.params.orderId);
+    const productId = getStringParam(req.params.productId);
     const { description } = req.body;
     const io = getIO(req);
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -42,10 +49,15 @@ export const submitCustomerBrief = async (req: Request, res: Response) => {
       });
     }
 
+     let finalDescription = description;
+    if (!finalDescription || finalDescription.trim() === '') {
+      finalDescription = "Custom order - please check product specifications";
+    }
+
     const briefData: CreateCustomerBriefDTO = {
       orderId: new Types.ObjectId(orderId),
       productId: new Types.ObjectId(productId),
-      description: description || undefined,
+      description: finalDescription || undefined,
     };
 
     if (files?.image) briefData.image = `/uploads/${files.image[0].filename}`;
@@ -79,8 +91,10 @@ export const submitCustomerBrief = async (req: Request, res: Response) => {
 export const adminRespondToBrief = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
-    const { orderId, productId } = req.params;
-    const { description, designId } = req.body;
+    const orderId = getStringParam(req.params.orderId);
+    const productId = getStringParam(req.params.productId);
+    const { description } = req.body;
+    const designId = getStringParam(req.body.designId);
     const io = getIO(req);
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
@@ -133,7 +147,8 @@ export const getBriefByOrderAndProduct = async (
 ) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
-    const { orderId, productId } = req.params;
+    const orderId = getStringParam(req.params.orderId);
+    const productId = getStringParam(req.params.productId);
 
     if (!orderId || !productId) {
       return res.status(400).json({
@@ -165,7 +180,7 @@ export const getBriefByOrderAndProduct = async (
 export const getCustomerBriefById = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
-    const { briefId } = req.params;
+    const briefId = getStringParam(req.params.briefId);
 
     if (!briefId) {
       return res.status(400).json({
@@ -204,7 +219,7 @@ export const getCustomerBriefById = async (req: Request, res: Response) => {
 export const deleteCustomerBrief = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
-    const { briefId } = req.params;
+    const briefId = getStringParam(req.params.briefId);
     const io = getIO(req);
 
     if (!briefId) {
@@ -298,7 +313,15 @@ export const getAdminCustomerBriefs = async (req: Request, res: Response) => {
 // GET /api/briefs/status/:orderId/:productId
 export const checkAdminResponseStatus = async (req: Request, res: Response) => {
   try {
-    const { orderId, productId } = req.params;
+    const orderId = getStringParam(req.params.orderId);
+    const productId = getStringParam(req.params.productId);
+
+    if (!orderId || !productId) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID and Product ID are required",
+      });
+    }
 
     const result = await customerBriefService.checkAdminResponseStatus(
       orderId,
@@ -322,13 +345,20 @@ export const checkAdminResponseStatus = async (req: Request, res: Response) => {
 export const markBriefAsViewed = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
-    const { briefId } = req.params;
+    const briefId = getStringParam(req.params.briefId);
     const io = getIO(req);
 
     if (!user) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized",
+      });
+    }
+
+    if (!briefId) {
+      return res.status(400).json({
+        success: false,
+        message: "Brief ID is required",
       });
     }
 
@@ -356,7 +386,14 @@ export const markBriefAsViewed = async (req: Request, res: Response) => {
 // GET /api/briefs/order/:orderId/status
 export const getOrderBriefStatus = async (req: Request, res: Response) => {
   try {
-    const { orderId } = req.params;
+    const orderId = getStringParam(req.params.orderId);
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID is required",
+      });
+    }
 
     const status = await customerBriefService.getOrderBriefStatus(orderId);
 
@@ -379,7 +416,7 @@ export const getOrderBriefStatus = async (req: Request, res: Response) => {
 export const getAllBriefsByOrderId = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
-    const { orderId } = req.params;
+    const orderId = getStringParam(req.params.orderId);
 
     if (!orderId) {
       return res.status(400).json({
@@ -389,7 +426,7 @@ export const getAllBriefsByOrderId = async (req: Request, res: Response) => {
     }
 
     const briefs = await customerBriefService.getAllBriefsByOrderId(
-      orderId,
+      orderId!,
       user._id,
       user.role,
     );

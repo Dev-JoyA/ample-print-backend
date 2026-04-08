@@ -1,5 +1,6 @@
 import mongoose, { Types } from "mongoose";
 import { User, UserRole } from "../../users/model/userModel.js";
+import { CustomerBrief } from "../../customerBrief/model/customerBrief.js";
 import {
   OrderData,
   OrderStatus,
@@ -146,7 +147,7 @@ export const createOrder = async (
     }
     
     const orderNumber = await generateOrderNumber();
-    
+
     const [order] = await Order.create(
       [{
         userId: user._id,
@@ -179,12 +180,19 @@ export const createOrder = async (
       orderNumber: order.orderNumber,
     });
 
+    const emailItems = orderItems.map(item => ({
+      productName: item.productName,
+      quantity: item.quantity,
+      price: item.price,
+      total: item.quantity * item.price
+    }));
+
     await emailService
       .sendOrderConfirmation(
         user.email,
         profile.firstName,
         order.orderNumber,
-        orderItems,
+        emailItems,
         totalAmount,
       )
       .catch((err) =>
@@ -293,7 +301,7 @@ export const superAdminCreateOrder = async (
     }
 
     const orderNumber = await generateOrderNumber();
-    
+
     const [order] = await Order.create(
       [{
         userId: customer._id,
@@ -311,17 +319,24 @@ export const superAdminCreateOrder = async (
     );
 
     const profile = await Profile.findOne({ userId: customer._id }).session(session);
-    
+
     await session.commitTransaction();
     session.endSession();
 
     if (profile) {
+      const emailItems = orderItems.map(item => ({
+        productName: item.productName,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.quantity * item.price
+      }));
+
       await emailService
         .sendOrderConfirmation(
           customer.email,
           profile.firstName,
           order.orderNumber,
-          orderItems,
+          emailItems,
           totalAmount,
         )
         .catch((err) => console.error("Error sending email", err));
@@ -451,11 +466,13 @@ export const deleteOrder = async (
     if (
       order.status !== OrderStatus.Pending &&
       order.status !== OrderStatus.OrderReceived &&
+      order.status !== OrderStatus.FilesUploaded &&
       !isSuperAdmin
     ) {
       throw new Error("Cannot delete order once it's been processed");
     }
 
+    await CustomerBrief.deleteMany({ orderId: order._id }).session(session);
     await Order.findByIdAndDelete(orderId).session(session);
     await session.commitTransaction();
     session.endSession();

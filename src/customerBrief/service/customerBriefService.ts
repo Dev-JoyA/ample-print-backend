@@ -1,4 +1,3 @@
-import mongoose, { Types } from "mongoose";
 import {
   ICustomerBrief,
   CreateCustomerBriefDTO,
@@ -7,6 +6,7 @@ import {
 } from "../model/customerBrief.js";
 import { Order, OrderStatus } from "../../order/model/orderModel.js";
 import { Product } from "../../product/model/productModel.js";
+import { Types } from "mongoose";
 import { User, UserRole } from "../../users/model/userModel.js";
 import { Server } from "socket.io";
 import { notificationService } from "../../notification/service/notificationService.js";
@@ -17,208 +17,163 @@ export const createOrUpdateCustomerBrief = async (
   userRole: string,
   io: Server,
 ): Promise<ICustomerBrief> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const order = await Order.findById(brief.orderId).session(session).exec();
-    if (!order) {
-      await session.abortTransaction();
-      session.endSession();
-      throw new Error("Order not found for the provided orderId");
-    }
-
-    const product = await Product.findById(brief.productId).session(session).exec();
-    if (!product) {
-      await session.abortTransaction();
-      session.endSession();
-      throw new Error("Product not found for the provided productId");
-    }
-
-    const hasContent =
-      brief.description ||
-      brief.image ||
-      brief.voiceNote ||
-      brief.video ||
-      brief.logo;
-      
-    if (!hasContent) {
-      await session.abortTransaction();
-      session.endSession();
-      throw new Error("Customer brief must contain at least one customization detail");
-    }
-
-    let briefRole: CustomerBriefRole;
-    let orderUpdated = false;
-    
-    if (userRole === UserRole.Customer) {
-      briefRole = CustomerBriefRole.Customer;
-
-      const allowedStatuses = [
-        OrderStatus.Pending,
-        OrderStatus.OrderReceived,
-        OrderStatus.FilesUploaded,
-      ];
-      
-      if (!allowedStatuses.includes(order.status)) {
-        await session.abortTransaction();
-        session.endSession();
-        throw new Error(
-          `Customer brief can only be created for orders that are Pending, Order Received, or Files Uploaded`,
-        );
-      }
-
-      if (order.status === OrderStatus.OrderReceived) {
-        order.status = OrderStatus.FilesUploaded;
-        await order.save({ session });
-        orderUpdated = true;
-      }
-    } else if (userRole === UserRole.Admin || userRole === UserRole.SuperAdmin) {
-      briefRole = userRole === UserRole.Admin 
-        ? CustomerBriefRole.Admin 
-        : CustomerBriefRole.SuperAdmin;
-    } else {
-      await session.abortTransaction();
-      session.endSession();
-      throw new Error("Invalid user role");
-    }
-
-    const existingBrief = await CustomerBrief.findOne({
-      orderId: brief.orderId,
-      productId: brief.productId,
-      role: briefRole,
-    }).session(session);
-
-    let savedBrief: ICustomerBrief;
-
-    if (existingBrief) {
-      Object.assign(existingBrief, {
-        description: brief.description,
-        image: brief.image,
-        voiceNote: brief.voiceNote,
-        video: brief.video,
-        logo: brief.logo,
-        designId: brief.designId,
-      });
-      savedBrief = await existingBrief.save({ session });
-    } else {
-      const newBrief = new CustomerBrief({
-        ...brief,
-        role: briefRole,
-        viewed: false,
-      });
-      savedBrief = await newBrief.save({ session });
-    }
-
-    await session.commitTransaction();
-    session.endSession();
-
-    if (userRole === UserRole.Customer) {
-      io.to("admin-room").emit("new-customer-brief", {
-        briefId: savedBrief._id,
-        orderId: savedBrief.orderId,
-        orderNumber: order.orderNumber,
-        productId: savedBrief.productId,
-        productName: product.name,
-        message: `New customization request from customer`,
-        timestamp: new Date(),
-      });
-
-      io.to("superadmin-room").emit("new-customer-brief", {
-        briefId: savedBrief._id,
-        orderId: savedBrief.orderId,
-        orderNumber: order.orderNumber,
-        productId: savedBrief.productId,
-        productName: product.name,
-        message: `New customization request from customer`,
-        timestamp: new Date(),
-      });
-
-      try {
-        await notificationService.createForAdmins({
-          type: 'new-customer-brief',
-          title: 'New Customization Request',
-          message: `Customer submitted a brief for ${product.name} (order #${order.orderNumber})`,
-          data: {
-            briefId: savedBrief._id,
-            orderId: order._id,
-            orderNumber: order.orderNumber,
-            productId: product._id,
-            productName: product.name,
-            customerId: userId,
-            hasFiles: {
-              image: !!brief.image,
-              voiceNote: !!brief.voiceNote,
-              video: !!brief.video,
-              logo: !!brief.logo
-            }
-          },
-          link: `/dashboards/admin/customer-briefs/${savedBrief._id}`
-        });
-      } catch (error: any) {
-        console.error('Failed to create new brief notification:', error.message);
-      }
-    } else if (userRole === UserRole.Admin || userRole === UserRole.SuperAdmin) {
-      io.to(`user-${order.userId}`).emit("admin-brief-response", {
-        briefId: savedBrief._id,
-        orderId: savedBrief.orderId,
-        orderNumber: order.orderNumber,
-        productId: savedBrief.productId,
-        productName: product.name,
-        role: userRole,
-        message: `Admin has responded to your customization request`,
-        hasDesign: !!savedBrief.designId,
-        timestamp: new Date(),
-      });
-
-      try {
-        await notificationService.createForUser(order.userId, {
-          type: 'admin-brief-response',
-          title: 'Response to Your Customization Request',
-          message: `Admin responded to your brief for ${product.name} (order #${order.orderNumber})`,
-          data: {
-            briefId: savedBrief._id,
-            orderId: order._id,
-            orderNumber: order.orderNumber,
-            productId: product._id,
-            productName: product.name,
-            hasDesign: !!savedBrief.designId,
-            respondedBy: userId,
-            responderRole: userRole
-          },
-          link: `/orders/${order._id}/products/${product._id}/briefs`
-        });
-
-        await notificationService.createForAdmins({
-          type: 'admin-brief-responded',
-          title: 'Admin Responded to Brief',
-          message: `${userRole === UserRole.Admin ? 'Admin' : 'Super Admin'} responded to brief for ${product.name} (order #${order.orderNumber})`,
-          data: {
-            briefId: savedBrief._id,
-            orderId: order._id,
-            orderNumber: order.orderNumber,
-            productId: product._id,
-            productName: product.name,
-            respondedBy: userId,
-            responderRole: userRole,
-            hasDesign: !!savedBrief.designId
-          },
-          link: `/dashboards/admin/customer-briefs/${savedBrief._id}`
-        });
-        
-      } catch (error: any) {
-        console.error('Failed to create admin response notification:', error.message);
-      }
-
-      await checkOrderReadyForInvoice(order._id.toString(), io);
-    }
-
-    return savedBrief;
-  } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
-    throw error;
+  const order = await Order.findById(brief.orderId).exec();
+  if (!order) {
+    throw new Error("Order not found for the provided orderId");
   }
+
+  const product = await Product.findById(brief.productId).exec();
+  if (!product) {
+    throw new Error("Product not found for the provided productId");
+  }
+
+  const hasContent =
+    brief.description ||
+    brief.image ||
+    brief.voiceNote ||
+    brief.video ||
+    brief.logo;
+  if (!hasContent) {
+    throw new Error(
+      "Customer brief must contain at least one customization detail",
+    );
+  }
+
+  let briefRole: CustomerBriefRole;
+  if (userRole === UserRole.Customer) {
+    briefRole = CustomerBriefRole.Customer;
+
+    if (
+      order.status !== OrderStatus.Pending &&
+      order.status !== OrderStatus.OrderReceived &&
+      order.status !== OrderStatus.FilesUploaded
+    ) {
+      throw new Error(
+        "Customer brief can only be created for orders that are Pending or Order Received or Files Uploaded",
+      );
+    }
+
+    if (order.status === OrderStatus.OrderReceived) {
+      order.status = OrderStatus.FilesUploaded;
+      await order.save();
+    }
+  } else if (userRole === UserRole.Admin || userRole === UserRole.SuperAdmin) {
+    briefRole = userRole === UserRole.Admin 
+      ? CustomerBriefRole.Admin 
+      : CustomerBriefRole.SuperAdmin;
+  } else {
+    throw new Error("Invalid user role");
+  }
+
+  const savedBrief = new CustomerBrief({
+    ...brief,
+    role: briefRole,
+    viewed: false,
+  });
+  
+  await savedBrief.save();
+
+  if (userRole === UserRole.Customer) {
+    io.to("admin-room").emit("new-customer-brief", {
+      briefId: savedBrief._id,
+      orderId: savedBrief.orderId,
+      orderNumber: order.orderNumber,
+      productId: savedBrief.productId,
+      productName: product.name,
+      message: `New customization request from customer`,
+      timestamp: new Date(),
+    });
+
+    io.to("superadmin-room").emit("new-customer-brief", {
+      briefId: savedBrief._id,
+      orderId: savedBrief.orderId,
+      orderNumber: order.orderNumber,
+      productId: savedBrief.productId,
+      productName: product.name,
+      message: `New customization request from customer`,
+      timestamp: new Date(),
+    });
+
+    try {
+      await notificationService.createForAdmins({
+        type: 'new-customer-brief',
+        title: 'New Customization Request',
+        message: `Customer submitted a brief for ${product.name} (order #${order.orderNumber})`,
+        data: {
+          briefId: savedBrief._id,
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          productId: product._id,
+          productName: product.name,
+          customerId: userId,
+          hasFiles: {
+            image: !!brief.image,
+            voiceNote: !!brief.voiceNote,
+            video: !!brief.video,
+            logo: !!brief.logo
+          }
+        },
+        link: `/dashboards/admin/customer-briefs/${savedBrief._id}`
+      });
+    } catch (notifErr) {
+      console.error('Failed to create new brief notification:', notifErr);
+    }
+  } else if (userRole === UserRole.Admin || userRole === UserRole.SuperAdmin) {
+    io.to(`user-${order.userId}`).emit("admin-brief-response", {
+      briefId: savedBrief._id,
+      orderId: savedBrief.orderId,
+      orderNumber: order.orderNumber,
+      productId: savedBrief.productId,
+      productName: product.name,
+      role: userRole,
+      message: `Admin has responded to your customization request`,
+      hasDesign: !!savedBrief.designId,
+      timestamp: new Date(),
+    });
+
+    try {
+      await notificationService.createForUser(order.userId, {
+        type: 'admin-brief-response',
+        title: 'Response to Your Customization Request',
+        message: `Admin responded to your brief for ${product.name} (order #${order.orderNumber})`,
+        data: {
+          briefId: savedBrief._id,
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          productId: product._id,
+          productName: product.name,
+          hasDesign: !!savedBrief.designId,
+          respondedBy: userId,
+          responderRole: userRole
+        },
+        link: `/orders/${order._id}/products/${product._id}/briefs`
+      });
+
+      await notificationService.createForAdmins({
+        type: 'admin-brief-responded',
+        title: 'Admin Responded to Brief',
+        message: `${userRole === UserRole.Admin ? 'Admin' : 'Super Admin'} responded to brief for ${product.name} (order #${order.orderNumber})`,
+        data: {
+          briefId: savedBrief._id,
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          productId: product._id,
+          productName: product.name,
+          respondedBy: userId,
+          responderRole: userRole,
+          hasDesign: !!savedBrief.designId
+        },
+        link: `/dashboards/admin/customer-briefs/${savedBrief._id}`
+      });
+      
+    } catch (notifErr) {
+      console.error('Failed to create admin response notification:', notifErr);
+    }
+
+    await checkOrderReadyForInvoice(order._id.toString(), io);
+  }
+
+  return savedBrief;
 };
 
 export const deleteCustomerBrief = async (
@@ -231,102 +186,99 @@ export const deleteCustomerBrief = async (
     throw new Error("Invalid brief ID format");
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const brief = await CustomerBrief.findById(briefId);
+  if (!brief) {
+    throw new Error("Customer brief not found");
+  }
 
-  try {
-    const brief = await CustomerBrief.findById(briefId).session(session).exec();
-    if (!brief) {
-      await session.abortTransaction();
-      session.endSession();
-      throw new Error("Customer brief not found");
+  const order = await Order.findById(brief.orderId);
+  if (!order) {
+    throw new Error("Associated order not found");
+  }
+
+  const product = await Product.findById(brief.productId);
+
+  if (userRole === UserRole.Customer) {
+    if (brief.role !== CustomerBriefRole.Customer) {
+      throw new Error("Customers can only delete their own briefs");
     }
 
-    const order = await Order.findById(brief.orderId).session(session).exec();
-    if (!order) {
-      await session.abortTransaction();
-      session.endSession();
-      throw new Error("Associated order not found");
-    }
-
-    const product = await Product.findById(brief.productId).session(session).exec();
-
-    if (userRole === UserRole.Customer) {
-      if (brief.role !== CustomerBriefRole.Customer) {
-        await session.abortTransaction();
-        session.endSession();
-        throw new Error("Customers can only delete their own briefs");
-      }
-
-      if (order.userId.toString() !== userId) {
-        await session.abortTransaction();
-        session.endSession();
-        throw new Error("Unauthorized to delete this brief");
-      }
-
-      const allowedStatuses = [
-        OrderStatus.Pending,
-        OrderStatus.OrderReceived,
-        OrderStatus.FilesUploaded,
-      ];
-      
-      if (!allowedStatuses.includes(order.status)) {
-        await session.abortTransaction();
-        session.endSession();
-        throw new Error(
-          `Cannot delete brief when order is in ${order.status} status`,
-        );
-      }
-    } else if (userRole !== UserRole.SuperAdmin) {
-      await session.abortTransaction();
-      session.endSession();
+    if (order.userId.toString() !== userId) {
       throw new Error("Unauthorized to delete this brief");
     }
 
-    await brief.deleteOne({ session });
+    const allowedStatuses = [
+      OrderStatus.Pending,
+      OrderStatus.OrderReceived,
+      OrderStatus.FilesUploaded,
+    ];
+    if (!allowedStatuses.includes(order.status)) {
+      throw new Error(
+        `Cannot delete brief when order is in ${order.status} status`,
+      );
+    }
+  } else if (userRole !== UserRole.SuperAdmin) {
+    throw new Error("Unauthorized to delete this brief");
+  }
 
-    await session.commitTransaction();
-    session.endSession();
+  io.to("admin-room").emit("brief-deleted", {
+    briefId: brief._id,
+    orderId: brief.orderId,
+    orderNumber: order.orderNumber,
+    productId: brief.productId,
+    productName: product?.name || 'Unknown',
+    role: brief.role,
+    message: `Brief deleted`,
+    timestamp: new Date(),
+  });
 
-    io.to("admin-room").emit("brief-deleted", {
-      briefId: brief._id,
-      orderId: brief.orderId,
-      orderNumber: order.orderNumber,
-      productId: brief.productId,
-      productName: product?.name || 'Unknown',
-      role: brief.role,
-      message: `Brief deleted`,
-      timestamp: new Date(),
+  io.to(`user-${order.userId}`).emit("brief-deleted", {
+    briefId: brief._id,
+    orderId: brief.orderId,
+    orderNumber: order.orderNumber,
+    productId: brief.productId,
+    productName: product?.name || 'Unknown',
+    role: brief.role,
+    message: `A brief was deleted`,
+    timestamp: new Date(),
+  });
+
+  try {
+    const notificationType = brief.role === CustomerBriefRole.Customer 
+      ? 'customer-brief-deleted' 
+      : 'admin-brief-deleted';
+    
+    const notificationTitle = brief.role === CustomerBriefRole.Customer
+      ? 'Your Brief Was Deleted'
+      : 'Admin Response Deleted';
+    
+    const notificationMessage = brief.role === CustomerBriefRole.Customer
+      ? `Your brief for ${product?.name || 'product'} (order #${order.orderNumber}) was deleted`
+      : `Admin response for ${product?.name || 'product'} (order #${order.orderNumber}) was deleted`;
+
+    await notificationService.createForUser(order.userId, {
+      type: notificationType,
+      title: notificationTitle,
+      message: notificationMessage,
+      data: {
+        briefId: brief._id,
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        productId: brief.productId,
+        productName: product?.name,
+        role: brief.role,
+        deletedBy: userId
+      },
+      link: `/orders/${order._id}`
     });
 
-    io.to(`user-${order.userId}`).emit("brief-deleted", {
-      briefId: brief._id,
-      orderId: brief.orderId,
-      orderNumber: order.orderNumber,
-      productId: brief.productId,
-      productName: product?.name || 'Unknown',
-      role: brief.role,
-      message: `A brief was deleted`,
-      timestamp: new Date(),
-    });
-
-    try {
-      const notificationType = brief.role === CustomerBriefRole.Customer 
-        ? 'customer-brief-deleted' 
-        : 'admin-brief-deleted';
-      
-      const notificationTitle = brief.role === CustomerBriefRole.Customer
-        ? 'Your Brief Was Deleted'
-        : 'Admin Response Deleted';
-      
-      const notificationMessage = brief.role === CustomerBriefRole.Customer
-        ? `Your brief for ${product?.name || 'product'} (order #${order.orderNumber}) was deleted`
-        : `Admin response for ${product?.name || 'product'} (order #${order.orderNumber}) was deleted`;
-
-      await notificationService.createForUser(order.userId, {
-        type: notificationType,
-        title: notificationTitle,
-        message: notificationMessage,
+    if (userRole !== UserRole.Customer) {
+      await notificationService.createForAdmins({
+        type: 'admin-brief-deleted',
+        title: brief.role === CustomerBriefRole.Customer 
+          ? 'Customer Brief Deleted' 
+          : 'Admin Response Deleted',
+        message: `${brief.role === CustomerBriefRole.Customer ? 'Customer brief' : 'Admin response'} for order #${order.orderNumber} was deleted`,
         data: {
           briefId: brief._id,
           orderId: order._id,
@@ -336,41 +288,19 @@ export const deleteCustomerBrief = async (
           role: brief.role,
           deletedBy: userId
         },
-        link: `/orders/${order._id}`
+        link: `/dashboards/admin/orders/${order._id}`
       });
-
-      if (userRole !== UserRole.Customer) {
-        await notificationService.createForAdmins({
-          type: 'admin-brief-deleted',
-          title: brief.role === CustomerBriefRole.Customer 
-            ? 'Customer Brief Deleted' 
-            : 'Admin Response Deleted',
-          message: `${brief.role === CustomerBriefRole.Customer ? 'Customer brief' : 'Admin response'} for order #${order.orderNumber} was deleted`,
-          data: {
-            briefId: brief._id,
-            orderId: order._id,
-            orderNumber: order.orderNumber,
-            productId: brief.productId,
-            productName: product?.name,
-            role: brief.role,
-            deletedBy: userId
-          },
-          link: `/dashboards/admin/orders/${order._id}`
-        });
-      }
-      
-    } catch (error: any) {
-      console.error('Failed to create brief deletion notification:', error.message);
     }
-
-    await checkOrderReadyForInvoice(order._id.toString(), io);
-
-    return { message: `${brief.role} brief deleted successfully` };
-  } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
-    throw error;
+    
+  } catch (notifErr) {
+    console.error('Failed to create brief deletion notification:', notifErr);
   }
+
+  await brief.deleteOne();
+
+  await checkOrderReadyForInvoice(order._id.toString(), io);
+
+  return { message: `${brief.role} brief deleted successfully` };
 };
 
 export const markBriefAsViewed = async (
@@ -379,234 +309,189 @@ export const markBriefAsViewed = async (
   userRole: string,
   io?: Server,
 ): Promise<ICustomerBrief> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const brief = await CustomerBrief.findById(briefId).session(session).exec();
-    
-    if (!brief) {
-      await session.abortTransaction();
-      session.endSession();
-      throw new Error("Brief not found");
-    }
-
-    if (brief.viewed) {
-      await session.commitTransaction();
-      session.endSession();
-      return brief;
-    }
-
-    if (userRole === UserRole.Customer) {
-      if (brief.role !== CustomerBriefRole.Admin && brief.role !== CustomerBriefRole.SuperAdmin) {
-        await session.abortTransaction();
-        session.endSession();
-        throw new Error("Customers can only mark admin responses as viewed");
-      }
-    } else if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
-      await session.abortTransaction();
-      session.endSession();
-      throw new Error("Unauthorized");
-    }
-
-    brief.viewed = true;
-    brief.viewedAt = new Date();
-    
-    await brief.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
-
-    try {
-      if (userRole === UserRole.Customer) {
-        const order = await Order.findById(brief.orderId);
-        await notificationService.createForAdmins({
-          type: 'brief-viewed',
-          title: 'Brief Viewed by Customer',
-          message: `Customer viewed the admin response for order #${order?.orderNumber}`,
-          data: {
-            briefId: brief._id,
-            orderId: brief.orderId,
-            productId: brief.productId,
-            viewedBy: userId
-          },
-          link: `/dashboards/admin/customer-briefs/${brief._id}`
-        });
-      }
-    } catch (error: any) {
-      console.error('Failed to create brief viewed notification:', error.message);
-    }
-
-    if (io) {
-      await checkOrderReadyForInvoice(brief.orderId.toString(), io);
-    }
-
-    return brief;
-  } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
-    throw error;
+  const brief = await CustomerBrief.findById(briefId);
+  
+  if (!brief) {
+    throw new Error("Brief not found");
   }
+
+  if (brief.viewed) {
+    return brief;
+  }
+
+  const order = await Order.findById(brief.orderId);
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  const isOrderOwner = order.userId.toString() === userId;
+  const isAdmin = userRole === UserRole.Admin || userRole === UserRole.SuperAdmin;
+
+  if (userRole === UserRole.Customer) {
+    if (brief.role !== CustomerBriefRole.Admin && brief.role !== CustomerBriefRole.SuperAdmin) {
+      throw new Error("Customers can only mark admin responses as viewed");
+    }
+    if (!isOrderOwner) {
+      throw new Error("You can only mark briefs from your own orders");
+    }
+  } else if (isAdmin) {
+    if (brief.role !== CustomerBriefRole.Customer) {
+      throw new Error("Admins can only mark customer briefs as viewed");
+    }
+  } else {
+    throw new Error("Unauthorized");
+  }
+
+  brief.viewed = true;
+  brief.viewedAt = new Date();
+  await brief.save();
+
+  if (io) {
+    await checkOrderReadyForInvoice(brief.orderId.toString(), io);
+  }
+
+  return brief;
 };
 
 export const checkOrderReadyForInvoice = async (
   orderId: string,
   io?: Server,
 ): Promise<boolean> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const order = await Order.findById(orderId);
+  if (!order) {
+    throw new Error("Order not found");
+  }
 
-  try {
-    const order = await Order.findById(orderId).session(session).exec();
-    if (!order) {
-      await session.abortTransaction();
-      session.endSession();
-      throw new Error("Order not found");
-    }
+  if (order.invoiceId || order.status !== OrderStatus.FilesUploaded) {
+    return false;
+  }
 
-    if (order.invoiceId || order.status !== OrderStatus.FilesUploaded) {
-      await session.abortTransaction();
-      session.endSession();
-      return false;
-    }
+  const productIds = order.items.map(item => item.productId.toString());
+  
+  let allProductsReady = true;
 
-    const productIds = order.items.map(item => item.productId.toString());
-    
-    const briefs = await CustomerBrief.find({ 
+  for (const productId of productIds) {
+    const allBriefs = await CustomerBrief.find({ 
       orderId: orderId,
-      role: CustomerBriefRole.Customer 
-    }).session(session);
+      productId: productId
+    }).sort({ createdAt: 1 });
 
-    if (briefs.length === 0) {
-      order.status = OrderStatus.AwaitingInvoice;
-      await order.save({ session });
-      
-      await session.commitTransaction();
-      session.endSession();
-      
-      if (io) {
-        io.to("superadmin-room").emit("order-ready-for-invoice", {
-          orderId: order._id,
-          orderNumber: order.orderNumber,
-          message: "Order ready for invoice"
-        });
-      }
-      
-      return true;
+    if (allBriefs.length === 0) {
+      continue;
     }
 
-    let allProductsReady = true;
+    const lastBrief = allBriefs[allBriefs.length - 1];
     
-    for (const productId of productIds) {
-      const productBriefs = briefs.filter(b => b.productId.toString() === productId);
-      
-      if (productBriefs.length === 0) {
-        continue;
-      }
-      
-      const latestBrief = productBriefs.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )[0];
-      
-      const adminResponse = await CustomerBrief.findOne({
+    let isProductReady = false;
+    
+    if (lastBrief.role === CustomerBriefRole.Admin || lastBrief.role === CustomerBriefRole.SuperAdmin) {
+      isProductReady = lastBrief.viewed === true;
+    } else if (lastBrief.role === CustomerBriefRole.Customer) {
+      const hasAdminResponseAfter = await CustomerBrief.exists({
         orderId: orderId,
         productId: productId,
         role: { $in: [CustomerBriefRole.Admin, CustomerBriefRole.SuperAdmin] },
-        createdAt: { $gt: latestBrief.createdAt }
-      }).session(session);
-
-      const isReady = latestBrief.viewed || !!adminResponse;
+        createdAt: { $gt: lastBrief.createdAt }
+      });
       
-      if (!isReady) {
-        allProductsReady = false;
-        break;
+      if (lastBrief.viewed && !hasAdminResponseAfter) {
+        isProductReady = true;
       }
     }
 
-    if (allProductsReady) {
-      order.status = OrderStatus.AwaitingInvoice;
-      await order.save({ session });
+    if (!isProductReady) {
+      allProductsReady = false;
     }
+  }
 
-    await session.commitTransaction();
-    session.endSession();
-
-    if (allProductsReady && io) {
+  if (allProductsReady) {
+    order.status = OrderStatus.AwaitingInvoice;
+    await order.save();
+    
+    if (io) {
       io.to("superadmin-room").emit("order-ready-for-invoice", {
         orderId: order._id,
         orderNumber: order.orderNumber,
         message: "Order ready for invoice"
       });
-
-      try {
-        await notificationService.createForSuperAdmins({
-          type: 'order-ready-for-invoice',
-          title: 'Order Ready for Invoice',
-          message: `Order #${order.orderNumber} is ready for invoice generation`,
-          data: {
-            orderId: order._id,
-            orderNumber: order.orderNumber,
-            totalAmount: order.totalAmount,
-            itemCount: order.items.length,
-            productIds: productIds
-          },
-          link: `/dashboards/super-admin/invoices/ready?order=${order._id}`
-        });
-      } catch (error: any) {
-        console.error('Failed to create order ready notification:', error.message);
-      }
     }
 
-    return allProductsReady;
-  } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
-    throw error;
+    try {
+      await notificationService.createForSuperAdmins({
+        type: 'order-ready-for-invoice',
+        title: 'Order Ready for Invoice',
+        message: `Order #${order.orderNumber} is ready for invoice generation`,
+        data: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          totalAmount: order.totalAmount,
+          itemCount: order.items.length,
+          productIds: productIds
+        },
+        link: `/dashboards/super-admin/invoices/ready?order=${order._id}`
+      });
+    } catch (notifErr) {
+      console.error('Failed to create order ready notification:', notifErr);
+    }
   }
+
+  return allProductsReady;
 };
 
 export const getOrderBriefStatus = async (orderId: string): Promise<any> => {
-  const order = await Order.findById(orderId).exec();
+  const order = await Order.findById(orderId);
   if (!order) {
     throw new Error("Order not found");
   }
 
   const productIds = order.items.map(item => item.productId.toString());
-  const briefs = await CustomerBrief.find({ orderId: orderId })
-    .populate("productId", "name")
-    .sort({ createdAt: -1 });
-
+  
   const productStatus = [];
 
   for (const productId of productIds) {
-    const productBriefs = briefs.filter(b => b.productId.toString() === productId);
+    const allBriefs = await CustomerBrief.find({ 
+      orderId: orderId,
+      productId: productId
+    }).sort({ createdAt: 1 });
+    
     const product = order.items.find(i => i.productId.toString() === productId);
     
     let status = 'no-brief';
     let lastMessage = null;
-    let viewed = false;
+    let lastRole = null;
+    let isViewed = false;
+    let briefCount = allBriefs.length;
 
-    if (productBriefs.length > 0) {
-      const latestCustomerBrief = productBriefs
-        .filter(b => b.role === CustomerBriefRole.Customer)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+    if (allBriefs.length > 0) {
+      const lastBrief = allBriefs[allBriefs.length - 1];
+      lastRole = lastBrief.role;
+      isViewed = lastBrief.viewed;
       
-      const latestAdminBrief = productBriefs
-        .filter(b => b.role === CustomerBriefRole.Admin || b.role === CustomerBriefRole.SuperAdmin)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-
-      if (latestCustomerBrief) {
-        viewed = latestCustomerBrief.viewed || false;
-        
-        if (latestAdminBrief && new Date(latestAdminBrief.createdAt) > new Date(latestCustomerBrief.createdAt)) {
-          status = 'responded';
-          lastMessage = 'admin';
-        } else if (viewed) {
-          status = 'viewed';
-          lastMessage = 'customer';
+      if (lastBrief.role === CustomerBriefRole.Admin || lastBrief.role === CustomerBriefRole.SuperAdmin) {
+        if (lastBrief.viewed) {
+          status = 'completed';
+          lastMessage = 'customer-viewed';
         } else {
-          status = 'pending';
-          lastMessage = 'customer';
+          status = 'pending-customer';
+          lastMessage = 'admin-response';
+        }
+      } else if (lastBrief.role === CustomerBriefRole.Customer) {
+        const hasAdminResponseAfter = await CustomerBrief.exists({
+          orderId: orderId,
+          productId: productId,
+          role: { $in: [CustomerBriefRole.Admin, CustomerBriefRole.SuperAdmin] },
+          createdAt: { $gt: lastBrief.createdAt }
+        });
+        
+        if (hasAdminResponseAfter) {
+          status = 'pending-customer';
+          lastMessage = 'admin-response-waiting';
+        } else if (lastBrief.viewed) {
+          status = 'completed';
+          lastMessage = 'admin-viewed';
+        } else {
+          status = 'pending-admin';
+          lastMessage = 'customer-brief';
         }
       }
     }
@@ -615,14 +500,15 @@ export const getOrderBriefStatus = async (orderId: string): Promise<any> => {
       productId,
       productName: product?.productName || 'Unknown',
       status,
-      viewed,
-      briefCount: productBriefs.length,
-      lastMessage
+      viewed: isViewed,
+      briefCount,
+      lastMessage: lastMessage,
+      lastRole: lastRole
     });
   }
 
   const allProductsReady = productStatus.every(p => 
-    p.status === 'responded' || p.status === 'viewed' || p.status === 'no-brief'
+    p.status === 'completed' || p.status === 'no-brief'
   );
 
   return {
@@ -643,7 +529,7 @@ export const getAllBriefsByOrderId = async (
     throw new Error("Invalid order ID format");
   }
 
-  const order = await Order.findById(orderId).exec();
+  const order = await Order.findById(orderId);
   if (!order) {
     throw new Error("Order not found");
   }
@@ -777,6 +663,9 @@ export const getAdminCustomerBriefs = async (
     search?: string;
     page?: number;
     limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    hasResponded?: boolean;
   } = {},
 ): Promise<{
   briefs: any[];
@@ -784,7 +673,16 @@ export const getAdminCustomerBriefs = async (
   page: number;
   pages: number;
 }> => {
-  const { status, hasFiles, search, page = 1, limit = 10 } = filters;
+  const { 
+    status, 
+    hasFiles, 
+    search, 
+    page = 1, 
+    limit = 10, 
+    sortBy = 'createdAt', 
+    sortOrder = 'desc',
+    hasResponded 
+  } = filters;
 
   const query: any = {
     role: CustomerBriefRole.Customer,
@@ -828,54 +726,110 @@ export const getAdminCustomerBriefs = async (
       populate: { path: "userId", select: "email" }
     })
     .populate("productId", "name")
-    .sort({ createdAt: -1 })
+    .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
     .lean();
 
-  const briefsWithStatus = await Promise.all(
-    customerBriefs.map(async (brief: any) => {
-      const adminResponse = await CustomerBrief.findOne({
-        orderId: brief.orderId._id,
-        productId: brief.productId._id,
-        role: { $in: [CustomerBriefRole.Admin, CustomerBriefRole.SuperAdmin] }
-      }).sort({ createdAt: -1 });
+  const validBriefs = customerBriefs.filter(brief => {
+    if (!brief.orderId || !brief.productId) {
+      console.log('Skipping brief with missing data:', { 
+        briefId: brief._id, 
+        hasOrderId: !!brief.orderId, 
+        hasProductId: !!brief.productId 
+      });
+      return false;
+    }
+    return true;
+  });
 
-      const hasFiles = !!(brief.image || brief.voiceNote || brief.video || brief.logo);
+  const orderIds = validBriefs.map(brief => brief.orderId._id);
+  
+  const adminResponses = await CustomerBrief.find({
+    orderId: { $in: orderIds },
+    role: { $in: [CustomerBriefRole.Admin, CustomerBriefRole.SuperAdmin] }
+  }).lean();
 
-      let briefStatus = 'pending';
-      
-      if (brief.viewed) {
-        briefStatus = 'viewed';
-      } else if (adminResponse) {
-        const lastAdminDate = new Date(adminResponse.createdAt);
-        const lastCustomerDate = new Date(brief.createdAt);
-        
-        if (lastAdminDate > lastCustomerDate) {
-          briefStatus = 'responded';
-        }
-      }
+  const adminResponseMap = new Map<string, any>();
+  for (const response of adminResponses) {
+    const orderIdStr = response.orderId.toString();
+    const existing = adminResponseMap.get(orderIdStr);
+    if (!existing || new Date(response.createdAt) > new Date(existing.createdAt)) {
+      adminResponseMap.set(orderIdStr, response);
+    }
+  }
 
-      return {
-        ...brief,
-        hasAdminResponse: !!adminResponse,
-        hasFiles,
-        status: briefStatus
-      };
-    })
-  );
+  const briefsWithStatus = validBriefs.map((brief) => {
+    const orderIdStr = brief.orderId._id.toString();
+    const adminResponse = adminResponseMap.get(orderIdStr);
+    
+    const hasAdminResponse = !!adminResponse;
+    const isAdminResponseNewer = hasAdminResponse && 
+      new Date(adminResponse.createdAt) > new Date(brief.createdAt);
+    
+    let briefStatus = 'pending';
+    if (brief.viewed) {
+      briefStatus = 'viewed';
+    } else if (isAdminResponseNewer) {
+      briefStatus = 'responded';
+    }
+    
+    const hasFilesAttached = !!(brief.image || brief.voiceNote || brief.video || brief.logo);
+    
+    const orderNumber = (brief.orderId as any)?.orderNumber || 'N/A';
+    const productName = (brief.productId as any)?.name || 'Unknown Product';
+    const customerEmail = (brief.orderId as any)?.userId?.email || 'customer@example.com';
+
+    return {
+      _id: brief._id,
+      description: brief.description,
+      image: brief.image,
+      voiceNote: brief.voiceNote,
+      video: brief.video,
+      logo: brief.logo,
+      designId: brief.designId,
+      createdAt: brief.createdAt,
+      updatedAt: brief.updatedAt,
+      viewed: brief.viewed || false,
+      viewedAt: brief.viewedAt,
+      orderId: brief.orderId,
+      productId: brief.productId,
+      role: brief.role,
+      hasAdminResponse,
+      hasFiles: hasFilesAttached,
+      status: briefStatus,
+      orderNumber,
+      productName,
+      customerName: customerEmail.split('@')[0],
+    };
+  });
 
   let filteredBriefs = briefsWithStatus;
   if (status && status !== 'all') {
     filteredBriefs = briefsWithStatus.filter(b => b.status === status);
   }
 
+  if (hasResponded !== undefined) {
+    filteredBriefs = filteredBriefs.filter(b => b.hasAdminResponse === hasResponded);
+  }
+
+  const sortDirection = sortOrder === 'asc' ? 1 : -1;
+  filteredBriefs.sort((a, b) => {
+    if (sortBy === 'createdAt') {
+      return sortDirection === 1 
+        ? new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+    return 0;
+  });
+
   const skip = (page - 1) * limit;
   const paginatedBriefs = filteredBriefs.slice(skip, skip + limit);
+  const total = filteredBriefs.length;
 
   return {
     briefs: paginatedBriefs,
-    total: filteredBriefs.length,
+    total,
     page,
-    pages: Math.ceil(filteredBriefs.length / limit),
+    pages: Math.ceil(total / limit),
   };
 };
 
