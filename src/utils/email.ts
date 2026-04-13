@@ -183,9 +183,6 @@ export const sendInvoiceReady = (
         hasDeposit: depositAmount && depositAmount > 0,
         depositAmount,
         depositAmountFormatted: `₦${(depositAmount || 0).toLocaleString()}`,
-        bankAccountName: activeBank?.accountName || "Not available",
-        bankAccountNumber: activeBank?.accountNumber || "Not available",
-        bankName: activeBank?.bankName || "Not available",
       },
     });
   })();

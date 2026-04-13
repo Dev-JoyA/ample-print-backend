@@ -7,6 +7,7 @@ import {
   checkRole,
 } from "../../middleware/authorization.js";
 import { UserRole } from "../../users/model/userModel.js";
+import { generateInvoicePDF } from "../controller/invoiceController.js";
 
 const router = Router();
 
@@ -46,6 +47,7 @@ router.post(
  */
 router.put("/:invoiceId", checkAdmin, invoiceController.updateInvoice);
 
+
 /**
  * @route POST /api/v1/invoices/:invoiceId/send
  * @desc Send invoice to customer
@@ -63,7 +65,7 @@ router.post(
  * @access Admin, SuperAdmin
  */
 router.get("/all", checkAdmin, invoiceController.getAllInvoices);
-
+router.get('/:invoiceId/pdf', authMiddleware, invoiceController.generateInvoicePDF);
 /**
  * @route GET /api/v1/invoices/filter
  * @desc Filter invoices with criteria

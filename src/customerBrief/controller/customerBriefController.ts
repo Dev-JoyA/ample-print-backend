@@ -22,7 +22,6 @@ export const uploadBriefFiles = upload.fields([
   { name: "logo", maxCount: 1 },
 ]);
 
-// POST /api/customer/orders/:orderId/products/:productId/brief
 export const submitCustomerBrief = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
@@ -49,7 +48,7 @@ export const submitCustomerBrief = async (req: Request, res: Response) => {
       });
     }
 
-     let finalDescription = description;
+    let finalDescription = description;
     if (!finalDescription || finalDescription.trim() === '') {
       finalDescription = "Custom order - please check product specifications";
     }
@@ -87,7 +86,6 @@ export const submitCustomerBrief = async (req: Request, res: Response) => {
   }
 };
 
-// POST /api/admin/orders/:orderId/products/:productId/respond
 export const adminRespondToBrief = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
@@ -112,7 +110,6 @@ export const adminRespondToBrief = async (req: Request, res: Response) => {
       designId: designId ? new Types.ObjectId(designId) : undefined,
     };
 
-    // Add file paths
     if (files?.image) briefData.image = `/uploads/${files.image[0].filename}`;
     if (files?.voiceNote)
       briefData.voiceNote = `/uploads/${files.voiceNote[0].filename}`;
@@ -140,7 +137,104 @@ export const adminRespondToBrief = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/briefs/orders/:orderId/products/:productId
+export const customerReplyToAdmin = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: UserRole };
+    const orderId = getStringParam(req.params.orderId);
+    const productId = getStringParam(req.params.productId);
+    const { description } = req.body;
+    const io = getIO(req);
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+    if (!orderId || !productId) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID and Product ID are required in URL",
+      });
+    }
+
+    const hasText = description && description.trim().length > 0;
+    const hasFiles = files && Object.keys(files).length > 0;
+
+    if (!hasText && !hasFiles) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one customization detail is required",
+      });
+    }
+
+    let finalDescription = description;
+    if (!finalDescription || finalDescription.trim() === '') {
+      finalDescription = "Reply to admin";
+    }
+
+    const briefData: CreateCustomerBriefDTO = {
+      orderId: new Types.ObjectId(orderId),
+      productId: new Types.ObjectId(productId),
+      description: finalDescription || undefined,
+    };
+
+    if (files?.image) briefData.image = `/uploads/${files.image[0].filename}`;
+    if (files?.voiceNote)
+      briefData.voiceNote = `/uploads/${files.voiceNote[0].filename}`;
+    if (files?.video) briefData.video = `/uploads/${files.video[0].filename}`;
+    if (files?.logo) briefData.logo = `/uploads/${files.logo[0].filename}`;
+
+    const brief = await customerBriefService.customerReplyToAdmin(
+      briefData,
+      user._id,
+      user.role,
+      io,
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Reply sent successfully",
+      data: brief,
+    });
+  } catch (error: any) {
+    console.error("Error submitting customer reply:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const markBriefAsComplete = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: UserRole };
+    const briefId = getStringParam(req.params.briefId);
+    const io = getIO(req);
+
+    if (!briefId) {
+      return res.status(400).json({
+        success: false,
+        message: "Brief ID is required",
+      });
+    }
+
+    const brief = await customerBriefService.markBriefAsComplete(
+      briefId,
+      user._id,
+      user.role,
+      io,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Brief marked as complete",
+      data: brief,
+    });
+  } catch (error: any) {
+    console.error("Error marking brief as complete:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export const getBriefByOrderAndProduct = async (
   req: Request,
   res: Response,
@@ -163,9 +257,15 @@ export const getBriefByOrderAndProduct = async (
       user.role,
     );
 
+    const filteredBriefs = briefs.filter((brief) => {
+      const briefProductId = (brief.productId as any)?._id?.toString() 
+          || brief.productId?.toString();
+      return briefProductId === productId;
+    });
+
     res.status(200).json({
       success: true,
-      data: briefs,
+      data: filteredBriefs,
     });
   } catch (error: any) {
     console.error("Error fetching brief by order and product:", error);
@@ -176,7 +276,6 @@ export const getBriefByOrderAndProduct = async (
   }
 };
 
-// GET /api/briefs/:briefId
 export const getCustomerBriefById = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
@@ -215,7 +314,6 @@ export const getCustomerBriefById = async (req: Request, res: Response) => {
   }
 };
 
-// DELETE /api/briefs/:briefId
 export const deleteCustomerBrief = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
@@ -249,7 +347,6 @@ export const deleteCustomerBrief = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/customer/briefs
 export const getUserCustomerBriefs = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
@@ -276,7 +373,6 @@ export const getUserCustomerBriefs = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/admin/briefs
 export const getAdminCustomerBriefs = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -286,8 +382,6 @@ export const getAdminCustomerBriefs = async (req: Request, res: Response) => {
     const status = req.query.status as string;
     const hasFiles = req.query.hasFiles === "true";
     const search = req.query.search as string;
-
-    console.log("Admin briefs request:", { page, limit, status, hasFiles, search });
 
     const result = await customerBriefService.getAdminCustomerBriefs(user._id, {
       status: status as any,
@@ -310,7 +404,6 @@ export const getAdminCustomerBriefs = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/briefs/status/:orderId/:productId
 export const checkAdminResponseStatus = async (req: Request, res: Response) => {
   try {
     const orderId = getStringParam(req.params.orderId);
@@ -341,7 +434,6 @@ export const checkAdminResponseStatus = async (req: Request, res: Response) => {
   }
 };
 
-// PATCH /api/briefs/:briefId/view
 export const markBriefAsViewed = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -383,7 +475,6 @@ export const markBriefAsViewed = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/briefs/order/:orderId/status
 export const getOrderBriefStatus = async (req: Request, res: Response) => {
   try {
     const orderId = getStringParam(req.params.orderId);
@@ -410,9 +501,6 @@ export const getOrderBriefStatus = async (req: Request, res: Response) => {
   }
 };
 
-// Add this to your customerBriefController.js
-
-// GET /api/briefs/order/:orderId/all
 export const getAllBriefsByOrderId = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
@@ -440,6 +528,57 @@ export const getAllBriefsByOrderId = async (req: Request, res: Response) => {
     res.status(400).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+export const markBriefAsViewedByAdmin = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: UserRole };
+    const briefId = getStringParam(req.params.briefId);
+
+    if (!briefId) {
+      return res.status(400).json({
+        success: false,
+        message: "Brief ID is required",
+      });
+    }
+
+    const brief = await customerBriefService.markBriefAsViewedByAdmin(
+      briefId,
+      user._id,
+      user.role,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Brief marked as viewed by admin",
+      data: brief,
+    });
+  } catch (error: any) {
+    console.error("Error marking brief as viewed by admin:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getCustomerPendingBriefResponses = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { _id: string; role: UserRole };
+    
+    const pendingResponses = await customerBriefService.getCustomerPendingBriefResponses(user._id);
+    
+    res.status(200).json({
+      success: true,
+      data: pendingResponses
+    });
+  } catch (error: any) {
+    console.error('Error fetching pending brief responses:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
     });
   }
 };

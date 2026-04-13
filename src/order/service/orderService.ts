@@ -957,22 +957,60 @@ export const getAllOrders = async (
 
 export const getOrdersReadyForInvoice = async (
   userRole: string,
-): Promise<IOrderModel[]> => {
+  page: number = 1,
+  limit: number = 10,
+): Promise<{ orders: IOrderModel[]; total: number; page: number; pages: number }> => {
   if (userRole !== UserRole.SuperAdmin) {
     throw new Error(
       "Unauthorized - Only super admin can view orders ready for invoice",
     );
   }
 
-  return Order.find({
-    status: OrderStatus.AwaitingInvoice,
-    invoiceId: { $exists: false },
-  })
-    .populate("userId", "email fullname")
-    .populate("items.productId", "name price")
-    .sort({ createdAt: 1 })
-    .exec();
+  const skip = (page - 1) * limit;
+
+  const [orders, total] = await Promise.all([
+    Order.find({
+      status: OrderStatus.AwaitingInvoice,
+      invoiceId: { $exists: false },
+    })
+      .populate("userId", "email fullname")
+      .populate("items.productId", "name price")
+      .sort({ createdAt: 1 })
+      .skip(skip)
+      .limit(limit)
+      .exec(),
+    Order.countDocuments({
+      status: OrderStatus.AwaitingInvoice,
+      invoiceId: { $exists: false },
+    }),
+  ]);
+
+  return {
+    orders,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  };
 };
+
+// export const getOrdersReadyForInvoice = async (
+//   userRole: string,
+// ): Promise<IOrderModel[]> => {
+//   if (userRole !== UserRole.SuperAdmin) {
+//     throw new Error(
+//       "Unauthorized - Only super admin can view orders ready for invoice",
+//     );
+//   }
+
+//   return Order.find({
+//     status: OrderStatus.AwaitingInvoice,
+//     invoiceId: { $exists: false },
+//   })
+//     .populate("userId", "email fullname")
+//     .populate("items.productId", "name price")
+//     .sort({ createdAt: 1 })
+//     .exec();
+// };
 
 export const markOrderAsAwaitingInvoice = async (
   orderId: string,
