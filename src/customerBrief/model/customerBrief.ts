@@ -5,6 +5,13 @@ export enum CustomerBriefRole {
   Admin = "admin",
   SuperAdmin = "super-admin",
 }
+
+export enum CustomerBriefStatus {
+  Pending = "pending",
+  Responded = "responded",
+  Complete = "complete"
+}
+
 export interface ICustomerBrief extends Document {
   orderId: Types.ObjectId;
   role: CustomerBriefRole;
@@ -15,8 +22,11 @@ export interface ICustomerBrief extends Document {
   video?: string;
   description?: string;
   logo?: string;
-  viewed: boolean; 
-  viewedAt?: Date; 
+  viewed: boolean;
+  viewedAt?: Date;
+  adminViewed?: boolean;
+  adminViewedAt?: Date;
+  status: CustomerBriefStatus;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,7 +76,7 @@ const CustomerBriefSchema = new Schema<ICustomerBrief>(
     image: String,
     voiceNote: String,
     video: String,
-     viewed: {
+    viewed: {
       type: Boolean,
       default: false,
       index: true,
@@ -74,18 +84,34 @@ const CustomerBriefSchema = new Schema<ICustomerBrief>(
     viewedAt: {
       type: Date,
     },
+    adminViewed: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    adminViewedAt: {
+      type: Date,
+    },
+    status: {
+      type: String,
+      enum: Object.values(CustomerBriefStatus),
+      default: CustomerBriefStatus.Pending,
+      index: true,
+    },
   },
   { timestamps: true },
 );
 
-CustomerBriefSchema.index(
-  { orderId: 1, productId: 1, role: 1 },
-  { unique: true },
-);
-
+CustomerBriefSchema.index({ orderId: 1, productId: 1, role: 1 });
 CustomerBriefSchema.index({ orderId: 1 });
-
 CustomerBriefSchema.index({ role: 1, createdAt: -1 });
+CustomerBriefSchema.index({ status: 1 });
+CustomerBriefSchema.index({ 
+  role: 1, 
+  status: 1, 
+  viewed: 1, 
+  createdAt: -1 
+});
 
 export const CustomerBrief = model<ICustomerBrief>(
   "CustomerBrief",

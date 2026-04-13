@@ -154,7 +154,7 @@ export const createInvoice = async (
           dueDate: data.dueDate,
           notes: data.notes,
           paymentInstructions:
-            data.paymentInstructions || defaultPaymentInstructions,
+            "login to your dashboard to pay with paystack or view the bank account details for your payment",
           transactions: [],
         },
       ],

@@ -3,6 +3,8 @@ import {
   uploadBriefFiles,
   submitCustomerBrief,
   adminRespondToBrief,
+  customerReplyToAdmin,
+  markBriefAsComplete,
   getAllBriefsByOrderId,
   getBriefByOrderAndProduct,
   getCustomerBriefById,
@@ -12,6 +14,8 @@ import {
   checkAdminResponseStatus,
   markBriefAsViewed,
   getOrderBriefStatus,
+  markBriefAsViewedByAdmin,
+  getCustomerPendingBriefResponses,
 } from "../controller/customerBriefController.js";
 import { authMiddleware } from "../../middleware/authMiddleware.js";
 import {
@@ -23,11 +27,8 @@ import { UserRole } from "../../users/model/userModel.js";
 
 const router = Router();
 
-// ==================== ALL ROUTES REQUIRE AUTHENTICATION ====================
 router.use(authMiddleware);
 
-// ==================== CUSTOMER ROUTES ====================
-// Submit or update a brief for an order/product
 router.post(
   "/customer/orders/:orderId/products/:productId/brief",
   checkRole([UserRole.Customer]),
@@ -40,6 +41,25 @@ router.put(
   checkRole([UserRole.Customer]),
   uploadBriefFiles,
   submitCustomerBrief
+);
+
+router.post(
+  "/customer/orders/:orderId/products/:productId/reply",
+  checkRole([UserRole.Customer]),
+  uploadBriefFiles,
+  customerReplyToAdmin
+);
+
+router.get(
+  "/customer/briefs/pending-responses",
+  checkRole([UserRole.Customer]),
+  getCustomerPendingBriefResponses
+);
+
+router.get(
+  "/customer/briefs",
+  checkRole([UserRole.Customer]),
+  getUserCustomerBriefs
 );
 
 router.get(
@@ -48,15 +68,6 @@ router.get(
   getAllBriefsByOrderId
 );
 
-// Get all briefs submitted by the logged-in customer
-router.get(
-  "/customer/briefs",
-  checkRole([UserRole.Customer]),
-  getUserCustomerBriefs
-);
-
-// ==================== ADMIN ROUTES ====================
-// Respond to a customer's brief
 router.post(
   "/admin/orders/:orderId/products/:productId/respond",
   checkAdmin,
@@ -71,51 +82,54 @@ router.put(
   adminRespondToBrief
 );
 
-// Get all briefs that need admin attention
 router.get("/admin/briefs", checkAdmin, getAdminCustomerBriefs);
 
-// Mark brief as viewed (admin only)
 router.patch(
   "/briefs/:briefId/view",
   authMiddleware,
   markBriefAsViewed
 );
 
-// ==================== SHARED ROUTES (MULTI-ROLE) ====================
-// Get full conversation for an order/product (all roles)
+router.patch(
+  "/briefs/:briefId/complete",
+  authMiddleware,
+  markBriefAsComplete
+);
+
 router.get(
   "/briefs/orders/:orderId/products/:productId",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
   getBriefByOrderAndProduct
 );
 
-// Get a specific brief by ID
 router.get(
   "/briefs/:briefId",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
   getCustomerBriefById
 );
 
-// Check admin response status for a brief
 router.get(
   "/briefs/status/:orderId/:productId",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
   checkAdminResponseStatus
 );
 
-// Get order brief status (check if all products are ready for invoice)
 router.get(
   "/briefs/order/:orderId/status",
   checkRole([UserRole.Admin, UserRole.SuperAdmin]),
   getOrderBriefStatus
 );
 
-// ==================== SUPER ADMIN ONLY ROUTES ====================
-// Delete any brief
 router.delete(
   "/briefs/:briefId",
   checkSuperAdmin,
   deleteCustomerBrief
+);
+
+router.patch(
+  "/admin/briefs/:briefId/mark-viewed",
+  checkAdmin,
+  markBriefAsViewedByAdmin
 );
 
 export default router;

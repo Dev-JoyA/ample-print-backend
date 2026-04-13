@@ -1,5 +1,18 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
+
+declare global {
+  namespace Express {
+    interface Request {
+      rateLimit?: {
+        limit: number;
+        current: number;
+        remaining: number;
+        resetTime?: Date;
+      };
+    }
+  }
+}
 import { startServer } from "./src/config/db.js";
 import designRoute from "./src/design/routes/designRoute.js";
 import authRoute from "./src/auth/routes/authRoute.js";
