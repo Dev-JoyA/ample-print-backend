@@ -8,6 +8,38 @@ import { BankAccount } from "../bankAccount/model/bankAccountModel.js";
 
 dotenv.config();
 
+Handlebars.registerHelper('eq', function(a, b) {
+  return a === b;
+});
+
+Handlebars.registerHelper('ne', function(a, b) {
+  return a !== b;
+});
+
+Handlebars.registerHelper('gt', function(a, b) {
+  return a > b;
+});
+
+Handlebars.registerHelper('lt', function(a, b) {
+  return a < b;
+});
+
+Handlebars.registerHelper('or', function(a, b) {
+  return a || b;
+});
+
+Handlebars.registerHelper('and', function(a, b) {
+  return a && b;
+});
+
+Handlebars.registerHelper('isDefined', function(value) {
+  return value !== undefined && value !== null;
+});
+
+Handlebars.registerHelper('formatNumber', function(value) {
+  return value?.toLocaleString() || '0';
+});
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..", "..");
@@ -39,10 +71,8 @@ const transporter = nodemailer.createTransport({
   rateLimit: 10,
 });
 
-// Path to email templates
 const TEMPLATE_PATH = path.resolve(projectRoot, "src", "templates", "email");
 
-// Cache compiled templates to avoid re-reading/re-compiling on every send
 const templateCache = new Map<string, HandlebarsTemplateDelegate>();
 
 const getCompiledTemplate = async (
@@ -94,11 +124,11 @@ const sendEmail = async ({
       html,
       attachments: [
         {
-        filename: "ample_logo.png",
-        path: path.resolve(projectRoot, "public", "images", "ample_logo.png"),
-        cid: "ample_logo", 
+          filename: "ample_logo.png",
+          path: path.resolve(projectRoot, "public", "images", "ample_logo.png"),
+          cid: "ample_logo",
         },
-    ],
+      ],
     });
 
     console.log(`✅ Email sent to ${to}: ${subject}`);
@@ -137,7 +167,7 @@ export const sendOrderConfirmation = (
     data: {
       name,
       orderNumber,
-      items, // pass as array — Handlebars {{#each items}} handles it
+      items,
       total,
       deposit: !!deposit,
       trackUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
@@ -179,7 +209,7 @@ export const sendInvoiceReady = (
         totalFormatted: `₦${(total || 0).toLocaleString()}`,
         dueDate: dueDate || "Not specified",
         invoiceUrl: `${process.env.FRONTEND_URL}/invoices/${invoiceNumber}`,
-        items: items || [], // {{#each items}} in template
+        items: items || [],
         hasDeposit: depositAmount && depositAmount > 0,
         depositAmount,
         depositAmountFormatted: `₦${(depositAmount || 0).toLocaleString()}`,
@@ -254,18 +284,26 @@ export const sendReceiptUploaded = (
   name: string,
   orderNumber: string,
   amount: number,
-  transactionId: string
+  transactionId: string,
+  receiptUrl: string
 ): Promise<void> =>
   sendEmail({
     to,
-    subject: "Receipt Received - Pending Verification",
+    subject: `Receipt Received - Pending Verification`,
     template: "receipt-uploaded.html",
     data: {
       name,
       orderNumber,
-      amount,
+      amount: amount.toLocaleString(),
       transactionId,
+      receiptUrl,
+      receiptFileName: receiptUrl.split('/').pop() || 'receipt',
+      uploadDate: new Date().toLocaleString(),
       orderUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
+      supportUrl: `${process.env.FRONTEND_URL}/support`,
+      privacyUrl: `${process.env.FRONTEND_URL}/privacy`,
+      unsubscribeUrl: `${process.env.FRONTEND_URL}/unsubscribe`,
+      year: new Date().getFullYear(),
     },
   });
 
@@ -280,21 +318,23 @@ export const sendPaymentVerified = (
 ): Promise<void> =>
   sendEmail({
     to,
-    subject:
-      status === "approved"
-        ? "Payment Verified Successfully"
-        : "Payment Verification Failed",
+    subject: status === "approved" 
+      ? "Payment Verified Successfully" 
+      : "Payment Verification Failed",
     template: "payment-verified.html",
     data: {
       name,
       orderNumber,
-      amount,
+      amount: amount.toLocaleString(),
       transactionId,
       status,
-      isApproved: status === "approved",
-      isRejected: status === "rejected",
       notes: notes || "",
       orderUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
+      uploadUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}/upload-receipt`,
+      supportUrl: `${process.env.FRONTEND_URL}/support`,
+      privacyUrl: `${process.env.FRONTEND_URL}/privacy`,
+      unsubscribeUrl: `${process.env.FRONTEND_URL}/unsubscribe`,
+      year: new Date().getFullYear(),
     },
   });
 
@@ -482,7 +522,7 @@ export const sendAdminNewOrder = (
       customerName,
       customerEmail,
       total,
-      items, // pass as array — Handlebars {{#each items}} handles it
+      items,
       adminUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}`,
     },
   });
@@ -504,7 +544,7 @@ export const sendAdminNewBrief = (
       customerName,
       productName,
       briefDescription,
-      hasAttachments, // pass as boolean — {{#if hasAttachments}} works directly
+      hasAttachments,
       adminUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}/brief`,
     },
   });

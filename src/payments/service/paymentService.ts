@@ -108,15 +108,6 @@ export const initializePaystackPayment = async (
     const amountPaid = invoice.amountPaid || 0;
     const remainingAmount = invoice.totalAmount - amountPaid;
 
-    console.log('🔍 Paystack initialization validation:', {
-      transactionType,
-      amountReceived: amount,
-      invoiceTotal: invoice.totalAmount,
-      depositAmount: invoice.depositAmount,
-      amountPaid,
-      remainingAmount,
-    });
-
     if (transactionType === TransactionType.Final) {
       if (Math.abs(amount - remainingAmount) > 0.01) {
         throw new Error(
@@ -161,12 +152,6 @@ export const initializePaystackPayment = async (
       { session },
     );
 
-    console.log('✅ Transaction created:', {
-      transactionId: transaction._id,
-      reference,
-      amount,
-    });
-
     await session.commitTransaction();
     session.endSession();
 
@@ -200,10 +185,6 @@ export const initializePaystackPayment = async (
       );
     }
 
-    console.log('✅ Paystack initialized:', {
-      authorizationUrl: response.data.data.authorization_url
-    });
-
     return {
       authorizationUrl: response.data.data.authorization_url,
       accessCode: response.data.data.access_code,
@@ -212,7 +193,7 @@ export const initializePaystackPayment = async (
   } catch (error: any) {
     await session.abortTransaction();
     session.endSession();
-    console.error("❌ Paystack initialization error:", error);
+    console.error("Paystack initialization error:", error);
     throw new Error(`Payment initialization failed: ${error.message}`);
   }
 };
@@ -308,8 +289,7 @@ export const verifyPaystackPayment = async (
             title,
             message,
             data: {
-              transactionId: transaction._id,
-              orderId: order._id,
+              transactionId: transaction.transactionId,
               orderNumber: order.orderNumber,
               invoiceId: transaction.invoiceId,
               amount: transaction.transactionAmount,
@@ -322,44 +302,21 @@ export const verifyPaystackPayment = async (
           console.error('Failed to create payment notification:', notifErr);
         }
 
-        if (transaction.transactionType === TransactionType.Part) {
-          await emailService
-            .sendDesignReady(
-              user.email,
-              profile.firstName,
-              order.orderNumber,
-              "Payment",
-              `${process.env.FRONTEND_URL}/orders/${order.orderNumber}`,
-            )
-            .catch((err) => console.error("Error sending payment email:", err));
-        } else {
-          await emailService
-            .sendOrderDelivered(
-              user.email,
-              profile.firstName,
-              order.orderNumber,
-            )
-            .catch((err) => console.error("Error sending payment email:", err));
-        }
-      }
-
-      const superAdminEmails = await getSuperAdminEmails();
-      for (const adminEmail of superAdminEmails) {
         await emailService
-          .sendAdminNewOrder(
-            adminEmail,
-            order!.orderNumber,
-            profile?.firstName || "Customer",
-            user?.email || "customer@example.com",
+          .sendPaymentConfirmation(
+            user.email,
+            profile.firstName,
+            order.orderNumber,
             transaction.transactionAmount,
-            order?.items || [],
+            transaction.transactionType === TransactionType.Part ? "part" : "full",
+            "Paystack",
+            order.remainingBalance,
           )
-          .catch((err) => console.error("Error notifying super admin:", err));
+          .catch((err) => console.error("Error sending payment confirmation email:", err));
       }
 
       io.to("admin-room").emit("payment-received", {
-        transactionId: transaction._id,
-        orderId: transaction.orderId,
+        transactionId: transaction.transactionId,
         orderNumber: transaction.orderNumber,
         amount: transaction.transactionAmount,
         type: transaction.transactionType,
@@ -369,8 +326,7 @@ export const verifyPaystackPayment = async (
       });
 
       io.to("superadmin-room").emit("payment-received", {
-        transactionId: transaction._id,
-        orderId: transaction.orderId,
+        transactionId: transaction.transactionId,
         orderNumber: transaction.orderNumber,
         amount: transaction.transactionAmount,
         type: transaction.transactionType,
@@ -385,8 +341,7 @@ export const verifyPaystackPayment = async (
           title: 'Payment Received',
           message: `Payment of ₦${transaction.transactionAmount.toLocaleString()} received for order #${transaction.orderNumber}`,
           data: {
-            transactionId: transaction._id,
-            orderId: order!._id,
+            transactionId: transaction.transactionId,
             orderNumber: transaction.orderNumber,
             amount: transaction.transactionAmount,
             transactionType: transaction.transactionType,
@@ -405,8 +360,7 @@ export const verifyPaystackPayment = async (
 
       if (user && order) {
         io.to(`user-${user._id}`).emit("payment-failed", {
-          transactionId: transaction._id,
-          orderId: transaction.orderId,
+          transactionId: transaction.transactionId,
           orderNumber: transaction.orderNumber,
           amount: transaction.transactionAmount,
           reason: paystackData.gateway_response || "Payment failed",
@@ -419,8 +373,7 @@ export const verifyPaystackPayment = async (
             title: 'Payment Failed',
             message: `Your payment of ₦${transaction.transactionAmount.toLocaleString()} for order #${transaction.orderNumber} failed. Please try again.`,
             data: {
-              transactionId: transaction._id,
-              orderId: order._id,
+              transactionId: transaction.transactionId,
               orderNumber: order.orderNumber,
               amount: transaction.transactionAmount,
               reason: paystackData.gateway_response || "Unknown error"
@@ -467,15 +420,6 @@ export const uploadBankTransferReceipt = async (
 
     const amountPaid = invoice.amountPaid || 0;
     const remainingAmount = invoice.totalAmount - amountPaid;
-
-    console.log('💰 Bank transfer validation:', {
-      transactionType,
-      amountReceived: amount,
-      invoiceTotal: invoice.totalAmount,
-      depositAmount: invoice.depositAmount,
-      amountPaid,
-      remainingAmount,
-    });
 
     if (transactionType === TransactionType.Final) {
       if (Math.abs(amount - remainingAmount) > 0.01) {
@@ -539,18 +483,11 @@ export const uploadBankTransferReceipt = async (
     await session.commitTransaction();
     session.endSession();
 
-    console.log('✅ Bank transfer transaction created:', {
-      transactionId: transaction._id,
-      reference,
-      amount,
-      pending: true
-    });
-
     const profile = await Profile.findOne({ userId });
+    const user = await User.findById(userId);
 
     io.to(`user-${userId}`).emit("receipt-uploaded", {
-      transactionId: transaction._id,
-      orderId: transaction.orderId,
+      transactionId: transaction.transactionId,
       orderNumber: transaction.orderNumber,
       amount: transaction.transactionAmount,
       type: transaction.transactionType,
@@ -564,8 +501,7 @@ export const uploadBankTransferReceipt = async (
         title: 'Receipt Uploaded',
         message: `Your receipt for payment of ₦${amount.toLocaleString()} (order #${order.orderNumber}) has been uploaded and is pending verification`,
         data: {
-          transactionId: transaction._id,
-          orderId,
+          transactionId: transaction.transactionId,
           orderNumber: order.orderNumber,
           invoiceId,
           amount,
@@ -578,6 +514,19 @@ export const uploadBankTransferReceipt = async (
       console.error('Failed to create receipt upload notification:', notifErr);
     }
 
+    if (user && profile) {
+      await emailService
+        .sendReceiptUploaded(
+          user.email,
+          profile.firstName,
+          order.orderNumber,
+          amount,
+          transaction.transactionId.toString(),
+          receiptUrl
+        )
+        .catch((err) => console.error("Error sending receipt uploaded email:", err));
+    }
+
     const superAdmins = await User.find({
       role: UserRole.SuperAdmin,
       isActive: true,
@@ -585,8 +534,7 @@ export const uploadBankTransferReceipt = async (
     
     for (const admin of superAdmins) {
       io.to("superadmin-room").emit("pending-bank-transfer", {
-        transactionId: transaction._id,
-        orderId: transaction.orderId,
+        transactionId: transaction.transactionId,
         orderNumber: transaction.orderNumber,
         amount: transaction.transactionAmount,
         type: transaction.transactionType,
@@ -595,24 +543,13 @@ export const uploadBankTransferReceipt = async (
         timestamp: new Date(),
       });
 
-    //   await emailService
-    //     .sendReceiptUploaded(
-    //       admin.email,
-    //       order.orderNumber,
-    //       remainingAmount.toLocaleString(),
-    //       Number(transaction.transactionId),
-    //       receiptUrl,
-    //     )
-    //     .catch((err) => console.error("Error notifying super admin:", err));
-
       try {
         await notificationService.createNotification(admin._id, {
           type: 'pending-bank-transfer',
           title: 'Pending Bank Transfer Verification',
           message: `A bank transfer of ₦${amount.toLocaleString()} from ${profile?.firstName || 'Customer'} for order #${order.orderNumber} requires verification`,
           data: {
-            transactionId: transaction._id,
-            orderId,
+            transactionId: transaction.transactionId,
             orderNumber: order.orderNumber,
             amount,
             transactionType,
@@ -631,7 +568,7 @@ export const uploadBankTransferReceipt = async (
   } catch (error: any) {
     await session.abortTransaction();
     session.endSession();
-    console.error("❌ Bank transfer upload error:", error);
+    console.error("Bank transfer upload error:", error);
     throw error;
   }
 };
@@ -696,8 +633,7 @@ export const verifyBankTransfer = async (
 
       if (user && profile && order) {
         io.to(`user-${user._id}`).emit("payment-verified", {
-          transactionId: transaction._id,
-          orderId: transaction.orderId,
+          transactionId: transaction.transactionId,
           orderNumber: transaction.orderNumber,
           amount: transaction.transactionAmount,
           type: transaction.transactionType,
@@ -719,8 +655,7 @@ export const verifyBankTransfer = async (
             title,
             message,
             data: {
-              transactionId: transaction._id,
-              orderId: order._id,
+              transactionId: transaction.transactionId,
               orderNumber: order.orderNumber,
               invoiceId: transaction.invoiceId,
               amount: transaction.transactionAmount,
@@ -734,25 +669,31 @@ export const verifyBankTransfer = async (
           console.error('Failed to create bank transfer approval notification:', notifErr);
         }
 
-        if (transaction.transactionType === TransactionType.Part) {
-          await emailService
-            .sendDesignReady(
-              user.email,
-              profile.firstName,
-              order.orderNumber,
-              "Payment",
-              `${process.env.FRONTEND_URL}/orders/${order.orderNumber}`,
-            )
-            .catch((err) => console.error("Error sending payment email:", err));
-        } else {
-          await emailService
-            .sendOrderDelivered(user.email, profile.firstName, order.orderNumber)
-            .catch((err) => console.error("Error sending payment email:", err));
-        }
+        await emailService
+          .sendPaymentVerified(
+            user.email,
+            profile.firstName,
+            order.orderNumber,
+            transaction.transactionAmount,
+            transaction.transactionId.toString(),
+            "approved"
+          )
+          .catch((err) => console.error("Error sending payment verified email:", err));
+
+        await emailService
+          .sendPaymentConfirmation(
+            user.email,
+            profile.firstName,
+            order.orderNumber,
+            transaction.transactionAmount,
+            transaction.transactionType === TransactionType.Part ? "part" : "full",
+            "Bank Transfer",
+            order.remainingBalance,
+          )
+          .catch((err) => console.error("Error sending payment confirmation email:", err));
 
         io.to("admin-room").emit("bank-transfer-approved", {
-          transactionId: transaction._id,
-          orderId: transaction.orderId,
+          transactionId: transaction.transactionId,
           orderNumber: transaction.orderNumber,
           amount: transaction.transactionAmount,
           customerName: profile.firstName,
@@ -765,8 +706,7 @@ export const verifyBankTransfer = async (
           title: 'Bank Transfer Approved',
           message: `Bank transfer of ₦${transaction.transactionAmount.toLocaleString()} for order #${transaction.orderNumber} was approved by ${superAdmin?.email}`,
           data: {
-            transactionId: transaction._id,
-            orderId: order._id,
+            transactionId: transaction.transactionId,
             orderNumber: order.orderNumber,
             amount: transaction.transactionAmount,
             verifiedBy: superAdminId
@@ -780,8 +720,7 @@ export const verifyBankTransfer = async (
 
       if (user && profile && order) {
         io.to(`user-${user._id}`).emit("payment-rejected", {
-          transactionId: transaction._id,
-          orderId: transaction.orderId,
+          transactionId: transaction.transactionId,
           orderNumber: transaction.orderNumber,
           amount: transaction.transactionAmount,
           reason: notes || "Receipt could not be verified",
@@ -794,8 +733,7 @@ export const verifyBankTransfer = async (
             title: 'Bank Transfer Rejected',
             message: `Your bank transfer of ₦${transaction.transactionAmount.toLocaleString()} for order #${transaction.orderNumber} was rejected. Reason: ${notes || 'Receipt could not be verified'}`,
             data: {
-              transactionId: transaction._id,
-              orderId: order._id,
+              transactionId: transaction.transactionId,
               orderNumber: order.orderNumber,
               amount: transaction.transactionAmount,
               reason: notes || 'Receipt could not be verified',
@@ -808,22 +746,31 @@ export const verifyBankTransfer = async (
         }
 
         await emailService
-          .sendOrderConfirmation(
+          .sendPaymentVerified(
             user.email,
             profile.firstName,
             order.orderNumber,
-            order.items,
-            order.totalAmount,
+            transaction.transactionAmount,
+            transaction.transactionId.toString(),
+            "rejected",
+            notes || "Receipt could not be verified"
           )
-          .catch((err) => console.error("Error sending rejection email:", err));
+          .catch((err) => console.error("Error sending payment rejected email:", err));
+
+        // await emailService
+        //   .sendOrderCancelled(
+        //     user.email,
+        //     profile.firstName,
+        //     order.orderNumber,
+        //   )
+        //   .catch((err) => console.error("Error sending rejection email:", err));
 
         await notificationService.createForSuperAdmins({
           type: 'bank-transfer-rejected',
           title: 'Bank Transfer Rejected',
           message: `Bank transfer of ₦${transaction.transactionAmount.toLocaleString()} for order #${transaction.orderNumber} was rejected by ${superAdmin?.email}`,
           data: {
-            transactionId: transaction._id,
-            orderId: order._id,
+            transactionId: transaction.transactionId,
             orderNumber: order.orderNumber,
             amount: transaction.transactionAmount,
             reason: notes || 'Receipt could not be verified',
@@ -841,7 +788,7 @@ export const verifyBankTransfer = async (
   } catch (error: any) {
     await session.abortTransaction();
     session.endSession();
-    console.error("❌ Bank transfer verification error:", error);
+    console.error("Bank transfer verification error:", error);
     throw error;
   }
 };
@@ -883,7 +830,7 @@ export const getPendingBankTransfers = async (
       pages: Math.ceil(total / limit),
     };
   } catch (error: any) {
-    console.error("❌ Error fetching pending bank transfers:", error);
+    console.error("Error fetching pending bank transfers:", error);
     throw error;
   }
 };
@@ -906,7 +853,7 @@ export const getTransactionsByOrder = async (
       .sort({ createdAt: -1 })
       .exec();
   } catch (error: any) {
-    console.error("❌ Error fetching transactions by order:", error);
+    console.error("Error fetching transactions by order:", error);
     throw error;
   }
 };
@@ -920,7 +867,7 @@ export const getTransactionsByInvoice = async (
       .sort({ createdAt: -1 })
       .exec();
   } catch (error: any) {
-    console.error("❌ Error fetching transactions by invoice:", error);
+    console.error("Error fetching transactions by invoice:", error);
     throw error;
   }
 };
@@ -952,14 +899,14 @@ export const getUserTransactions = async (
       Transaction.countDocuments({ orderId: { $in: orderIds } }),
     ]);
 
-    return {
+    return {  
       transactions,
       total,
       page,
       pages: Math.ceil(total / limit),
     };
   } catch (error: any) {
-    console.error("❌ Error fetching user transactions:", error);
+    console.error("Error fetching user transactions:", error);
     throw error;
   }
 };

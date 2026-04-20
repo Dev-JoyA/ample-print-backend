@@ -231,23 +231,10 @@ export const verifyPaystackPayment = async (reference, io) => {
                 catch (notifErr) {
                     console.error('Failed to create payment notification:', notifErr);
                 }
-                if (transaction.transactionType === TransactionType.Part) {
-                    await emailService
-                        .sendDesignReady(user.email, profile.firstName, order.orderNumber, "Payment", `${process.env.FRONTEND_URL}/orders/${order.orderNumber}`)
-                        .catch((err) => console.error("Error sending payment email:", err));
-                }
-                else {
-                    await emailService
-                        .sendOrderDelivered(user.email, profile.firstName, order.orderNumber)
-                        .catch((err) => console.error("Error sending payment email:", err));
-                }
+               
             }
             const superAdminEmails = await getSuperAdminEmails();
-            for (const adminEmail of superAdminEmails) {
-                await emailService
-                    .sendAdminNewOrder(adminEmail, order.orderNumber, profile?.firstName || "Customer", user?.email || "customer@example.com", transaction.transactionAmount, order?.items || [])
-                    .catch((err) => console.error("Error notifying super admin:", err));
-            }
+           
             io.to("admin-room").emit("payment-received", {
                 transactionId: transaction._id,
                 orderId: transaction.orderId,
@@ -563,16 +550,7 @@ export const verifyBankTransfer = async (transactionId, superAdminId, status, no
                 catch (notifErr) {
                     console.error('Failed to create bank transfer approval notification:', notifErr);
                 }
-                if (transaction.transactionType === TransactionType.Part) {
-                    await emailService
-                        .sendDesignReady(user.email, profile.firstName, order.orderNumber, "Payment", `${process.env.FRONTEND_URL}/orders/${order.orderNumber}`)
-                        .catch((err) => console.error("Error sending payment email:", err));
-                }
-                else {
-                    await emailService
-                        .sendOrderDelivered(user.email, profile.firstName, order.orderNumber)
-                        .catch((err) => console.error("Error sending payment email:", err));
-                }
+               
                 io.to("admin-room").emit("bank-transfer-approved", {
                     transactionId: transaction._id,
                     orderId: transaction.orderId,
@@ -628,9 +606,7 @@ export const verifyBankTransfer = async (transactionId, superAdminId, status, no
                 catch (notifErr) {
                     console.error('Failed to create bank transfer rejection notification:', notifErr);
                 }
-                await emailService
-                    .sendOrderConfirmation(user.email, profile.firstName, order.orderNumber, order.items, order.totalAmount)
-                    .catch((err) => console.error("Error sending rejection email:", err));
+                
                 await notificationService.createForSuperAdmins({
                     type: 'bank-transfer-rejected',
                     title: 'Bank Transfer Rejected',

@@ -192,25 +192,25 @@ export const createInvoice = async (
     if (user && profile) {
       const dueDateStr = data.dueDate.toLocaleDateString();
 
-      await emailService
-        .sendInvoiceReady(
-          user.email,
-          profile.firstName,
-          order.orderNumber,
-          invoice.invoiceNumber,
-          invoice.totalAmount,
-          depositAmount || undefined,
-          dueDateStr,
-          invoice.items as any,
-          activeBank
-            ? {
-                accountName: activeBank.accountName,
-                accountNumber: activeBank.accountNumber,
-                bankName: activeBank.bankName,
-              }
-            : undefined,
-        )
-        .catch((err) => console.error("Error sending invoice email:", err));
+    //   await emailService
+    //     .sendInvoiceReady(
+    //       user.email,
+    //       profile.firstName,
+    //       order.orderNumber,
+    //       invoice.invoiceNumber,
+    //       invoice.totalAmount,
+    //       depositAmount || undefined,
+    //       dueDateStr,
+    //       invoice.items as any,
+    //       activeBank
+    //         ? {
+    //             accountName: activeBank.accountName,
+    //             accountNumber: activeBank.accountNumber,
+    //             bankName: activeBank.bankName,
+    //           }
+    //         : undefined,
+    //     )
+    //     .catch((err) => console.error("Error sending invoice email:", err));
 
       io.to(`user-${user._id}`).emit("invoice-created", {
         invoiceId: invoice._id,

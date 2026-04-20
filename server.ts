@@ -26,6 +26,7 @@ import YAML from "yamljs";
 import productRoute from "./src/product/routes/productRoute.js";
 import passport from "./src/config/passport.js";
 import attachmentRoute from "./src/shared/routes/attachmentRoute.js";
+import receiptRoute from "./src/shared/routes/receiptRoute.js";
 import feedbackRoute from "./src/feedback/routes/feedbackRoute.js";
 import customerBriefRoute from "./src/customerBrief/routes/customerBriefRoute.js";
 import cors from "cors";
@@ -36,7 +37,6 @@ import notificationRoutes from "./src/notification/routes/notificationRoutes.js"
 import discountRoute from "./src/discount/routes/discountRoutes.js";
 import invoiceRoute from "./src/invoice/routes/invoiceRoute.js";
 import paymentRoute from "./src/payments/routes/paymentRoute.js";
-import receiptRoute from "./src/shared/routes/receiptRoute.js";
 import shippingRoute from "./src/shipping/routes/shippingRoute.js";
 import { verifyToken } from "./src/utils/auth.js";
 import bankAccountRoute from "./src/bankAccount/routes/bankAccountRoute.js";
