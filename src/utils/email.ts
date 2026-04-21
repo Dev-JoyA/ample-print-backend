@@ -370,7 +370,7 @@ export const sendFinalPaymentReminder = (
     });
   })();
 
-export const sendShippingSelectionReminder = (
+  export const sendShippingSelectionReminder = (
   to: string,
   name: string,
   orderNumber: string,
@@ -384,8 +384,29 @@ export const sendShippingSelectionReminder = (
       name,
       orderNumber,
       shippingUrl: link,
+      supportUrl: `${process.env.FRONTEND_URL}/support`,
+      privacyUrl: `${process.env.FRONTEND_URL}/privacy`,
+      unsubscribeUrl: `${process.env.FRONTEND_URL}/unsubscribe`,
+      year: new Date().getFullYear(),
     },
   });
+
+// export const sendShippingSelectionReminder = (
+//   to: string,
+//   name: string,
+//   orderNumber: string,
+//   link: string
+// ): Promise<void> =>
+//   sendEmail({
+//     to,
+//     subject: `Order #${orderNumber} Ready for Shipping Selection`,
+//     template: "shipping-selection-reminder.html",
+//     data: {
+//       name,
+//       orderNumber,
+//       shippingUrl: link,
+//     },
+//   });
 
 export const sendOrderShipped = (
   to: string,
