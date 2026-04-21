@@ -237,15 +237,15 @@ export const uploadDesign = async (
       message: `Design for ${productName} is ready for review`,
     });
 
-    // await emailService
-    //   .sendDesignReady(
-    //     user.email,
-    //     profile.firstName,
-    //     order.orderNumber,
-    //     productName,
-    //     `${process.env.FRONTEND_URL}/orders/${order.orderNumber}/design`,
-    //   )
-    //   .catch((err) => console.error("Error sending design ready email:", err));
+    await emailService
+      .sendDesignReady(
+        user.email,
+        profile.firstName,
+        order.orderNumber,
+        productName,
+        `${process.env.FRONTEND_URL}/orders/${order.orderNumber}/design`,
+      )
+      .catch((err) => console.error("Error sending design ready email:", err));
 
     try {
       await notificationService.createForUser(user._id, {

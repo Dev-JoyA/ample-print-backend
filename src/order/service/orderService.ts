@@ -58,7 +58,11 @@ const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
     OrderStatus.AwaitingFinalPayment,
     OrderStatus.Cancelled,
   ],
-  [OrderStatus.InProduction]: [OrderStatus.Completed, OrderStatus.Cancelled],
+  [OrderStatus.InProduction]: [
+    OrderStatus.Completed, 
+    OrderStatus.AwaitingFinalPayment, 
+    OrderStatus.Cancelled
+],
   [OrderStatus.Completed]: [
     OrderStatus.ReadyForShipping,
     OrderStatus.AwaitingFinalPayment,
