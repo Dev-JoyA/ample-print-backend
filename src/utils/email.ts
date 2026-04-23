@@ -416,24 +416,36 @@ export const sendOrderShipped = (
   trackingNumber?: string,
   estimatedDelivery?: string,
   shippingAddress?: string,
-  trackingUrl?: string
-): Promise<void> =>
-  sendEmail({
+  trackingUrl?: string,
+  driverName?: string,
+  driverPhone?: string
+): Promise<void> => {
+  const hasTrackingInfo = !!(carrier && trackingNumber);
+  const hasDriverInfo = !!(driverName || driverPhone);
+  
+  return sendEmail({
     to,
     subject: `Order #${orderNumber} Has Been Shipped!`,
     template: "order-shipped.html",
     data: {
       name,
       orderNumber,
-      carrier: carrier || "Not specified",
-      trackingNumber: trackingNumber || "Not available",
-      estimatedDelivery: estimatedDelivery || "To be confirmed",
-      shippingAddress: shippingAddress || "Address not specified",
-      trackUrl:
-        trackingUrl ||
-        `${process.env.FRONTEND_URL}/orders/${orderNumber}/tracking`,
+      carrier: carrier || "",
+      trackingNumber: trackingNumber || "",
+      estimatedDelivery: estimatedDelivery || "",
+      shippingAddress: shippingAddress || "",
+      trackUrl: trackingUrl || `${process.env.FRONTEND_URL}/orders/${orderNumber}/tracking`,
+      driverName: driverName || "",
+      driverPhone: driverPhone || "",
+      hasTrackingInfo,
+      hasDriverInfo,
+      year: new Date().getFullYear(),
+      unsubscribeUrl: `${process.env.FRONTEND_URL}/unsubscribe`,
+      privacyUrl: `${process.env.FRONTEND_URL}/privacy`,
+      supportUrl: `${process.env.FRONTEND_URL}/support`,
     },
   });
+};
 
 export const sendOrderDelivered = (
   to: string,

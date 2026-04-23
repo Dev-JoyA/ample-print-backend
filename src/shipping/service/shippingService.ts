@@ -954,20 +954,20 @@ export const createShipping = async (
           ? `${data.address.street}, ${data.address.city}, ${data.address.state}`
           : "To be determined";
 
-        await emailService
-          .sendShippingCreated(
-            user.email,
-            profile.firstName,
-            order.orderNumber,
-            "delivery",
-            0,
-            addressStr,
-            `${profile.firstName} ${profile.lastName}`,
-            profile.phoneNumber,
-            process.env.STORE_ADDRESS || "5 Boyle Street Shomolu, Lagos",
-            process.env.STORE_HOURS || "Mon-Fri 9am-5pm",
-          )
-          .catch((err) => console.error("Error sending shipping created email:", err));
+        // await emailService
+        //   .sendShippingCreated(
+        //     user.email,
+        //     profile.firstName,
+        //     order.orderNumber,
+        //     "delivery",
+        //     0,
+        //     addressStr,
+        //     `${profile.firstName} ${profile.lastName}`,
+        //     profile.phoneNumber,
+        //     process.env.STORE_ADDRESS || "5 Boyle Street Shomolu, Lagos",
+        //     process.env.STORE_HOURS || "Mon-Fri 9am-5pm",
+        //   )
+        //   .catch((err) => console.error("Error sending shipping created email:", err));
       }
     } else {
       io.to(`user-${order.userId}`).emit("pickup-ready", {
@@ -999,22 +999,22 @@ export const createShipping = async (
         console.error('Failed to create pickup notification:', notifErr);
       }
 
-      if (user && profile) {
-        await emailService
-          .sendShippingCreated(
-            user.email,
-            profile.firstName,
-            order.orderNumber,
-            "pickup",
-            0,
-            undefined,
-            undefined,
-            undefined,
-            process.env.STORE_ADDRESS || "5 Boyle Street Shomolu, Lagos",
-            process.env.STORE_HOURS || "Mon-Fri 9am-5pm",
-          )
-          .catch((err) => console.error("Error sending pickup ready email:", err));
-      }
+    //   if (user && profile) {
+    //     await emailService
+    //       .sendShippingCreated(
+    //         user.email,
+    //         profile.firstName,
+    //         order.orderNumber,
+    //         "pickup",
+    //         0,
+    //         undefined,
+    //         undefined,
+    //         undefined,
+    //         process.env.STORE_ADDRESS || "5 Boyle Street Shomolu, Lagos",
+    //         process.env.STORE_HOURS || "Mon-Fri 9am-5pm",
+    //       )
+    //       .catch((err) => console.error("Error sending pickup ready email:", err));
+    //   }
     }
 
     io.to("admin-room").emit("shipping-created", {
@@ -1163,22 +1163,23 @@ export const updateShippingTracking = async (
         console.error('Failed to create tracking notification:', notifErr);
       }
 
-    //   const addressStr = shipping.address
-    //     ? `${shipping.address.street}, ${shipping.address.city}, ${shipping.address.state}`
-    //     : "Your address";
+      const addressStr = shipping.address
+        ? `${shipping.address.street}, ${shipping.address.city}, ${shipping.address.state}`
+        : "Your address";
 
-    //   await emailService
-    //     .sendOrderShipped(
-    //       user.email,
-    //       profile.firstName,
-    //       order.orderNumber,
-    //       data.carrier || "Courier",
-    //       data.trackingNumber,
-    //       data.estimatedDelivery?.toLocaleDateString() || "To be determined",
-    //       addressStr,
-    //       `${process.env.TRACKING_BASE_URL}/${data.trackingNumber}`,
-    //     )
-    //     .catch((err) => console.error("Error sending tracking email:", err));
+       await emailService.sendOrderShipped(
+            user.email,
+            profile.firstName || profile.userName || 'Customer',
+            order.orderNumber,
+            data.carrier,
+            data.trackingNumber,
+            data.estimatedDelivery?.toLocaleDateString(),
+            shipping.address ? `${shipping.address.street}, ${shipping.address.city}, ${shipping.address.state}` : 'Address not specified',
+            `${process.env.FRONTEND_URL}/orders/${order._id}/tracking`,
+            data.driverName,
+            data.driverPhone
+        )
+        .catch((err) => console.error("Error sending tracking email:", err));
      }
 
     io.to("admin-room").emit("tracking-updated", {
@@ -1396,7 +1397,6 @@ export const markShippingAsPaid = async (
     const profile = await Profile.findOne({ userId: order?.userId });
 
     if (user && order) {
-      // FIXED: Add email for shipping payment confirmation
       if (profile) {
         await emailService
           .sendPaymentConfirmation(
