@@ -68,7 +68,11 @@ const PORT = process.env.PORT || 4001;
 const allowedOrigins =
   process.env.NODE_ENV === "production"
     ? [process.env.FRONTEND_URL!]
-    : ["http://localhost:3000", "http://localhost:3001", "http://localhost:4001"];
+    : [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:4001",
+      ];
 
 const corsOptions: cors.CorsOptions = {
   origin: allowedOrigins,
@@ -95,7 +99,7 @@ app.use(
       },
     },
     crossOriginEmbedderPolicy: false,
-  })
+  }),
 );
 
 // ==================== GENERAL MIDDLEWARE ====================
@@ -113,13 +117,15 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 10 : 1000,
+  max: process.env.NODE_ENV === "production" ? 10 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
     const resetTime = req.rateLimit?.resetTime;
     const now = new Date();
-    const diffMs = resetTime ? resetTime.getTime() - now.getTime() : 60 * 60 * 1000;
+    const diffMs = resetTime
+      ? resetTime.getTime() - now.getTime()
+      : 60 * 60 * 1000;
     const diffMins = Math.ceil(Math.max(diffMs, 0) / 1000 / 60);
 
     res.status(429).json({
@@ -141,8 +147,16 @@ app.use(mongoSanitize());
 app.use(xss());
 app.use(
   hpp({
-    whitelist: ["status", "paymentStatus", "sort", "page", "limit", "price", "quantity"],
-  })
+    whitelist: [
+      "status",
+      "paymentStatus",
+      "sort",
+      "page",
+      "limit",
+      "price",
+      "quantity",
+    ],
+  }),
 );
 
 // ==================== CUSTOM SECURITY ====================
@@ -162,7 +176,7 @@ app.use(
       res.setHeader("X-Content-Type-Options", "nosniff");
       res.setHeader("Cache-Control", "public, max-age=31536000");
     },
-  })
+  }),
 );
 
 // ==================== PASSPORT ====================
@@ -173,7 +187,10 @@ try {
   const swaggerPath = path.join(__dirname, "swagger", "swagger.yaml");
   const swaggerDocument = YAML.load(swaggerPath);
 
-  if (process.env.NODE_ENV !== "production" || process.env.ENABLE_SWAGGER === "true") {
+  if (
+    process.env.NODE_ENV !== "production" ||
+    process.env.ENABLE_SWAGGER === "true"
+  ) {
     app.use(
       "/api-docs",
       swaggerUi.serve,
@@ -181,7 +198,7 @@ try {
         customCss: ".swagger-ui .topbar { display: none }",
         customSiteTitle: "AMPLE PRINT HUB API Documentation",
         swaggerOptions: { persistAuthorization: true },
-      })
+      }),
     );
     console.log("✓ Swagger documentation loaded successfully");
   }
@@ -240,8 +257,7 @@ const io = new Server(server, {
 
 io.use(async (socket, next) => {
   try {
-    const token =
-      socket.handshake.auth.token || socket.handshake.query.token;
+    const token = socket.handshake.auth.token || socket.handshake.query.token;
 
     if (!token) {
       return next(new Error("Authentication required"));
@@ -294,7 +310,9 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   console.error("❌ Error:", err);
 
   const message =
-    process.env.NODE_ENV === "production" ? "Internal server error" : err.message;
+    process.env.NODE_ENV === "production"
+      ? "Internal server error"
+      : err.message;
 
   res.status(err.status || 500).json({
     success: false,

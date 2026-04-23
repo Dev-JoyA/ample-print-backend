@@ -36,11 +36,7 @@ router.use(authMiddleware);
 // Create order (Customer only)
 router.post("/create", checkRole([UserRole.Customer]), createOrder);
 
-router.post(
-  "/:orderId/items",
-  checkRole([UserRole.Customer]),
-  addItemToOrder
-);
+router.post("/:orderId/items", checkRole([UserRole.Customer]), addItemToOrder);
 
 // Get logged-in customer's orders
 router.get("/my-orders", authMiddleware, getUserOrders);
@@ -50,7 +46,7 @@ router.get("/my-orders", authMiddleware, getUserOrders);
 router.patch(
   "/:orderId/mark-awaiting-invoice",
   checkAdmin, // Admin or Super Admin can mark as awaiting invoice
-  markOrderAsAwaitingInvoice
+  markOrderAsAwaitingInvoice,
 );
 
 // ==================== SUPER ADMIN ONLY ROUTES ====================
@@ -58,7 +54,7 @@ router.patch(
 router.post(
   "/super-admin/create/:customerId",
   checkSuperAdmin,
-  superAdminCreateOrder
+  superAdminCreateOrder,
 );
 
 // Get orders ready for invoice
@@ -78,7 +74,11 @@ router.patch("/:id/status", checkAdmin, updateOrderStatus);
 router.get("/filter", checkAdmin, filterOrders);
 
 // Get user's active orders (orders that can still accept items)
-router.get("/my-active-orders", checkRole([UserRole.Customer]), getUserActiveOrders);
+router.get(
+  "/my-active-orders",
+  checkRole([UserRole.Customer]),
+  getUserActiveOrders,
+);
 
 // Search by order number
 router.get("/search/:orderNumber", authMiddleware, searchByOrderNumber);

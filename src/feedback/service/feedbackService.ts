@@ -52,7 +52,9 @@ export const createCustomerFeedback = async (
       const design = await Design.findOne({
         _id: data.designId,
         orderId: data.orderId,
-      }).populate("productId").session(session);
+      })
+        .populate("productId")
+        .session(session);
 
       if (!design) {
         await session.abortTransaction();
@@ -62,14 +64,16 @@ export const createCustomerFeedback = async (
     }
 
     const [feedback] = await Feedback.create(
-      [{
-        userId: new Types.ObjectId(userId),
-        orderId: new Types.ObjectId(data.orderId),
-        ...(data.designId && { designId: new Types.ObjectId(data.designId) }),
-        message: data.message,
-        attachment: data.attachments || [],
-        status: FeedBackStatus.Pending,
-      }],
+      [
+        {
+          userId: new Types.ObjectId(userId),
+          orderId: new Types.ObjectId(data.orderId),
+          ...(data.designId && { designId: new Types.ObjectId(data.designId) }),
+          message: data.message,
+          attachment: data.attachments || [],
+          status: FeedBackStatus.Pending,
+        },
+      ],
       { session },
     );
 
@@ -79,9 +83,9 @@ export const createCustomerFeedback = async (
     await feedback.populate([
       { path: "userId", select: "fullname email" },
       { path: "orderId", select: "orderNumber" },
-      { 
-        path: "designId", 
-        populate: { path: "productId", select: "name price images" }
+      {
+        path: "designId",
+        populate: { path: "productId", select: "name price images" },
       },
     ]);
 
@@ -91,12 +95,15 @@ export const createCustomerFeedback = async (
       feedbackId: feedback._id,
       orderId: feedback.orderId,
       orderNumber: (feedback.orderId as any).orderNumber,
-      ...(data.designId && { 
+      ...(data.designId && {
         designId: data.designId,
-        productName: (feedback.designId as any)?.productId?.name || "Unknown Product"
+        productName:
+          (feedback.designId as any)?.productId?.name || "Unknown Product",
       }),
-      message: data.message.substring(0, 50) + (data.message.length > 50 ? "..." : ""),
-      customerName: (feedback.userId as any)?.fullname || profile?.firstName || "Customer",
+      message:
+        data.message.substring(0, 50) + (data.message.length > 50 ? "..." : ""),
+      customerName:
+        (feedback.userId as any)?.fullname || profile?.firstName || "Customer",
       priority: "high",
       timestamp: new Date(),
     };
@@ -106,9 +113,9 @@ export const createCustomerFeedback = async (
 
     try {
       await notificationService.createForAdmins({
-        type: 'new-feedback',
-        title: 'New Feedback Received',
-        message: `Customer ${profile?.firstName || 'Customer'} submitted feedback for order #${(feedback.orderId as any).orderNumber}`,
+        type: "new-feedback",
+        title: "New Feedback Received",
+        message: `Customer ${profile?.firstName || "Customer"} submitted feedback for order #${(feedback.orderId as any).orderNumber}`,
         data: {
           feedbackId: feedback._id,
           orderId: feedback.orderId,
@@ -117,20 +124,22 @@ export const createCustomerFeedback = async (
           productName: (feedback.designId as any)?.productId?.name,
           messagePreview: notificationData.message,
           customerId: userId,
-          customerName: profile?.firstName || 'Customer',
-          hasAttachments: !!(data.attachments && data.attachments.length > 0)
+          customerName: profile?.firstName || "Customer",
+          hasAttachments: !!(data.attachments && data.attachments.length > 0),
         },
-        link: `/dashboards/admin/feedback/${feedback._id}`
+        link: `/dashboards/admin/feedback/${feedback._id}`,
       });
-      
     } catch (notifErr: any) {
-      console.error('Failed to create admin feedback notification:', notifErr.message);
+      console.error(
+        "Failed to create admin feedback notification:",
+        notifErr.message,
+      );
     }
 
     const pendingCount = await Feedback.countDocuments({
       status: FeedBackStatus.Pending,
     });
-    
+
     io.to("admin-room").emit("pending-feedback-count", {
       count: pendingCount,
       timestamp: new Date(),
@@ -178,7 +187,7 @@ export const adminRespondToFeedback = async (
     const order = await Order.findById(feedback.orderId)
       .select("orderNumber userId")
       .session(session);
-      
+
     if (!order) {
       await session.abortTransaction();
       session.endSession();
@@ -186,13 +195,15 @@ export const adminRespondToFeedback = async (
     }
 
     const admin = await User.findById(adminId).session(session);
-    const adminProfile = await Profile.findOne({ userId: adminId }).session(session);
+    const adminProfile = await Profile.findOne({ userId: adminId }).session(
+      session,
+    );
 
     feedback.adminResponse = response;
     feedback.respondedBy = new Types.ObjectId(adminId);
     feedback.adminResponseAt = new Date();
     feedback.status = FeedBackStatus.Reviewed;
-    
+
     if (attachments && attachments.length > 0) {
       (feedback as any).adminAttachments = attachments;
     }
@@ -205,9 +216,9 @@ export const adminRespondToFeedback = async (
       { path: "userId", select: "fullname email" },
       { path: "orderId", select: "orderNumber" },
       { path: "respondedBy", select: "fullname email" },
-      { 
-        path: "designId", 
-        populate: { path: "productId", select: "name price images" }
+      {
+        path: "designId",
+        populate: { path: "productId", select: "name price images" },
       },
     ]);
 
@@ -223,28 +234,32 @@ export const adminRespondToFeedback = async (
 
     try {
       await notificationService.createForUser(feedback.userId, {
-        type: 'feedback-response',
-        title: 'Response to Your Feedback',
+        type: "feedback-response",
+        title: "Response to Your Feedback",
         message: `Admin has responded to your feedback for order #${order.orderNumber}`,
         data: {
           feedbackId: feedback._id,
           orderId: feedback.orderId,
           orderNumber: order.orderNumber,
           designId: feedback.designId,
-          response: response.substring(0, 100) + (response.length > 100 ? '...' : ''),
-          adminName: adminProfile?.firstName || admin?.email || 'Admin',
-          adminId
+          response:
+            response.substring(0, 100) + (response.length > 100 ? "..." : ""),
+          adminName: adminProfile?.firstName || admin?.email || "Admin",
+          adminId,
         },
-        link: `/orders/${order._id}/feedback`
+        link: `/orders/${order._id}/feedback`,
       });
     } catch (notifErr: any) {
-      console.error('Failed to create feedback response notification:', notifErr.message);
+      console.error(
+        "Failed to create feedback response notification:",
+        notifErr.message,
+      );
     }
 
     const pendingCount = await Feedback.countDocuments({
       status: FeedBackStatus.Pending,
     });
-    
+
     io.to("admin-room").emit("pending-feedback-count", {
       count: pendingCount,
       timestamp: new Date(),
@@ -283,7 +298,10 @@ export const updateFeedbackStatus = async (
       throw new Error("Customers are not allowed to update feedback status");
     }
 
-    if (feedback.status === FeedBackStatus.Resolved && status !== FeedBackStatus.Resolved) {
+    if (
+      feedback.status === FeedBackStatus.Resolved &&
+      status !== FeedBackStatus.Resolved
+    ) {
       await session.abortTransaction();
       session.endSession();
       throw new Error("Cannot change status of resolved feedback");
@@ -296,9 +314,11 @@ export const updateFeedbackStatus = async (
     const order = await Order.findById(feedback.orderId)
       .select("orderNumber")
       .session(session);
-      
+
     const user = await User.findById(feedback.userId).session(session);
-    const profile = await Profile.findOne({ userId: feedback.userId }).session(session);
+    const profile = await Profile.findOne({ userId: feedback.userId }).session(
+      session,
+    );
 
     await session.commitTransaction();
     session.endSession();
@@ -306,9 +326,9 @@ export const updateFeedbackStatus = async (
     await feedback.populate([
       { path: "userId", select: "fullname email" },
       { path: "orderId", select: "orderNumber" },
-      { 
-        path: "designId", 
-        populate: { path: "productId", select: "name price images" }
+      {
+        path: "designId",
+        populate: { path: "productId", select: "name price images" },
       },
     ]);
 
@@ -322,24 +342,27 @@ export const updateFeedbackStatus = async (
       timestamp: new Date(),
     };
 
-    io.to(`user-${feedback.userId}`).emit("feedback-status-updated", statusData);
+    io.to(`user-${feedback.userId}`).emit(
+      "feedback-status-updated",
+      statusData,
+    );
     io.to("admin-room").emit("feedback-status-updated", statusData);
 
     if (user && order) {
       try {
-        let title = 'Feedback Status Updated';
+        let title = "Feedback Status Updated";
         let message = `Your feedback for order #${order.orderNumber} status changed from ${oldStatus} to ${status}`;
-        
+
         if (status === FeedBackStatus.Resolved) {
-          title = 'Feedback Resolved';
+          title = "Feedback Resolved";
           message = `Your feedback for order #${order.orderNumber} has been marked as resolved`;
         } else if (status === FeedBackStatus.Reviewed) {
-          title = 'Feedback Reviewed';
+          title = "Feedback Reviewed";
           message = `Your feedback for order #${order.orderNumber} has been reviewed`;
         }
 
         await notificationService.createForUser(feedback.userId, {
-          type: 'feedback-status-updated',
+          type: "feedback-status-updated",
           title,
           message,
           data: {
@@ -349,16 +372,22 @@ export const updateFeedbackStatus = async (
             oldStatus,
             newStatus: status,
             updatedBy: userId,
-            updaterRole: userRole
+            updaterRole: userRole,
           },
-          link: `/orders/${order._id}/feedback`
+          link: `/orders/${order._id}/feedback`,
         });
       } catch (notifErr: any) {
-        console.error('Failed to create feedback status notification:', notifErr.message);
+        console.error(
+          "Failed to create feedback status notification:",
+          notifErr.message,
+        );
       }
     }
 
-    if (oldStatus === FeedBackStatus.Pending || status === FeedBackStatus.Pending) {
+    if (
+      oldStatus === FeedBackStatus.Pending ||
+      status === FeedBackStatus.Pending
+    ) {
       const pendingCount = await Feedback.countDocuments({
         status: FeedBackStatus.Pending,
       });
@@ -376,7 +405,9 @@ export const updateFeedbackStatus = async (
   }
 };
 
-export const getAllFeedback = async (options: FeedbackFilterOptions): Promise<{
+export const getAllFeedback = async (
+  options: FeedbackFilterOptions,
+): Promise<{
   feedback: IFeedback[];
   total: number;
   page: number;
@@ -402,7 +433,7 @@ export const getAllFeedback = async (options: FeedbackFilterOptions): Promise<{
       .populate("orderId", "orderNumber userId")
       .populate({
         path: "designId",
-        populate: { path: "productId", select: "name price images" }
+        populate: { path: "productId", select: "name price images" },
       })
       .populate("respondedBy", "fullname email")
       .sort({ createdAt: -1 })
@@ -421,14 +452,24 @@ export const getAllFeedback = async (options: FeedbackFilterOptions): Promise<{
   };
 };
 
-export const filterFeedback = async (filters: FeedbackFilterOptions): Promise<{
+export const filterFeedback = async (
+  filters: FeedbackFilterOptions,
+): Promise<{
   feedback: IFeedback[];
   total: number;
   page: number;
   limit: number;
   pages: number;
 }> => {
-  const { page = 1, limit = 10, status, orderId, userId, startDate, endDate } = filters;
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    orderId,
+    userId,
+    startDate,
+    endDate,
+  } = filters;
   const skip = (page - 1) * limit;
 
   const query: any = {};
@@ -457,7 +498,7 @@ export const filterFeedback = async (filters: FeedbackFilterOptions): Promise<{
       .populate("orderId", "orderNumber userId")
       .populate({
         path: "designId",
-        populate: { path: "productId", select: "name price images" }
+        populate: { path: "productId", select: "name price images" },
       })
       .populate("respondedBy", "fullname email")
       .sort({ createdAt: -1 })
@@ -493,7 +534,7 @@ export const getPendingFeedback = async (
       .populate("orderId", "orderNumber")
       .populate({
         path: "designId",
-        populate: { path: "productId", select: "name" }
+        populate: { path: "productId", select: "name" },
       })
       .populate("respondedBy", "fullname email")
       .sort({ createdAt: -1 })
@@ -521,7 +562,7 @@ export const getFeedbackById = async (
     .populate("orderId", "orderNumber status")
     .populate({
       path: "designId",
-      populate: { path: "productId", select: "name price images" }
+      populate: { path: "productId", select: "name price images" },
     })
     .populate("respondedBy", "fullname email")
     .exec();
@@ -555,7 +596,7 @@ export const getFeedbackByOrderId = async (
     .populate("userId", "fullname email")
     .populate({
       path: "designId",
-      populate: { path: "productId", select: "name" }
+      populate: { path: "productId", select: "name" },
     })
     .populate("respondedBy", "fullname email")
     .sort({ createdAt: -1 })
@@ -574,9 +615,9 @@ export const getUserFeedback = async (
   pages: number;
 }> => {
   const skip = (page - 1) * limit;
-  
+
   const query: any = { userId: new Types.ObjectId(userId) };
-  
+
   if (status) {
     query.status = status;
   }
@@ -586,7 +627,7 @@ export const getUserFeedback = async (
       .populate("orderId", "orderNumber")
       .populate({
         path: "designId",
-        populate: { path: "productId", select: "name" }
+        populate: { path: "productId", select: "name" },
       })
       .populate("respondedBy", "fullname email")
       .sort({ createdAt: -1 })
@@ -639,9 +680,11 @@ export const deleteFeedback = async (
     const order = await Order.findById(feedback.orderId)
       .select("orderNumber")
       .session(session);
-      
+
     const user = await User.findById(feedback.userId).session(session);
-    const profile = await Profile.findOne({ userId: feedback.userId }).session(session);
+    const profile = await Profile.findOne({ userId: feedback.userId }).session(
+      session,
+    );
 
     await Feedback.findByIdAndDelete(feedbackId).session(session);
     await session.commitTransaction();
@@ -665,7 +708,7 @@ export const deleteFeedback = async (
     const pendingCount = await Feedback.countDocuments({
       status: FeedBackStatus.Pending,
     });
-    
+
     io.to("admin-room").emit("pending-feedback-count", {
       count: pendingCount,
       timestamp: new Date(),

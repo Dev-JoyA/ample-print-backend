@@ -77,10 +77,12 @@ router.get("/all", checkAdmin, getAllFeedback);
 // NEW: Advanced filtering
 router.get("/filter", checkAdmin, filterFeedback);
 
-router.post("/:feedbackId/respond", 
-    checkAdmin, 
-    upload.array("attachments", 5),
-    respondToFeedback);
+router.post(
+  "/:feedbackId/respond",
+  checkAdmin,
+  upload.array("attachments", 5),
+  respondToFeedback,
+);
 
 router.patch("/:feedbackId/status", checkAdmin, updateStatus);
 
@@ -98,10 +100,6 @@ router.get(
 );
 
 // ===== SUPER ADMIN ONLY =====
-router.delete(
-  "/:feedbackId",
-  checkRole([UserRole.SuperAdmin]),
-  deleteFeedback,
-);
+router.delete("/:feedbackId", checkRole([UserRole.SuperAdmin]), deleteFeedback);
 
 export default router;

@@ -8,36 +8,36 @@ import { BankAccount } from "../bankAccount/model/bankAccountModel.js";
 
 dotenv.config();
 
-Handlebars.registerHelper('eq', function(a, b) {
+Handlebars.registerHelper("eq", function (a, b) {
   return a === b;
 });
 
-Handlebars.registerHelper('ne', function(a, b) {
+Handlebars.registerHelper("ne", function (a, b) {
   return a !== b;
 });
 
-Handlebars.registerHelper('gt', function(a, b) {
+Handlebars.registerHelper("gt", function (a, b) {
   return a > b;
 });
 
-Handlebars.registerHelper('lt', function(a, b) {
+Handlebars.registerHelper("lt", function (a, b) {
   return a < b;
 });
 
-Handlebars.registerHelper('or', function(a, b) {
+Handlebars.registerHelper("or", function (a, b) {
   return a || b;
 });
 
-Handlebars.registerHelper('and', function(a, b) {
+Handlebars.registerHelper("and", function (a, b) {
   return a && b;
 });
 
-Handlebars.registerHelper('isDefined', function(value) {
+Handlebars.registerHelper("isDefined", function (value) {
   return value !== undefined && value !== null;
 });
 
-Handlebars.registerHelper('formatNumber', function(value) {
-  return value?.toLocaleString() || '0';
+Handlebars.registerHelper("formatNumber", function (value) {
+  return value?.toLocaleString() || "0";
 });
 
 const __filename = fileURLToPath(import.meta.url);
@@ -76,7 +76,7 @@ const TEMPLATE_PATH = path.resolve(projectRoot, "src", "templates", "email");
 const templateCache = new Map<string, HandlebarsTemplateDelegate>();
 
 const getCompiledTemplate = async (
-  templateName: string
+  templateName: string,
 ): Promise<HandlebarsTemplateDelegate> => {
   if (templateCache.has(templateName)) {
     return templateCache.get(templateName)!;
@@ -89,7 +89,7 @@ const getCompiledTemplate = async (
     source = await fs.readFile(templatePath, "utf-8");
   } catch (error) {
     console.error(
-      `Email template ${templateName} not found at ${templatePath}`
+      `Email template ${templateName} not found at ${templatePath}`,
     );
     source = `<div style="font-family: Arial, sans-serif; padding: 20px;">
                 <h1>Notification from Ample Printhub</h1>
@@ -158,7 +158,7 @@ export const sendOrderConfirmation = (
     total: number;
   }>,
   total: number,
-  deposit?: boolean
+  deposit?: boolean,
 ): Promise<void> =>
   sendEmail({
     to,
@@ -188,7 +188,7 @@ export const sendInvoiceReady = (
     unitPrice: number;
     total: number;
   }>,
-  bankAccount?: BankAccountForEmails
+  bankAccount?: BankAccountForEmails,
 ): Promise<void> =>
   (async () => {
     const activeBank =
@@ -222,7 +222,7 @@ export const sendDesignReady = (
   name: string,
   orderNumber: string,
   productName: string,
-  url: string
+  url: string,
 ): Promise<void> =>
   sendEmail({
     to,
@@ -241,7 +241,7 @@ export const sendDesignApproved = (
   name: string,
   orderNumber: string,
   productName: string,
-  url: string
+  url: string,
 ): Promise<void> =>
   sendEmail({
     to,
@@ -262,7 +262,7 @@ export const sendPaymentConfirmation = (
   amount: number,
   paymentType: string,
   paymentMethod: string,
-  remainingBalance: number
+  remainingBalance: number,
 ): Promise<void> =>
   sendEmail({
     to,
@@ -285,7 +285,7 @@ export const sendReceiptUploaded = (
   orderNumber: string,
   amount: number,
   transactionId: string,
-  receiptUrl: string
+  receiptUrl: string,
 ): Promise<void> =>
   sendEmail({
     to,
@@ -297,7 +297,7 @@ export const sendReceiptUploaded = (
       amount: amount.toLocaleString(),
       transactionId,
       receiptUrl,
-      receiptFileName: receiptUrl.split('/').pop() || 'receipt',
+      receiptFileName: receiptUrl.split("/").pop() || "receipt",
       uploadDate: new Date().toLocaleString(),
       orderUrl: `${process.env.FRONTEND_URL}/orders/${orderNumber}`,
       supportUrl: `${process.env.FRONTEND_URL}/support`,
@@ -314,13 +314,14 @@ export const sendPaymentVerified = (
   amount: number,
   transactionId: string,
   status: "approved" | "rejected",
-  notes?: string
+  notes?: string,
 ): Promise<void> =>
   sendEmail({
     to,
-    subject: status === "approved" 
-      ? "Payment Verified Successfully" 
-      : "Payment Verification Failed",
+    subject:
+      status === "approved"
+        ? "Payment Verified Successfully"
+        : "Payment Verification Failed",
     template: "payment-verified.html",
     data: {
       name,
@@ -345,7 +346,7 @@ export const sendFinalPaymentReminder = (
   name: string,
   orderNumber: string,
   amount: number,
-  bankAccount?: BankAccountForEmails
+  bankAccount?: BankAccountForEmails,
 ): Promise<void> =>
   (async () => {
     const activeBank =
@@ -370,11 +371,11 @@ export const sendFinalPaymentReminder = (
     });
   })();
 
-  export const sendShippingSelectionReminder = (
+export const sendShippingSelectionReminder = (
   to: string,
   name: string,
   orderNumber: string,
-  link: string
+  link: string,
 ): Promise<void> =>
   sendEmail({
     to,
@@ -416,29 +417,43 @@ export const sendOrderShipped = (
   trackingNumber?: string,
   estimatedDelivery?: string,
   shippingAddress?: string,
-  trackingUrl?: string
-): Promise<void> =>
-  sendEmail({
+  trackingUrl?: string,
+  driverName?: string,
+  driverPhone?: string,
+): Promise<void> => {
+  const hasTrackingInfo = !!(carrier && trackingNumber);
+  const hasDriverInfo = !!(driverName || driverPhone);
+
+  return sendEmail({
     to,
     subject: `Order #${orderNumber} Has Been Shipped!`,
     template: "order-shipped.html",
     data: {
       name,
       orderNumber,
-      carrier: carrier || "Not specified",
-      trackingNumber: trackingNumber || "Not available",
-      estimatedDelivery: estimatedDelivery || "To be confirmed",
-      shippingAddress: shippingAddress || "Address not specified",
+      carrier: carrier || "",
+      trackingNumber: trackingNumber || "",
+      estimatedDelivery: estimatedDelivery || "",
+      shippingAddress: shippingAddress || "",
       trackUrl:
         trackingUrl ||
         `${process.env.FRONTEND_URL}/orders/${orderNumber}/tracking`,
+      driverName: driverName || "",
+      driverPhone: driverPhone || "",
+      hasTrackingInfo,
+      hasDriverInfo,
+      year: new Date().getFullYear(),
+      unsubscribeUrl: `${process.env.FRONTEND_URL}/unsubscribe`,
+      privacyUrl: `${process.env.FRONTEND_URL}/privacy`,
+      supportUrl: `${process.env.FRONTEND_URL}/support`,
     },
   });
+};
 
 export const sendOrderDelivered = (
   to: string,
   name: string,
-  orderNumber: string
+  orderNumber: string,
 ): Promise<void> =>
   sendEmail({
     to,
@@ -454,7 +469,7 @@ export const sendOrderDelivered = (
 export const sendOrderCancelled = (
   to: string,
   name: string,
-  orderNumber: string
+  orderNumber: string,
 ): Promise<void> =>
   sendEmail({
     to,
@@ -477,7 +492,7 @@ export const sendShippingCreated = (
   recipientName?: string,
   recipientPhone?: string,
   storeAddress?: string,
-  storeHours?: string
+  storeHours?: string,
 ): Promise<void> =>
   sendEmail({
     to,
@@ -507,7 +522,7 @@ export const sendShippingCreated = (
 export const sendPasswordReset = (
   to: string,
   name: string,
-  resetLink: string
+  resetLink: string,
 ): Promise<void> =>
   sendEmail({
     to,
@@ -532,7 +547,7 @@ export const sendAdminNewOrder = (
     quantity: number;
     price: number;
     total: number;
-  }>
+  }>,
 ): Promise<void> =>
   sendEmail({
     to,
@@ -554,7 +569,7 @@ export const sendAdminNewBrief = (
   customerName: string,
   productName: string,
   briefDescription: string,
-  hasAttachments: boolean
+  hasAttachments: boolean,
 ): Promise<void> =>
   sendEmail({
     to,

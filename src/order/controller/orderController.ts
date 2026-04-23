@@ -42,7 +42,9 @@ export const createOrder = async (req: Request, res: Response) => {
 // ==================== UPDATE ORDER ====================
 export const updateOrder = async (req: Request, res: Response) => {
   try {
-    const orderId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const orderId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
     const data: Partial<IOrderModel> = req.body;
     const user = req.user as { _id: string; role: string };
 
@@ -80,7 +82,9 @@ export const updateOrder = async (req: Request, res: Response) => {
 // ==================== DELETE ORDER ====================
 export const deleteOrder = async (req: Request, res: Response) => {
   try {
-    const orderId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const orderId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
     const user = req.user as { _id: string; role: string };
 
     if (!user) {
@@ -111,7 +115,9 @@ export const deleteOrder = async (req: Request, res: Response) => {
 // ==================== GET ORDER BY ID ====================
 export const getOrderById = async (req: Request, res: Response) => {
   try {
-    const orderId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const orderId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
     const user = req.user as { _id: string; role: string };
 
     if (!user) {
@@ -152,11 +158,11 @@ export const getUserOrders = async (req: Request, res: Response) => {
     }
 
     const result = await orderService.getUserOrders(
-      user._id, 
-      page, 
-      limit, 
+      user._id,
+      page,
+      limit,
       search,
-      status
+      status,
     );
 
     res.status(200).json({
@@ -191,7 +197,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
     const result = await orderService.getAllOrders(user.role, page, limit, {
       status,
       paymentStatus,
-      search
+      search,
     });
 
     res.status(200).json({
@@ -207,10 +213,15 @@ export const getAllOrders = async (req: Request, res: Response) => {
 };
 
 // ==================== MARK ORDER AS AWAITING INVOICE (NEW) ====================
-export const markOrderAsAwaitingInvoice = async (req: Request, res: Response) => {
+export const markOrderAsAwaitingInvoice = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const user = req.user as { _id: string; role: string };
-    const orderId = Array.isArray(req.params.orderId) ? req.params.orderId[0] : req.params.orderId;
+    const orderId = Array.isArray(req.params.orderId)
+      ? req.params.orderId[0]
+      : req.params.orderId;
 
     if (!user) {
       return res.status(401).json({
@@ -219,7 +230,10 @@ export const markOrderAsAwaitingInvoice = async (req: Request, res: Response) =>
       });
     }
 
-    const order = await orderService.markOrderAsAwaitingInvoice(orderId, user.role);
+    const order = await orderService.markOrderAsAwaitingInvoice(
+      orderId,
+      user.role,
+    );
 
     res.status(200).json({
       success: true,
@@ -237,7 +251,9 @@ export const markOrderAsAwaitingInvoice = async (req: Request, res: Response) =>
 // ==================== SEARCH BY ORDER NUMBER ====================
 export const searchByOrderNumber = async (req: Request, res: Response) => {
   try {
-    const orderNumber = Array.isArray(req.params.orderNumber) ? req.params.orderNumber[0] : req.params.orderNumber;
+    const orderNumber = Array.isArray(req.params.orderNumber)
+      ? req.params.orderNumber[0]
+      : req.params.orderNumber;
     const user = req.user as { _id: string; role: string };
 
     if (!user) {
@@ -249,7 +265,7 @@ export const searchByOrderNumber = async (req: Request, res: Response) => {
 
     const order = await orderService.searchByOrderNumber(
       orderNumber,
-        user._id,
+      user._id,
       user.role,
     );
 
@@ -258,7 +274,7 @@ export const searchByOrderNumber = async (req: Request, res: Response) => {
       order,
     });
   } catch (err: any) {
-     if (err.message === "Order not found") {
+    if (err.message === "Order not found") {
       return res.status(404).json({
         success: false,
         message: err.message,
@@ -276,7 +292,9 @@ export const searchByOrderNumber = async (req: Request, res: Response) => {
 export const updateOrderStatus = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
-    const orderId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const orderId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
     const { status } = req.body;
     const user = req.user as { _id: string; role: string };
 
@@ -370,7 +388,7 @@ export const getOrdersReadyForInvoice = async (req: Request, res: Response) => {
     const result = await orderService.getOrdersReadyForInvoice(
       user.role,
       page,
-      limit
+      limit,
     );
 
     res.status(200).json({
@@ -378,7 +396,7 @@ export const getOrdersReadyForInvoice = async (req: Request, res: Response) => {
       orders: result.orders,
       total: result.total,
       page: result.page,
-      pages: result.pages
+      pages: result.pages,
     });
   } catch (error: any) {
     console.error("Error fetching orders ready for invoice:", error);
@@ -545,7 +563,9 @@ export const getOrdersReadyForShipping = async (
 export const superAdminCreateOrder = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
-    const customerId = Array.isArray(req.params.customerId) ? req.params.customerId[0] : req.params.customerId;
+    const customerId = Array.isArray(req.params.customerId)
+      ? req.params.customerId[0]
+      : req.params.customerId;
     const data: OrderData = req.body;
     const user = req.user as { _id: string; role: string };
 
@@ -595,7 +615,9 @@ export const addItemToOrder = async (req: Request, res: Response) => {
       });
     }
 
-    const orderId = Array.isArray(req.params.orderId) ? req.params.orderId[0] : req.params.orderId;
+    const orderId = Array.isArray(req.params.orderId)
+      ? req.params.orderId[0]
+      : req.params.orderId;
     const { productId, quantity } = req.body;
 
     const userId = user._id;
@@ -604,7 +626,7 @@ export const addItemToOrder = async (req: Request, res: Response) => {
       orderId,
       userId,
       productId,
-      quantity
+      quantity,
     );
 
     res.status(200).json({
@@ -612,14 +634,11 @@ export const addItemToOrder = async (req: Request, res: Response) => {
       message: "Item added to order successfully",
       order,
     });
-
   } catch (error: any) {
-
     res.status(400).json({
       success: false,
       message: error.message,
     });
-
   }
 };
 
@@ -628,19 +647,22 @@ export const getUserActiveOrders = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
     const { statuses } = req.query;
-    
+
     let statusArray = [
-      OrderStatus.OrderReceived, 
-      OrderStatus.Pending, 
+      OrderStatus.OrderReceived,
+      OrderStatus.Pending,
       OrderStatus.FilesUploaded,
-      OrderStatus.AwaitingInvoice // Added AwaitingInvoice
+      OrderStatus.AwaitingInvoice, // Added AwaitingInvoice
     ];
-    
+
     if (statuses) {
-      statusArray = (statuses as string).split(',') as OrderStatus[];
+      statusArray = (statuses as string).split(",") as OrderStatus[];
     }
 
-    const orders = await orderService.getUserActiveOrders(user._id, statusArray);
+    const orders = await orderService.getUserActiveOrders(
+      user._id,
+      statusArray,
+    );
 
     res.status(200).json({
       success: true,

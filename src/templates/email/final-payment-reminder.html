@@ -1,332 +1,376 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Final Payment Required - Ample Printhub</title>
-  <style>
-    /* Reset styles */
-    body, table, td, p, a { 
-      -webkit-text-size-adjust: 100%; 
-      -ms-text-size-adjust: 100%; 
-      margin: 0; 
-      padding: 0;
-    }
-    img { 
-      border: 0; 
-      height: auto; 
-      line-height: 100%; 
-      outline: none; 
-      text-decoration: none; 
-      -ms-interpolation-mode: bicubic;
-    }
-    table { 
-      border-collapse: collapse !important; 
-    }
-    body { 
-      margin: 0; 
-      padding: 0; 
-      width: 100% !important; 
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      background-color: #f5f7fa;
-    }
-
-    /* Container */
-    .email-container { 
-      max-width: 600px; 
-      margin: 0 auto; 
-      background-color: #ffffff;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    }
-
-    /* Header */
-    .header { 
-      padding: 30px 20px; 
-      text-align: center; 
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    .header img { 
-      max-width: 200px; 
-      height: auto; 
-      display: block;
-      margin: 0 auto;
-    }
-
-    /* Content */
-    .content { 
-      padding: 40px 30px; 
-      color: #333333; 
-      font-size: 16px; 
-      line-height: 1.6; 
-    }
-    .content h1 { 
-      font-size: 28px; 
-      color: #111111; 
-      margin: 0 0 15px; 
-      font-weight: 600;
-    }
-    .content h2 {
-      font-size: 22px;
-      color: #444444;
-      margin: 25px 0 15px;
-      font-weight: 500;
-    }
-    .content p { 
-      margin: 0 0 20px; 
-      color: #555555;
-    }
-
-    /* Button */
-    .button-container {
-      text-align: center;
-      margin: 35px 0;
-    }
-    .button { 
-      display: inline-block; 
-      padding: 14px 35px; 
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #ffffff !important; 
-      text-decoration: none; 
-      border-radius: 50px; 
-      font-size: 16px; 
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
-      transition: all 0.3s ease;
-    }
-    .button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
-    }
-
-    /* Amount Box */
-    .amount-box {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 10px;
-      padding: 25px;
-      margin: 25px 0;
-      text-align: center;
-      color: white;
-    }
-    .amount-box .label {
-      font-size: 14px;
-      opacity: 0.9;
-      margin-bottom: 5px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .amount-box .amount {
-      font-size: 42px;
-      font-weight: 700;
-      line-height: 1.2;
-      margin-bottom: 5px;
-    }
-    .amount-box .subtext {
-      font-size: 14px;
-      opacity: 0.9;
-    }
-
-    /* Order Details */
-    .order-details {
-      background-color: #f8fafc;
-      border-radius: 10px;
-      padding: 25px;
-      margin: 25px 0;
-      border: 1px solid #e2e8f0;
-    }
-    .order-details table {
-      width: 100%;
-    }
-    .order-details td {
-      padding: 10px 0;
-      color: #2d3748;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    .order-details td:first-child {
-      font-weight: 600;
-      color: #4a5568;
-      width: 40%;
-    }
-    .order-details tr:last-child td {
-      border-bottom: none;
-    }
-
-    /* Info Box */
-    .info-box {
-      background-color: #ebf4ff;
-      border-left: 4px solid #667eea;
-      padding: 20px;
-      margin: 25px 0;
-      border-radius: 0 8px 8px 0;
-    }
-    .info-box p {
-      margin: 0 0 10px;
-      color: #2d3748;
-    }
-    .info-box p:last-child {
-      margin-bottom: 0;
-    }
-    .info-box strong {
-      color: #4a5568;
-    }
-
-    /* Footer */
-    .footer { 
-      padding: 30px 20px; 
-      text-align: center; 
-      background-color: #f8fafc; 
-      font-size: 14px; 
-      color: #718096;
-      border-top: 1px solid #e2e8f0;
-    }
-    .footer a { 
-      color: #667eea; 
-      text-decoration: none; 
-      margin: 0 10px;
-    }
-    .footer a:hover {
-      text-decoration: underline;
-    }
-    .social-links {
-      margin: 20px 0;
-    }
-    .social-links a {
-      display: inline-block;
-      margin: 0 8px;
-    }
-
-    /* Responsive */
-    @media screen and (max-width: 600px) {
-      .email-container { 
-        width: 100% !important; 
-        border-radius: 0;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Final Payment Required - Ample Printhub</title>
+    <style>
+      /* Reset styles */
+      body,
+      table,
+      td,
+      p,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        margin: 0;
+        padding: 0;
       }
-      .content { 
-        padding: 30px 20px !important; 
+      img {
+        border: 0;
+        height: auto;
+        line-height: 100%;
+        outline: none;
+        text-decoration: none;
+        -ms-interpolation-mode: bicubic;
       }
-      .header { 
-        padding: 25px 15px !important;
+      table {
+        border-collapse: collapse !important;
       }
-      .header img { 
-        max-width: 150px !important; 
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100% !important;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        background-color: #f5f7fa;
       }
-      .amount-box .amount {
-        font-size: 32px;
+
+      /* Container */
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
       }
-      .order-details {
-        padding: 15px;
+
+      /* Header */
+      .header {
+        padding: 30px 20px;
+        text-align: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       }
-      .order-details td {
+      .header img {
+        max-width: 200px;
+        height: auto;
         display: block;
-        width: 100%;
-        padding: 8px 0;
+        margin: 0 auto;
       }
-      .order-details td:first-child {
-        padding-bottom: 0;
+
+      /* Content */
+      .content {
+        padding: 40px 30px;
+        color: #333333;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .content h1 {
+        font-size: 28px;
+        color: #111111;
+        margin: 0 0 15px;
+        font-weight: 600;
+      }
+      .content h2 {
+        font-size: 22px;
+        color: #444444;
+        margin: 25px 0 15px;
+        font-weight: 500;
+      }
+      .content p {
+        margin: 0 0 20px;
+        color: #555555;
+      }
+
+      /* Button */
+      .button-container {
+        text-align: center;
+        margin: 35px 0;
       }
       .button {
-        display: block;
-        margin: 0 20px;
+        display: inline-block;
+        padding: 14px 35px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 50px;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s ease;
       }
-    }
-  </style>
-</head>
-<body style="margin: 0; padding: 20px; background-color: #f5f7fa;">
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-    <tr>
-      <td style="padding: 20px 10px;" align="center">
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="email-container">
-          
-          <!-- Header with Logo -->
-          <tr>
-            <td class="header">
-              <img 
-                src="cid:ample_logo" 
-                alt="Ample Printhub" 
-                width="200"
-                style="width: 200px; max-width: 100%; height: auto; display: block; margin: 0 auto;"
-              >
-            </td>
-          </tr>
+      .button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+      }
 
-          <!-- Content -->
-          <tr>
-            <td class="content">
-              <h1>Final Payment Required</h1>
-              <p>Dear <strong>{{name}}</strong>,</p>
-              <p>Great news! Your order <strong>#{{orderNumber}}</strong> is complete and ready for shipping. To proceed with delivery, we just need the final payment.</p>
-              
-              <!-- Amount Box -->
-              <div class="amount-box">
-                <div class="label">Final Payment Due</div>
-                <div class="amount">₦{{amount}}</div>
-                <div class="subtext">for order #{{orderNumber}}</div>
-              </div>
+      /* Amount Box */
+      .amount-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        padding: 25px;
+        margin: 25px 0;
+        text-align: center;
+        color: white;
+      }
+      .amount-box .label {
+        font-size: 14px;
+        opacity: 0.9;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .amount-box .amount {
+        font-size: 42px;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 5px;
+      }
+      .amount-box .subtext {
+        font-size: 14px;
+        opacity: 0.9;
+      }
 
-              <div class="order-details">
-                <h3 style="margin-top: 0; margin-bottom: 20px;">Order Summary</h3>
-                <table>
-                  <tr>
-                    <td><strong>Order Number:</strong></td>
-                    <td>#{{orderNumber}}</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Final Payment:</strong></td>
-                    <td>₦{{amount}}</td>
-                  </tr>
-                </table>
-              </div>
+      /* Order Details */
+      .order-details {
+        background-color: #f8fafc;
+        border-radius: 10px;
+        padding: 25px;
+        margin: 25px 0;
+        border: 1px solid #e2e8f0;
+      }
+      .order-details table {
+        width: 100%;
+      }
+      .order-details td {
+        padding: 10px 0;
+        color: #2d3748;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .order-details td:first-child {
+        font-weight: 600;
+        color: #4a5568;
+        width: 40%;
+      }
+      .order-details tr:last-child td {
+        border-bottom: none;
+      }
 
-              <div class="info-box">
-                <p><strong>💳 Payment Instructions:</strong></p>
-                <p>Please complete your payment using one of the following methods:</p>
-                <p style="margin-bottom: 5px;"><strong>Bank Transfer:</strong></p>
-                <p style="margin: 0;">Account Name: {{bankAccountName}}<br>
-                Account Number: {{bankAccountNumber}}<br>
-                Bank: {{bankName}}</p>
-                <p style="margin: 0;">Ensure to upload your payment receipt after completing the transfer for confirmation.</p>
-                <p style="margin-top: 15px;"><strong>Paystack:</strong></p>
-                <p style="margin: 0;">Or open the website to pay via Paystack</p>
-              </div>
-              
-              <div class="button-container">
+      /* Info Box */
+      .info-box {
+        background-color: #ebf4ff;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 0 8px 8px 0;
+      }
+      .info-box p {
+        margin: 0 0 10px;
+        color: #2d3748;
+      }
+      .info-box p:last-child {
+        margin-bottom: 0;
+      }
+      .info-box strong {
+        color: #4a5568;
+      }
+
+      /* Footer */
+      .footer {
+        padding: 30px 20px;
+        text-align: center;
+        background-color: #f8fafc;
+        font-size: 14px;
+        color: #718096;
+        border-top: 1px solid #e2e8f0;
+      }
+      .footer a {
+        color: #667eea;
+        text-decoration: none;
+        margin: 0 10px;
+      }
+      .footer a:hover {
+        text-decoration: underline;
+      }
+      .social-links {
+        margin: 20px 0;
+      }
+      .social-links a {
+        display: inline-block;
+        margin: 0 8px;
+      }
+
+      /* Responsive */
+      @media screen and (max-width: 600px) {
+        .email-container {
+          width: 100% !important;
+          border-radius: 0;
+        }
+        .content {
+          padding: 30px 20px !important;
+        }
+        .header {
+          padding: 25px 15px !important;
+        }
+        .header img {
+          max-width: 150px !important;
+        }
+        .amount-box .amount {
+          font-size: 32px;
+        }
+        .order-details {
+          padding: 15px;
+        }
+        .order-details td {
+          display: block;
+          width: 100%;
+          padding: 8px 0;
+        }
+        .order-details td:first-child {
+          padding-bottom: 0;
+        }
+        .button {
+          display: block;
+          margin: 0 20px;
+        }
+      }
+    </style>
+  </head>
+  <body style="margin: 0; padding: 20px; background-color: #f5f7fa">
+    <table
+      role="presentation"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      width="100%"
+    >
+      <tr>
+        <td style="padding: 20px 10px" align="center">
+          <table
+            role="presentation"
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            class="email-container"
+          >
+            <!-- Header with Logo -->
+            <tr>
+              <td class="header">
+                <img
+                  src="cid:ample_logo"
+                  alt="Ample Printhub"
+                  width="200"
+                  style="
+                    width: 200px;
+                    max-width: 100%;
+                    height: auto;
+                    display: block;
+                    margin: 0 auto;
+                  "
+                />
+              </td>
+            </tr>
+
+            <!-- Content -->
+            <tr>
+              <td class="content">
+                <h1>Final Payment Required</h1>
+                <p>Dear <strong>{{name}}</strong>,</p>
+                <p>
+                  Great news! Your order <strong>#{{orderNumber}}</strong> is
+                  complete and ready for shipping. To proceed with delivery, we
+                  just need the final payment.
+                </p>
+
+                <!-- Amount Box -->
+                <div class="amount-box">
+                  <div class="label">Final Payment Due</div>
+                  <div class="amount">₦{{amount}}</div>
+                  <div class="subtext">for order #{{orderNumber}}</div>
+                </div>
+
+                <div class="order-details">
+                  <h3 style="margin-top: 0; margin-bottom: 20px">
+                    Order Summary
+                  </h3>
+                  <table>
+                    <tr>
+                      <td><strong>Order Number:</strong></td>
+                      <td>#{{orderNumber}}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Final Payment:</strong></td>
+                      <td>₦{{amount}}</td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div class="info-box">
+                  <p><strong>💳 Payment Instructions:</strong></p>
+                  <p>
+                    Please complete your payment using one of the following
+                    methods:
+                  </p>
+                  <p style="margin-bottom: 5px">
+                    <strong>Bank Transfer:</strong>
+                  </p>
+                  <p style="margin: 0">
+                    Account Name: {{bankAccountName}}<br />
+                    Account Number: {{bankAccountNumber}}<br />
+                    Bank: {{bankName}}
+                  </p>
+                  <p style="margin: 0">
+                    Ensure to upload your payment receipt after completing the
+                    transfer for confirmation.
+                  </p>
+                  <p style="margin-top: 15px"><strong>Paystack:</strong></p>
+                  <p style="margin: 0">
+                    Or open the website to pay via Paystack
+                  </p>
+                </div>
+
+                <!-- <div class="button-container">
                 <a href="{{paymentUrl}}" class="button">Make Final Payment</a>
-              </div>
+              </div> -->
 
-              <p>Once your final payment is confirmed, we'll immediately process your order for shipping. You'll receive a confirmation email with tracking information once your order is on its way.</p>
+                <p>
+                  Once your final payment is confirmed, we'll immediately
+                  process your order for shipping. You'll receive a confirmation
+                  email with tracking information once your order is on its way.
+                </p>
 
-              <p style="margin-top: 30px; font-size: 14px; color: #888;">
-                If you have any questions about your payment or need assistance, please don't hesitate to contact our support team.
-              </p>
-            </td>
-          </tr>
+                <p style="margin-top: 30px; font-size: 14px; color: #888">
+                  If you have any questions about your payment or need
+                  assistance, please don't hesitate to contact our support team.
+                </p>
+              </td>
+            </tr>
 
-          <!-- Footer -->
-          <tr>
-            <td class="footer">
-              <div class="social-links">
-                <a href="https://facebook.com/ampleprinthub">Facebook</a> •
-                <a href="https://instagram.com/ampleprinthub">Instagram</a> •
-                <a href="https://twitter.com/ampleprinthub">Twitter</a> •
-                <a href="https://tiktok.com/@ampleprinthub">TikTok</a>
-              </div>
-              <p>© {{year}} Ample Printhub. All rights reserved.</p>
-              <p>
-                <a href="{{unsubscribeUrl}}">Unsubscribe</a> •
-                <a href="{{privacyUrl}}">Privacy Policy</a>
-              </p>
-              <p style="font-size: 12px; color: #a0aec0; margin-top: 20px;">
-                5 Boyle Street, Shomolu, Lagos<br>
-                Tel: +234 806 235 6261 | Email: ampleprinthub@gmail.com
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
+            <!-- Footer -->
+            <tr>
+              <td class="footer">
+                <div class="social-links">
+                  <a href="https://facebook.com/ampleprinthub">Facebook</a> •
+                  <a href="https://instagram.com/ampleprinthub">Instagram</a> •
+                  <a href="https://twitter.com/ampleprinthub">Twitter</a> •
+                  <a href="https://tiktok.com/@ampleprinthub">TikTok</a>
+                </div>
+                <p>© {{year}} Ample Printhub. All rights reserved.</p>
+                <p>
+                  <a href="{{unsubscribeUrl}}">Unsubscribe</a> •
+                  <a href="{{privacyUrl}}">Privacy Policy</a>
+                </p>
+                <p style="font-size: 12px; color: #a0aec0; margin-top: 20px">
+                  5 Boyle Street, Shomolu, Lagos<br />
+                  Tel: +234 806 235 6261 | Email: ampleprinthub@gmail.com
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
 </html>

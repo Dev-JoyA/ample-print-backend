@@ -1,347 +1,402 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Order Confirmation - Ample Printhub</title>
-  <style>
-    /* Reset styles */
-    body, table, td, p, a { 
-      -webkit-text-size-adjust: 100%; 
-      -ms-text-size-adjust: 100%; 
-      margin: 0; 
-      padding: 0;
-    }
-    img { 
-      border: 0; 
-      height: auto; 
-      line-height: 100%; 
-      outline: none; 
-      text-decoration: none; 
-      -ms-interpolation-mode: bicubic;
-    }
-    table { 
-      border-collapse: collapse !important; 
-    }
-    body { 
-      margin: 0; 
-      padding: 0; 
-      width: 100% !important; 
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      background-color: #f5f7fa;
-    }
-
-    /* Container */
-    .email-container { 
-      max-width: 600px; 
-      margin: 0 auto; 
-      background-color: #ffffff;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    }
-
-    /* Header */
-    .header { 
-      padding: 10px 20px; 
-      text-align: center; 
-      background: linear-gradient(135deg, #dddfea 0%, #88ade8 100%);
-    }
-    .header img { 
-      max-width: 200px; 
-      height: auto; 
-      display: block;
-      margin: 0 auto;
-    }
-
-    /* Content */
-    .content { 
-      padding: 40px 30px; 
-      color: #333333; 
-      font-size: 16px; 
-      line-height: 1.6; 
-    }
-    .content h1 { 
-      font-size: 28px; 
-      color: #111111; 
-      margin: 0 0 15px; 
-      font-weight: 600;
-    }
-    .content h2 {
-      font-size: 22px;
-      color: #444444;
-      margin: 25px 0 15px;
-      font-weight: 500;
-    }
-    .content p { 
-      margin: 0 0 20px; 
-      color: #555555;
-    }
-
-    /* Button */
-    .button-container {
-      text-align: center;
-      margin: 35px 0;
-    }
-    .button { 
-      display: inline-block; 
-      padding: 14px 35px; 
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #ffffff !important; 
-      text-decoration: none; 
-      border-radius: 50px; 
-      font-size: 16px; 
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
-      transition: all 0.3s ease;
-    }
-    .button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
-    }
-
-    /* Order Details */
-    .order-details {
-      background-color: #f8fafc;
-      border-radius: 10px;
-      padding: 25px;
-      margin: 25px 0;
-      border: 1px solid #e2e8f0;
-    }
-    .order-details table {
-      width: 100%;
-    }
-    .order-details th {
-      text-align: left;
-      padding: 10px 0;
-      color: #4a5568;
-      font-weight: 600;
-      border-bottom: 2px solid #e2e8f0;
-      font-size: 14px;
-    }
-    .order-details td {
-      padding: 12px 0;
-      color: #2d3748;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    .order-details tr:last-child td {
-      border-bottom: none;
-    }
-    .order-details .total-row {
-      border-top: 2px solid #e2e8f0;
-    }
-    .order-details .total-row td {
-      padding-top: 15px;
-      border-bottom: none;
-    }
-
-    /* Info Box */
-    .info-box {
-      background-color: #ebf4ff;
-      border-left: 4px solid #667eea;
-      padding: 20px;
-      margin: 25px 0;
-      border-radius: 0 8px 8px 0;
-    }
-    .info-box p {
-      margin: 0 0 10px;
-      color: #2d3748;
-    }
-    .info-box p:last-child {
-      margin-bottom: 0;
-    }
-    .info-box ol {
-      margin: 10px 0 0 20px;
-      color: #2d3748;
-    }
-    .info-box li {
-      margin-bottom: 8px;
-    }
-    .info-box li:last-child {
-      margin-bottom: 0;
-    }
-
-    /* Status Badge */
-    .status-badge {
-      display: inline-block;
-      background-color: #48bb78;
-      color: #ffffff;
-      padding: 5px 12px;
-      border-radius: 50px;
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    /* Footer */
-    .footer { 
-      padding: 30px 20px; 
-      text-align: center; 
-      background-color: #f8fafc; 
-      font-size: 14px; 
-      color: #718096;
-      border-top: 1px solid #e2e8f0;
-    }
-    .footer a { 
-      color: #667eea; 
-      text-decoration: none; 
-      margin: 0 10px;
-    }
-    .footer a:hover {
-      text-decoration: underline;
-    }
-    .social-links {
-      margin: 20px 0;
-    }
-    .social-links a {
-      display: inline-block;
-      margin: 0 8px;
-    }
-
-    /* Responsive */
-    @media screen and (max-width: 600px) {
-      .email-container { 
-        width: 100% !important; 
-        border-radius: 0;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Order Confirmation - Ample Printhub</title>
+    <style>
+      /* Reset styles */
+      body,
+      table,
+      td,
+      p,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        margin: 0;
+        padding: 0;
       }
-      .content { 
-        padding: 30px 20px !important; 
+      img {
+        border: 0;
+        height: auto;
+        line-height: 100%;
+        outline: none;
+        text-decoration: none;
+        -ms-interpolation-mode: bicubic;
       }
-      .header { 
-        padding: 25px 15px !important;
+      table {
+        border-collapse: collapse !important;
       }
-      .header img { 
-        max-width: 150px !important; 
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100% !important;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        background-color: #f5f7fa;
       }
-      .order-details {
-        padding: 15px;
+
+      /* Container */
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
       }
-      .order-details table {
-        font-size: 14px;
+
+      /* Header */
+      .header {
+        padding: 10px 20px;
+        text-align: center;
+        background: linear-gradient(135deg, #dddfea 0%, #88ade8 100%);
       }
-      .order-details th {
-        font-size: 12px;
+      .header img {
+        max-width: 200px;
+        height: auto;
+        display: block;
+        margin: 0 auto;
       }
-      .order-details td {
-        padding: 8px 5px;
+
+      /* Content */
+      .content {
+        padding: 40px 30px;
+        color: #333333;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .content h1 {
+        font-size: 28px;
+        color: #111111;
+        margin: 0 0 15px;
+        font-weight: 600;
+      }
+      .content h2 {
+        font-size: 22px;
+        color: #444444;
+        margin: 25px 0 15px;
+        font-weight: 500;
+      }
+      .content p {
+        margin: 0 0 20px;
+        color: #555555;
+      }
+
+      /* Button */
+      .button-container {
+        text-align: center;
+        margin: 35px 0;
       }
       .button {
-        display: block;
-        margin: 0 20px;
+        display: inline-block;
+        padding: 14px 35px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 50px;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s ease;
+      }
+      .button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      /* Order Details */
+      .order-details {
+        background-color: #f8fafc;
+        border-radius: 10px;
+        padding: 25px;
+        margin: 25px 0;
+        border: 1px solid #e2e8f0;
+      }
+      .order-details table {
+        width: 100%;
+      }
+      .order-details th {
+        text-align: left;
+        padding: 10px 0;
+        color: #4a5568;
+        font-weight: 600;
+        border-bottom: 2px solid #e2e8f0;
+        font-size: 14px;
+      }
+      .order-details td {
+        padding: 12px 0;
+        color: #2d3748;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .order-details tr:last-child td {
+        border-bottom: none;
+      }
+      .order-details .total-row {
+        border-top: 2px solid #e2e8f0;
+      }
+      .order-details .total-row td {
+        padding-top: 15px;
+        border-bottom: none;
+      }
+
+      /* Info Box */
+      .info-box {
+        background-color: #ebf4ff;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 0 8px 8px 0;
+      }
+      .info-box p {
+        margin: 0 0 10px;
+        color: #2d3748;
+      }
+      .info-box p:last-child {
+        margin-bottom: 0;
       }
       .info-box ol {
-        margin-left: 15px;
+        margin: 10px 0 0 20px;
+        color: #2d3748;
       }
-    }
-  </style>
-</head>
-<body style="margin: 0; padding: 20px; background-color: #f5f7fa;">
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-    <tr>
-      <td style="padding: 20px 10px;" align="center">
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="email-container">
-          
-          <!-- Header with Logo -->
-          <tr>
-            <td class="header">
-              <img 
-                src="cid:ample_logo" 
-                alt="Ample Printhub" 
-                width="200"
-                style="width: 200px; max-width: 100%; height: auto; display: block; margin: 0 auto;"
-              >
-            </td>
-          </tr>
+      .info-box li {
+        margin-bottom: 8px;
+      }
+      .info-box li:last-child {
+        margin-bottom: 0;
+      }
 
-          <!-- Content -->
-          <tr>
-            <td class="content">
-              <h1>✅ Order Confirmed!</h1>
-              <p>Dear <strong>{{name}}</strong>,</p>
-              <p>Great news! Your order <strong>#{{orderNumber}}</strong> has been successfully received and is now being processed.</p>
-              
-              <div style="text-align: center; margin: 20px 0;">
-                <span class="status-badge">Order Received</span>
-              </div>
+      /* Status Badge */
+      .status-badge {
+        display: inline-block;
+        background-color: #48bb78;
+        color: #ffffff;
+        padding: 5px 12px;
+        border-radius: 50px;
+        font-size: 14px;
+        font-weight: 500;
+      }
 
-              <div class="order-details">
-                <h3 style="margin-top: 0; margin-bottom: 20px;">Order Summary</h3>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Item</th>
-                      <th>Qty</th>
-                      <th>Price</th>
-                      <th>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {{#each items}}
-                    <tr>
-                      <td>{{productName}}</td>
-                      <td>{{quantity}}</td>
-                      <td>₦{{price}}</td>
-                      <td>₦{{total}}</td>
-                    </tr>
-                    {{/each}}
-                    <tr class="total-row">
-                      <td colspan="3" style="text-align: right;"><strong>Total:</strong></td>
-                      <td><strong style="color: #667eea; font-size: 18px;">₦{{total}}</strong></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+      /* Footer */
+      .footer {
+        padding: 30px 20px;
+        text-align: center;
+        background-color: #f8fafc;
+        font-size: 14px;
+        color: #718096;
+        border-top: 1px solid #e2e8f0;
+      }
+      .footer a {
+        color: #667eea;
+        text-decoration: none;
+        margin: 0 10px;
+      }
+      .footer a:hover {
+        text-decoration: underline;
+      }
+      .social-links {
+        margin: 20px 0;
+      }
+      .social-links a {
+        display: inline-block;
+        margin: 0 8px;
+      }
 
-              <div class="info-box">
-                <p><strong>📋 What Happens Next?</strong></p>
-                <ol>
-                  <li>Our team will review your order within <strong>24 hours</strong></li>
-                  <li>You'll receive an invoice with payment instructions</li>
-                  <li>Once payment is confirmed, production begins immediately</li>
-                  <li>We'll notify you when your design is ready for review</li>
-                </ol>
-              </div>
+      /* Responsive */
+      @media screen and (max-width: 600px) {
+        .email-container {
+          width: 100% !important;
+          border-radius: 0;
+        }
+        .content {
+          padding: 30px 20px !important;
+        }
+        .header {
+          padding: 25px 15px !important;
+        }
+        .header img {
+          max-width: 150px !important;
+        }
+        .order-details {
+          padding: 15px;
+        }
+        .order-details table {
+          font-size: 14px;
+        }
+        .order-details th {
+          font-size: 12px;
+        }
+        .order-details td {
+          padding: 8px 5px;
+        }
+        .button {
+          display: block;
+          margin: 0 20px;
+        }
+        .info-box ol {
+          margin-left: 15px;
+        }
+      }
+    </style>
+  </head>
+  <body style="margin: 0; padding: 20px; background-color: #f5f7fa">
+    <table
+      role="presentation"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      width="100%"
+    >
+      <tr>
+        <td style="padding: 20px 10px" align="center">
+          <table
+            role="presentation"
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            class="email-container"
+          >
+            <!-- Header with Logo -->
+            <tr>
+              <td class="header">
+                <img
+                  src="cid:ample_logo"
+                  alt="Ample Printhub"
+                  width="200"
+                  style="
+                    width: 200px;
+                    max-width: 100%;
+                    height: auto;
+                    display: block;
+                    margin: 0 auto;
+                  "
+                />
+              </td>
+            </tr>
 
-              {{#if deposit}}
-              <p style="background-color: #fef3c7; padding: 15px; border-radius: 8px; color: #92400e;">
-                <strong>💡 Note:</strong> This order requires a deposit. You'll see the deposit amount in your invoice.
-              </p>
-              {{/if}}
+            <!-- Content -->
+            <tr>
+              <td class="content">
+                <h1>✅ Order Confirmed!</h1>
+                <p>Dear <strong>{{name}}</strong>,</p>
+                <p>
+                  Great news! Your order <strong>#{{orderNumber}}</strong> has
+                  been successfully received and is now being processed.
+                </p>
 
-              <div class="button-container">
+                <div style="text-align: center; margin: 20px 0">
+                  <span class="status-badge">Order Received</span>
+                </div>
+
+                <div class="order-details">
+                  <h3 style="margin-top: 0; margin-bottom: 20px">
+                    Order Summary
+                  </h3>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {{#each items}}
+                      <tr>
+                        <td>{{productName}}</td>
+                        <td>{{quantity}}</td>
+                        <td>₦{{price}}</td>
+                        <td>₦{{total}}</td>
+                      </tr>
+                      {{/each}}
+                      <tr class="total-row">
+                        <td colspan="3" style="text-align: right">
+                          <strong>Total:</strong>
+                        </td>
+                        <td>
+                          <strong style="color: #667eea; font-size: 18px"
+                            >₦{{total}}</strong
+                          >
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="info-box">
+                  <p><strong>📋 What Happens Next?</strong></p>
+                  <ol>
+                    <li>
+                      Our team will review your order within
+                      <strong>24 hours</strong>
+                    </li>
+                    <li>You'll receive an invoice with payment instructions</li>
+                    <li>
+                      Once payment is confirmed, production begins immediately
+                    </li>
+                    <li>
+                      We'll notify you when your design is ready for review
+                    </li>
+                  </ol>
+                </div>
+
+                {{#if deposit}}
+                <p
+                  style="
+                    background-color: #fef3c7;
+                    padding: 15px;
+                    border-radius: 8px;
+                    color: #92400e;
+                  "
+                >
+                  <strong>💡 Note:</strong> This order requires a deposit.
+                  You'll see the deposit amount in your invoice.
+                </p>
+                {{/if}}
+
+                <!-- <div class="button-container">
                 <a href="{{trackUrl}}" class="button">Track Your Order</a>
-              </div>
+              </div> -->
 
-              <p style="margin-top: 30px; font-size: 14px; color: #666; text-align: center;">
-                You can always check your order status by logging into your dashboard.
-              </p>
-            </td>
-          </tr>
+                <p
+                  style="
+                    margin-top: 30px;
+                    font-size: 14px;
+                    color: #666;
+                    text-align: center;
+                  "
+                >
+                  You can always check your order status by logging into your
+                  dashboard.
+                </p>
+              </td>
+            </tr>
 
-          <!-- Footer -->
-          <tr>
-            <td class="footer">
-              <div class="social-links">
-                <a href="https://facebook.com/ampleprinthub">Facebook</a> •
-                <a href="https://instagram.com/ampleprinthub">Instagram</a> •
-                <a href="https://twitter.com/ampleprinthub">Twitter</a> •
-                <a href="https://tiktok.com/@ampleprinthub">TikTok</a>
-              </div>
-              <p>© {{year}} Ample Printhub. All rights reserved.</p>
-              <p>
-                <a href="{{unsubscribeUrl}}">Unsubscribe</a> •
-                <a href="{{privacyUrl}}">Privacy Policy</a>
-              </p>
-              <p style="font-size: 12px; color: #a0aec0; margin-top: 20px;">
-                5 Boyle Street, Shomolu, Lagos<br>
-                Tel: +234 806 235 6261 | Email: ampleprinthub@gmail.com
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
+            <!-- Footer -->
+            <tr>
+              <td class="footer">
+                <div class="social-links">
+                  <a href="https://facebook.com/ampleprinthub">Facebook</a> •
+                  <a href="https://instagram.com/ampleprinthub">Instagram</a> •
+                  <a href="https://twitter.com/ampleprinthub">Twitter</a> •
+                  <a href="https://tiktok.com/@ampleprinthub">TikTok</a>
+                </div>
+                <p>© {{year}} Ample Printhub. All rights reserved.</p>
+                <p>
+                  <a href="{{unsubscribeUrl}}">Unsubscribe</a> •
+                  <a href="{{privacyUrl}}">Privacy Policy</a>
+                </p>
+                <p style="font-size: 12px; color: #a0aec0; margin-top: 20px">
+                  5 Boyle Street, Shomolu, Lagos<br />
+                  Tel: +234 806 235 6261 | Email: ampleprinthub@gmail.com
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
 </html>

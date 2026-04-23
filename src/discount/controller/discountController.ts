@@ -1,17 +1,29 @@
-import { Request, Response } from 'express';
-import { Discount } from '../model/discountModel.js';
+import { Request, Response } from "express";
+import { Discount } from "../model/discountModel.js";
 
 // Create discount
 export const createDiscount = async (req: Request, res: Response) => {
   try {
-    const { code, type, value, active, minOrderAmount, maxDiscountAmount, validFrom, validUntil, usageLimit } = req.body;
+    const {
+      code,
+      type,
+      value,
+      active,
+      minOrderAmount,
+      maxDiscountAmount,
+      validFrom,
+      validUntil,
+      usageLimit,
+    } = req.body;
 
     // Check if discount code already exists
-    const existingDiscount = await Discount.findOne({ code: code.toUpperCase() });
+    const existingDiscount = await Discount.findOne({
+      code: code.toUpperCase(),
+    });
     if (existingDiscount) {
       return res.status(400).json({
         success: false,
-        message: 'Discount code already exists',
+        message: "Discount code already exists",
       });
     }
 
@@ -30,7 +42,7 @@ export const createDiscount = async (req: Request, res: Response) => {
 
     res.status(201).json({
       success: true,
-      message: 'Discount created successfully',
+      message: "Discount created successfully",
       data: discount,
     });
   } catch (error: any) {
@@ -48,7 +60,7 @@ export const getAllDiscounts = async (req: Request, res: Response) => {
     const query: any = {};
 
     if (active !== undefined) {
-      query.active = active === 'true';
+      query.active = active === "true";
     }
     if (type) {
       query.type = type;
@@ -77,16 +89,10 @@ export const getActiveDiscounts = async (req: Request, res: Response) => {
       active: true,
       $and: [
         {
-          $or: [
-            { validFrom: { $lte: now } },
-            { validFrom: null },
-          ],
+          $or: [{ validFrom: { $lte: now } }, { validFrom: null }],
         },
         {
-          $or: [
-            { validUntil: { $gte: now } },
-            { validUntil: null },
-          ],
+          $or: [{ validUntil: { $gte: now } }, { validUntil: null }],
         },
       ],
     };
@@ -109,11 +115,11 @@ export const getActiveDiscounts = async (req: Request, res: Response) => {
 export const getDiscountById = async (req: Request, res: Response) => {
   try {
     const discount = await Discount.findById(req.params.id);
-    
+
     if (!discount) {
       return res.status(404).json({
         success: false,
-        message: 'Discount not found',
+        message: "Discount not found",
       });
     }
 
@@ -132,18 +138,28 @@ export const getDiscountById = async (req: Request, res: Response) => {
 // Update discount
 export const updateDiscount = async (req: Request, res: Response) => {
   try {
-    const { code, type, value, active, minOrderAmount, maxDiscountAmount, validFrom, validUntil, usageLimit } = req.body;
+    const {
+      code,
+      type,
+      value,
+      active,
+      minOrderAmount,
+      maxDiscountAmount,
+      validFrom,
+      validUntil,
+      usageLimit,
+    } = req.body;
 
     // Check if code is being changed and if it already exists
     if (code) {
-      const existingDiscount = await Discount.findOne({ 
+      const existingDiscount = await Discount.findOne({
         code: code.toUpperCase(),
-        _id: { $ne: req.params.id }
+        _id: { $ne: req.params.id },
       });
       if (existingDiscount) {
         return res.status(400).json({
           success: false,
-          message: 'Discount code already exists',
+          message: "Discount code already exists",
         });
       }
     }
@@ -161,19 +177,19 @@ export const updateDiscount = async (req: Request, res: Response) => {
         ...(validUntil && { validUntil }),
         ...(usageLimit !== undefined && { usageLimit }),
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!discount) {
       return res.status(404).json({
         success: false,
-        message: 'Discount not found',
+        message: "Discount not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: 'Discount updated successfully',
+      message: "Discount updated successfully",
       data: discount,
     });
   } catch (error: any) {
@@ -188,11 +204,11 @@ export const updateDiscount = async (req: Request, res: Response) => {
 export const toggleDiscountStatus = async (req: Request, res: Response) => {
   try {
     const discount = await Discount.findById(req.params.id);
-    
+
     if (!discount) {
       return res.status(404).json({
         success: false,
-        message: 'Discount not found',
+        message: "Discount not found",
       });
     }
 
@@ -201,7 +217,7 @@ export const toggleDiscountStatus = async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
-      message: `Discount ${discount.active ? 'activated' : 'deactivated'} successfully`,
+      message: `Discount ${discount.active ? "activated" : "deactivated"} successfully`,
       data: discount,
     });
   } catch (error: any) {
@@ -216,17 +232,17 @@ export const toggleDiscountStatus = async (req: Request, res: Response) => {
 export const deleteDiscount = async (req: Request, res: Response) => {
   try {
     const discount = await Discount.findByIdAndDelete(req.params.id);
-    
+
     if (!discount) {
       return res.status(404).json({
         success: false,
-        message: 'Discount not found',
+        message: "Discount not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: 'Discount deleted successfully',
+      message: "Discount deleted successfully",
     });
   } catch (error: any) {
     res.status(400).json({
@@ -244,16 +260,19 @@ export const validateDiscount = async (req: Request, res: Response) => {
     if (!code) {
       return res.status(400).json({
         success: false,
-        message: 'Discount code is required',
+        message: "Discount code is required",
       });
     }
 
-    const discount = await Discount.findOne({ code: code.toUpperCase(), active: true });
-    
+    const discount = await Discount.findOne({
+      code: code.toUpperCase(),
+      active: true,
+    });
+
     if (!discount) {
       return res.status(404).json({
         success: false,
-        message: 'Invalid or inactive discount code',
+        message: "Invalid or inactive discount code",
       });
     }
 
@@ -263,14 +282,14 @@ export const validateDiscount = async (req: Request, res: Response) => {
     if (discount.validFrom && discount.validFrom > now) {
       return res.status(400).json({
         success: false,
-        message: 'Discount code is not yet active',
+        message: "Discount code is not yet active",
       });
     }
 
     if (discount.validUntil && discount.validUntil < now) {
       return res.status(400).json({
         success: false,
-        message: 'Discount code has expired',
+        message: "Discount code has expired",
       });
     }
 
@@ -286,15 +305,18 @@ export const validateDiscount = async (req: Request, res: Response) => {
     if (discount.usageLimit && discount.usedCount >= discount.usageLimit) {
       return res.status(400).json({
         success: false,
-        message: 'Discount code usage limit reached',
+        message: "Discount code usage limit reached",
       });
     }
 
     // Calculate discount amount
     let discountAmount = 0;
-    if (discount.type === 'percentage') {
+    if (discount.type === "percentage") {
       discountAmount = (amount * discount.value) / 100;
-      if (discount.maxDiscountAmount && discountAmount > discount.maxDiscountAmount) {
+      if (
+        discount.maxDiscountAmount &&
+        discountAmount > discount.maxDiscountAmount
+      ) {
         discountAmount = discount.maxDiscountAmount;
       }
     } else {
@@ -303,7 +325,7 @@ export const validateDiscount = async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
-      message: 'Discount code is valid',
+      message: "Discount code is valid",
       data: {
         code: discount.code,
         type: discount.type,

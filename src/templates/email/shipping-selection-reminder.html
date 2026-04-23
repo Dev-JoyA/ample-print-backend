@@ -1,532 +1,578 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>Order Ready for Shipping - Ample Printhub</title>
     <style>
-        body, table, td, p, a {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            border: 0;
-            font-size: 100%;
-            font: inherit;
-            vertical-align: baseline;
+      body,
+      table,
+      td,
+      p,
+      a {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        font-size: 100%;
+        font: inherit;
+        vertical-align: baseline;
+      }
+
+      body {
+        background-color: #f4f7fb;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        padding: 20px;
+      }
+
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow:
+          0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+
+      .email-header {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        padding: 40px 30px;
+        text-align: center;
+      }
+
+      .logo {
+        max-width: 180px;
+        height: auto;
+        margin-bottom: 20px;
+      }
+
+      .header-title {
+        color: #ffffff;
+        font-size: 32px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.5px;
+      }
+
+      .header-subtitle {
+        color: #a7f3d0;
+        font-size: 16px;
+        margin-top: 10px;
+      }
+
+      .shipping-icon {
+        font-size: 48px;
+        margin-bottom: 20px;
+        animation: bounce 2s infinite;
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: translateY(0);
         }
-        
-        body {
-            background-color: #f4f7fb;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            padding: 20px;
+        50% {
+          transform: translateY(-10px);
         }
-        
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        
-        .email-header {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            padding: 40px 30px;
-            text-align: center;
-        }
-        
-        .logo {
-            max-width: 180px;
-            height: auto;
-            margin-bottom: 20px;
-        }
-        
-        .header-title {
-            color: #ffffff;
-            font-size: 32px;
-            font-weight: 700;
-            margin: 0;
-            letter-spacing: -0.5px;
-        }
-        
-        .header-subtitle {
-            color: #a7f3d0;
-            font-size: 16px;
-            margin-top: 10px;
-        }
-        
-        .shipping-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-            animation: bounce 2s infinite;
-        }
-        
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        
+      }
+
+      .email-content {
+        padding: 40px 30px;
+        background-color: #ffffff;
+      }
+
+      .greeting {
+        color: #1e293b;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+      }
+
+      .message {
+        color: #475569;
+        font-size: 16px;
+        margin-bottom: 25px;
+        line-height: 1.6;
+      }
+
+      .highlight {
+        color: #059669;
+        font-weight: 700;
+        font-size: 18px;
+      }
+
+      .info-box {
+        background-color: #f0fdf4;
+        border-radius: 16px;
+        padding: 25px;
+        margin: 25px 0;
+        border: 1px solid #bbf7d0;
+      }
+
+      .info-box h3 {
+        color: #1e293b;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .order-details {
+        margin: 15px 0;
+      }
+
+      .order-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px dashed #d1fae5;
+      }
+
+      .order-row:last-child {
+        border-bottom: none;
+      }
+
+      .order-label {
+        color: #64748b;
+        font-weight: 500;
+      }
+
+      .order-value {
+        color: #1e293b;
+        font-weight: 600;
+      }
+
+      .order-value.order-number {
+        color: #059669;
+        font-family: monospace;
+        font-size: 16px;
+      }
+
+      .action-required {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border-radius: 12px;
+        padding: 20px;
+        margin: 25px 0;
+        text-align: center;
+        border: 1px solid #fbbf24;
+      }
+
+      .action-required p {
+        color: #92400e;
+        margin: 10px 0;
+      }
+
+      .alert-icon {
+        font-size: 32px;
+        margin-bottom: 10px;
+      }
+
+      .steps-section {
+        margin: 30px 0;
+      }
+
+      .steps-title {
+        color: #1e293b;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .step-item {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8fafc;
+        border-radius: 12px;
+      }
+
+      .step-number {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        margin-right: 15px;
+        flex-shrink: 0;
+      }
+
+      .step-content {
+        flex: 1;
+      }
+
+      .step-title {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 5px;
+      }
+
+      .step-desc {
+        color: #64748b;
+        font-size: 14px;
+      }
+
+      .button-container {
+        text-align: center;
+        margin: 35px 0;
+      }
+
+      .button {
+        display: inline-block;
+        padding: 16px 36px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 16px;
+        box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+        transition: all 0.3s ease;
+      }
+
+      .button:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.3);
+      }
+
+      .shipping-options {
+        background-color: #f8fafc;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 25px 0;
+      }
+
+      .shipping-options h4 {
+        color: #1e293b;
+        margin-bottom: 15px;
+        font-size: 16px;
+      }
+
+      .option-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        background-color: white;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #e2e8f0;
+      }
+
+      .option-icon {
+        font-size: 24px;
+        margin-right: 12px;
+      }
+
+      .option-info {
+        flex: 1;
+      }
+
+      .option-name {
+        font-weight: 600;
+        color: #1e293b;
+      }
+
+      .option-desc {
+        font-size: 12px;
+        color: #64748b;
+      }
+
+      .faq-section {
+        margin: 30px 0;
+        background-color: #f8fafc;
+        border-radius: 12px;
+        padding: 20px;
+      }
+
+      .faq-item {
+        margin: 15px 0;
+      }
+
+      .faq-question {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .faq-answer {
+        color: #64748b;
+        font-size: 14px;
+        margin-left: 28px;
+      }
+
+      .email-footer {
+        background-color: #f8fafc;
+        padding: 30px;
+        text-align: center;
+        border-top: 1px solid #e2e8f0;
+      }
+
+      .footer-text {
+        color: #64748b;
+        font-size: 14px;
+        margin: 5px 0;
+      }
+
+      .social-links {
+        margin: 20px 0;
+      }
+
+      .social-links a {
+        display: inline-block;
+        margin: 0 10px;
+        text-decoration: none;
+        font-size: 20px;
+      }
+
+      @media only screen and (max-width: 600px) {
         .email-content {
-            padding: 40px 30px;
-            background-color: #ffffff;
+          padding: 30px 20px;
         }
-        
-        .greeting {
-            color: #1e293b;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-        
-        .message {
-            color: #475569;
-            font-size: 16px;
-            margin-bottom: 25px;
-            line-height: 1.6;
-        }
-        
-        .highlight {
-            color: #059669;
-            font-weight: 700;
-            font-size: 18px;
-        }
-        
-        .info-box {
-            background-color: #f0fdf4;
-            border-radius: 16px;
-            padding: 25px;
-            margin: 25px 0;
-            border: 1px solid #bbf7d0;
-        }
-        
-        .info-box h3 {
-            color: #1e293b;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .order-details {
-            margin: 15px 0;
-        }
-        
+
         .order-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px dashed #d1fae5;
+          flex-direction: column;
+          gap: 5px;
         }
-        
-        .order-row:last-child {
-            border-bottom: none;
-        }
-        
-        .order-label {
-            color: #64748b;
-            font-weight: 500;
-        }
-        
-        .order-value {
-            color: #1e293b;
-            font-weight: 600;
-        }
-        
-        .order-value.order-number {
-            color: #059669;
-            font-family: monospace;
-            font-size: 16px;
-        }
-        
-        .action-required {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border-radius: 12px;
-            padding: 20px;
-            margin: 25px 0;
-            text-align: center;
-            border: 1px solid #fbbf24;
-        }
-        
-        .action-required p {
-            color: #92400e;
-            margin: 10px 0;
-        }
-        
-        .alert-icon {
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-        
-        .steps-section {
-            margin: 30px 0;
-        }
-        
-        .steps-title {
-            color: #1e293b;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
+
         .step-item {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #f8fafc;
-            border-radius: 12px;
+          flex-direction: column;
+          text-align: center;
         }
-        
+
         .step-number {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            margin-right: 15px;
-            flex-shrink: 0;
+          margin-right: 0;
+          margin-bottom: 10px;
         }
-        
-        .step-content {
-            flex: 1;
-        }
-        
-        .step-title {
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 5px;
-        }
-        
-        .step-desc {
-            color: #64748b;
-            font-size: 14px;
-        }
-        
-        .button-container {
-            text-align: center;
-            margin: 35px 0;
-        }
-        
+
         .button {
-            display: inline-block;
-            padding: 16px 36px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: #ffffff !important;
-            text-decoration: none;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 16px;
-            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
-            transition: all 0.3s ease;
+          display: block;
+          width: 100%;
         }
-        
-        .button:hover {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.3);
-        }
-        
-        .shipping-options {
-            background-color: #f8fafc;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 25px 0;
-        }
-        
-        .shipping-options h4 {
-            color: #1e293b;
-            margin-bottom: 15px;
-            font-size: 16px;
-        }
-        
-        .option-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            background-color: white;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .option-icon {
-            font-size: 24px;
-            margin-right: 12px;
-        }
-        
-        .option-info {
-            flex: 1;
-        }
-        
-        .option-name {
-            font-weight: 600;
-            color: #1e293b;
-        }
-        
-        .option-desc {
-            font-size: 12px;
-            color: #64748b;
-        }
-        
-        .faq-section {
-            margin: 30px 0;
-            background-color: #f8fafc;
-            border-radius: 12px;
-            padding: 20px;
-        }
-        
-        .faq-item {
-            margin: 15px 0;
-        }
-        
+
         .faq-question {
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+          flex-direction: column;
+          text-align: center;
         }
-        
-        .faq-answer {
-            color: #64748b;
-            font-size: 14px;
-            margin-left: 28px;
-        }
-        
-        .email-footer {
-            background-color: #f8fafc;
-            padding: 30px;
-            text-align: center;
-            border-top: 1px solid #e2e8f0;
-        }
-        
-        .footer-text {
-            color: #64748b;
-            font-size: 14px;
-            margin: 5px 0;
-        }
-        
-        .social-links {
-            margin: 20px 0;
-        }
-        
-        .social-links a {
-            display: inline-block;
-            margin: 0 10px;
-            text-decoration: none;
-            font-size: 20px;
-        }
-        
-        @media only screen and (max-width: 600px) {
-            .email-content {
-                padding: 30px 20px;
-            }
-            
-            .order-row {
-                flex-direction: column;
-                gap: 5px;
-            }
-            
-            .step-item {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .step-number {
-                margin-right: 0;
-                margin-bottom: 10px;
-            }
-            
-            .button {
-                display: block;
-                width: 100%;
-            }
-            
-            .faq-question {
-                flex-direction: column;
-                text-align: center;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="email-container">
-        <div class="email-header">
-            <div class="shipping-icon">🚚</div>
-            <img src="cid:ample_logo" alt="Ample Printhub" class="logo" width="180" height="auto">
-            <h1 class="header-title">Ready for Shipping!</h1>
-            <p class="header-subtitle">Your order is complete and ready to be shipped</p>
+      <div class="email-header">
+        <div class="shipping-icon">🚚</div>
+        <img
+          src="cid:ample_logo"
+          alt="Ample Printhub"
+          class="logo"
+          width="180"
+          height="auto"
+        />
+        <h1 class="header-title">Ready for Shipping!</h1>
+        <p class="header-subtitle">
+          Your order is complete and ready to be shipped
+        </p>
+      </div>
+
+      <div class="email-content">
+        <p class="greeting">Hello {{name}},</p>
+
+        <p class="message">
+          Great news! Your order
+          <span class="highlight">#{{orderNumber}}</span> is now complete and
+          ready for shipping. Please log in to your dashboard to select your
+          preferred shipping method.
+        </p>
+
+        <div class="info-box">
+          <h3>
+            <span>📦</span>
+            Order Summary
+          </h3>
+
+          <div class="order-details">
+            <div class="order-row">
+              <span class="order-label">Order Number:</span>
+              <span class="order-value order-number">#{{orderNumber}}</span>
+            </div>
+
+            <div class="order-row">
+              <span class="order-label">Status:</span>
+              <span class="order-value">✅ Ready for Shipping</span>
+            </div>
+          </div>
         </div>
-        
-        <div class="email-content">
-            <p class="greeting">Hello {{name}},</p>
-            
-            <p class="message">
-                Great news! Your order <span class="highlight">#{{orderNumber}}</span> is now complete and ready for shipping.
-                Please log in to your dashboard to select your preferred shipping method.
-            </p>
-            
-            <div class="info-box">
-                <h3>
-                    <span>📦</span>
-                    Order Summary
-                </h3>
-                
-                <div class="order-details">
-                    <div class="order-row">
-                        <span class="order-label">Order Number:</span>
-                        <span class="order-value order-number">#{{orderNumber}}</span>
-                    </div>
-                    
-                    <div class="order-row">
-                        <span class="order-label">Status:</span>
-                        <span class="order-value">✅ Ready for Shipping</span>
-                    </div>
-                </div>
+
+        <div class="action-required">
+          <div class="alert-icon">⚠️</div>
+          <h3 style="color: #92400e; margin-bottom: 10px">Action Required!</h3>
+          <p>Please select a shipping method to complete your order.</p>
+          <p>Your order will not be shipped until you make a selection.</p>
+        </div>
+
+        <div class="steps-section">
+          <div class="steps-title">
+            <span>📋</span>
+            How to proceed:
+          </div>
+
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <div class="step-title">Log into Your Dashboard</div>
+              <div class="step-desc">
+                Sign in to your Ample Printhub account
+              </div>
             </div>
-            
-            <div class="action-required">
-                <div class="alert-icon">⚠️</div>
-                <h3 style="color: #92400e; margin-bottom: 10px;">Action Required!</h3>
-                <p>Please select a shipping method to complete your order.</p>
-                <p>Your order will not be shipped until you make a selection.</p>
+          </div>
+
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <div class="step-title">Go to Your Orders</div>
+              <div class="step-desc">
+                Navigate to the orders section in your dashboard
+              </div>
             </div>
-            
-            <div class="steps-section">
-                <div class="steps-title">
-                    <span>📋</span>
-                    How to proceed:
-                </div>
-                
-                <div class="step-item">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <div class="step-title">Log into Your Dashboard</div>
-                        <div class="step-desc">Sign in to your Ample Printhub account</div>
-                    </div>
-                </div>
-                
-                <div class="step-item">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <div class="step-title">Go to Your Orders</div>
-                        <div class="step-desc">Navigate to the orders section in your dashboard</div>
-                    </div>
-                </div>
-                
-                <div class="step-item">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <div class="step-title">Select Shipping Method</div>
-                        <div class="step-desc">Choose your preferred shipping option (Door Delivery or Pickup)</div>
-                    </div>
-                </div>
-                
-                <div class="step-item">
-                    <div class="step-number">4</div>
-                    <div class="step-content">
-                        <div class="step-title">Confirm & Pay (if applicable)</div>
-                        <div class="step-desc">Complete the shipping selection process</div>
-                    </div>
-                </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <div class="step-title">Select Shipping Method</div>
+              <div class="step-desc">
+                Choose your preferred shipping option (Door Delivery or Pickup)
+              </div>
             </div>
-            
-            <div class="shipping-options">
-                <h4>🚚 Available Shipping Options:</h4>
-                
-                <div class="option-item">
-                    <div class="option-icon">🏠</div>
-                    <div class="option-info">
-                        <div class="option-name">Door Delivery</div>
-                        <div class="option-desc">We deliver directly to your address</div>
-                    </div>
-                </div>
-                
-                <div class="option-item">
-                    <div class="option-icon">📍</div>
-                    <div class="option-info">
-                        <div class="option-name">Store Pickup</div>
-                        <div class="option-desc">Pick up your order from our store</div>
-                    </div>
-                </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <div class="step-title">Confirm & Pay (if applicable)</div>
+              <div class="step-desc">
+                Complete the shipping selection process
+              </div>
             </div>
-            
-            <div class="button-container">
+          </div>
+        </div>
+
+        <div class="shipping-options">
+          <h4>🚚 Available Shipping Options:</h4>
+
+          <div class="option-item">
+            <div class="option-icon">🏠</div>
+            <div class="option-info">
+              <div class="option-name">Door Delivery</div>
+              <div class="option-desc">We deliver directly to your address</div>
+            </div>
+          </div>
+
+          <div class="option-item">
+            <div class="option-icon">📍</div>
+            <div class="option-info">
+              <div class="option-name">Store Pickup</div>
+              <div class="option-desc">Pick up your order from our store</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- <div class="button-container">
                 <a href="{{shippingUrl}}" class="button">Select Shipping Method</a>
-            </div>
-            
-            <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 20px;">
+            </div> -->
+
+        <!-- <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 20px;">
                 Can't click the button? Copy and paste this link into your browser:<br>
                 <a href="{{shippingUrl}}" style="color: #059669; word-break: break-all;">{{shippingUrl}}</a>
-            </p>
-            
-            <div class="faq-section">
-                <h3 style="color: #1e293b; margin-bottom: 15px;">❓ Frequently Asked Questions</h3>
-                
-                <div class="faq-item">
-                    <div class="faq-question">
-                        <span>🚚</span>
-                        How long does delivery take?
-                    </div>
-                    <div class="faq-answer">
-                        Delivery typically takes 2-5 business days depending on your location. Pickup is available immediately after processing.
-                    </div>
-                </div>
-                
-                <div class="faq-item">
-                    <div class="faq-question">
-                        <span>💰</span>
-                        Are there shipping costs?
-                    </div>
-                    <div class="faq-answer">
-                        Shipping costs vary based on your location and selected shipping method. You'll see the exact cost when selecting your shipping option.
-                    </div>
-                </div>
-                
-                <div class="faq-item">
-                    <div class="faq-question">
-                        <span>📝</span>
-                        What if I don't select a shipping method?
-                    </div>
-                    <div class="faq-answer">
-                        Your order will remain in "Ready for Shipping" status until you make a selection. We'll send reminder emails until you complete this step.
-                    </div>
-                </div>
+            </p> -->
+
+        <div class="faq-section">
+          <h3 style="color: #1e293b; margin-bottom: 15px">
+            ❓ Frequently Asked Questions
+          </h3>
+
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>🚚</span>
+              How long does delivery take?
             </div>
-            
-            <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 20px;">
-                Need help? <a href="{{supportUrl}}" style="color: #059669;">Contact our support team</a>
-            </p>
+            <div class="faq-answer">
+              Delivery typically takes 2-5 business days depending on your
+              location. Pickup is available immediately after processing.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>💰</span>
+              Are there shipping costs?
+            </div>
+            <div class="faq-answer">
+              Shipping costs vary based on your location and selected shipping
+              method. You'll see the exact cost when selecting your shipping
+              option.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>📝</span>
+              What if I don't select a shipping method?
+            </div>
+            <div class="faq-answer">
+              Your order will remain in "Ready for Shipping" status until you
+              make a selection. We'll send reminder emails until you complete
+              this step.
+            </div>
+          </div>
         </div>
-        
-        <div class="email-footer">
-            <div class="social-links">
-                <a href="https://facebook.com/ampleprinthub">📘</a>
-                <a href="https://instagram.com/ampleprinthub">📷</a>
-                <a href="https://twitter.com/ampleprinthub">🐦</a>
-                <a href="https://tiktok.com/@ampleprinthub">🎵</a>
-            </div>
-            <p class="footer-text">© {{year}} Ample Printhub. All rights reserved.</p>
-            <p class="footer-text">5 Boyle Street, Shomolu, Lagos</p>
-            <p class="footer-text">
+
+        <!-- <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 20px;">
+                Need help? <a href="{{supportUrl}}" style="color: #059669;">Contact our support team</a>
+            </p> -->
+      </div>
+
+      <div class="email-footer">
+        <div class="social-links">
+          <a href="https://facebook.com/ampleprinthub">📘</a>
+          <a href="https://instagram.com/ampleprinthub">📷</a>
+          <a href="https://twitter.com/ampleprinthub">🐦</a>
+          <a href="https://tiktok.com/@ampleprinthub">🎵</a>
+        </div>
+        <p class="footer-text">
+          © {{year}} Ample Printhub. All rights reserved.
+        </p>
+        <p class="footer-text">5 Boyle Street, Shomolu, Lagos</p>
+        <!-- <p class="footer-text">
                 <a href="{{privacyUrl}}" style="color: #64748b; text-decoration: underline;">Privacy Policy</a> |
                 <a href="{{unsubscribeUrl}}" style="color: #64748b; text-decoration: underline;">Unsubscribe</a>
-            </p>
-        </div>
+            </p> -->
+      </div>
     </div>
-</body>
+  </body>
 </html>

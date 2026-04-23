@@ -1,362 +1,386 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>Your Design is Ready! - Ample Printhub</title>
     <style>
-        /* Reset styles */
-        body, table, td, p, a {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            border: 0;
-            font-size: 100%;
-            font: inherit;
-            vertical-align: baseline;
-        }
-        
-        body {
-            background-color: #f4f7fb;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            padding: 20px;
-        }
-        
-        table {
-            border-collapse: collapse;
-            mso-table-lspace: 0;
-            mso-table-rspace: 0;
-        }
-        
-        /* Container */
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        
-        /* Header */
-        .email-header {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            padding: 40px 30px;
-            text-align: center;
-        }
-        
-        .logo {
-            max-width: 180px;
-            height: auto;
-            margin-bottom: 20px;
-        }
-        
-        .header-title {
-            color: #ffffff;
-            font-size: 32px;
-            font-weight: 700;
-            margin: 0;
-            letter-spacing: -0.5px;
-        }
-        
-        .header-subtitle {
-            color: #bfdbfe;
-            font-size: 16px;
-            margin-top: 10px;
-        }
-        
-        /* Content */
+      /* Reset styles */
+      body,
+      table,
+      td,
+      p,
+      a {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        font-size: 100%;
+        font: inherit;
+        vertical-align: baseline;
+      }
+
+      body {
+        background-color: #f4f7fb;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        padding: 20px;
+      }
+
+      table {
+        border-collapse: collapse;
+        mso-table-lspace: 0;
+        mso-table-rspace: 0;
+      }
+
+      /* Container */
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow:
+          0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+
+      /* Header */
+      .email-header {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        padding: 40px 30px;
+        text-align: center;
+      }
+
+      .logo {
+        max-width: 180px;
+        height: auto;
+        margin-bottom: 20px;
+      }
+
+      .header-title {
+        color: #ffffff;
+        font-size: 32px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.5px;
+      }
+
+      .header-subtitle {
+        color: #bfdbfe;
+        font-size: 16px;
+        margin-top: 10px;
+      }
+
+      /* Content */
+      .email-content {
+        padding: 40px 30px;
+        background-color: #ffffff;
+      }
+
+      .greeting {
+        color: #1e293b;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+      }
+
+      .message {
+        color: #475569;
+        font-size: 16px;
+        margin-bottom: 25px;
+      }
+
+      /* Design Preview Box */
+      .design-preview {
+        background-color: #f8fafc;
+        border-radius: 16px;
+        padding: 25px;
+        margin: 30px 0;
+        text-align: center;
+        border: 2px dashed #cbd5e1;
+      }
+
+      .preview-image {
+        max-width: 100%;
+        border-radius: 12px;
+        box-shadow:
+          0 10px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border: 3px solid #ffffff;
+      }
+
+      .preview-label {
+        display: inline-block;
+        background-color: #3b82f6;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 50px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 15px;
+      }
+
+      /* Order Info */
+      .order-info {
+        background-color: #f1f5f9;
+        border-radius: 8px;
+        padding: 15px 20px;
+        margin: 20px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .order-number {
+        font-family: monospace;
+        font-size: 18px;
+        font-weight: 700;
+        color: #1e293b;
+      }
+
+      .product-name {
+        color: #3b82f6;
+        font-weight: 600;
+      }
+
+      /* Info Box */
+      .info-box {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 16px;
+        padding: 25px;
+        margin: 30px 0;
+        border-left: 4px solid #3b82f6;
+      }
+
+      .info-box p {
+        color: #1e293b;
+        margin: 0 0 15px 0;
+        font-size: 16px;
+      }
+
+      .info-box ul {
+        margin: 10px 0 0 20px;
+        color: #475569;
+      }
+
+      .info-box li {
+        margin-bottom: 12px;
+        line-height: 1.5;
+      }
+
+      .info-box li strong {
+        color: #1e293b;
+      }
+
+      .approve-badge {
+        display: inline-block;
+        background-color: #10b981;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 50px;
+        font-size: 12px;
+        margin-left: 8px;
+      }
+
+      .changes-badge {
+        display: inline-block;
+        background-color: #f59e0b;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 50px;
+        font-size: 12px;
+        margin-left: 8px;
+      }
+
+      /* Action Buttons */
+      .action-buttons {
+        display: flex;
+        gap: 15px;
+        margin: 35px 0;
+        flex-wrap: wrap;
+      }
+
+      .button {
+        flex: 1;
+        min-width: 200px;
+        padding: 16px 24px;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 16px;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+
+      .button.approve {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff;
+      }
+
+      .button.approve:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.3);
+      }
+
+      .button.changes {
+        background: #ffffff;
+        color: #1e293b;
+        border: 2px solid #e2e8f0;
+      }
+
+      .button.changes:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        transform: translateY(-2px);
+      }
+
+      /* Deadline Notice */
+      .deadline-notice {
+        background-color: #fef3c7;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 25px 0;
+        text-align: center;
+        color: #92400e;
+        border-left: 4px solid #f59e0b;
+      }
+
+      .deadline-notice strong {
+        color: #b45309;
+      }
+
+      /* Additional Info */
+      .additional-info {
+        margin: 30px 0;
+        padding: 20px;
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+      }
+
+      .info-row {
+        display: flex;
+        align-items: center;
+        margin: 10px 0;
+      }
+
+      .info-icon {
+        width: 32px;
+        height: 32px;
+        background-color: #e2e8f0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        font-size: 16px;
+      }
+
+      /* Footer */
+      .email-footer {
+        background-color: #f8fafc;
+        padding: 30px;
+        text-align: center;
+        border-top: 1px solid #e2e8f0;
+      }
+
+      .footer-text {
+        color: #64748b;
+        font-size: 14px;
+        margin: 5px 0;
+      }
+
+      .social-links {
+        margin: 20px 0;
+      }
+
+      .social-links a {
+        display: inline-block;
+        margin: 0 10px;
+        text-decoration: none;
+        font-size: 20px;
+      }
+
+      /* Responsive */
+      @media only screen and (max-width: 600px) {
         .email-content {
-            padding: 40px 30px;
-            background-color: #ffffff;
+          padding: 30px 20px;
         }
-        
-        .greeting {
-            color: #1e293b;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-        
-        .message {
-            color: #475569;
-            font-size: 16px;
-            margin-bottom: 25px;
-        }
-        
-        /* Design Preview Box */
-        .design-preview {
-            background-color: #f8fafc;
-            border-radius: 16px;
-            padding: 25px;
-            margin: 30px 0;
-            text-align: center;
-            border: 2px dashed #cbd5e1;
-        }
-        
-        .preview-image {
-            max-width: 100%;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border: 3px solid #ffffff;
-        }
-        
-        .preview-label {
-            display: inline-block;
-            background-color: #3b82f6;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 50px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 15px;
-        }
-        
-        /* Order Info */
-        .order-info {
-            background-color: #f1f5f9;
-            border-radius: 8px;
-            padding: 15px 20px;
-            margin: 20px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .order-number {
-            font-family: monospace;
-            font-size: 18px;
-            font-weight: 700;
-            color: #1e293b;
-        }
-        
-        .product-name {
-            color: #3b82f6;
-            font-weight: 600;
-        }
-        
-        /* Info Box */
-        .info-box {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            border-radius: 16px;
-            padding: 25px;
-            margin: 30px 0;
-            border-left: 4px solid #3b82f6;
-        }
-        
-        .info-box p {
-            color: #1e293b;
-            margin: 0 0 15px 0;
-            font-size: 16px;
-        }
-        
-        .info-box ul {
-            margin: 10px 0 0 20px;
-            color: #475569;
-        }
-        
-        .info-box li {
-            margin-bottom: 12px;
-            line-height: 1.5;
-        }
-        
-        .info-box li strong {
-            color: #1e293b;
-        }
-        
-        .approve-badge {
-            display: inline-block;
-            background-color: #10b981;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 50px;
-            font-size: 12px;
-            margin-left: 8px;
-        }
-        
-        .changes-badge {
-            display: inline-block;
-            background-color: #f59e0b;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 50px;
-            font-size: 12px;
-            margin-left: 8px;
-        }
-        
-        /* Action Buttons */
+
         .action-buttons {
-            display: flex;
-            gap: 15px;
-            margin: 35px 0;
-            flex-wrap: wrap;
+          flex-direction: column;
         }
-        
+
         .button {
-            flex: 1;
-            min-width: 200px;
-            padding: 16px 24px;
-            text-decoration: none;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 16px;
-            text-align: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          width: 100%;
         }
-        
-        .button.approve {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: #ffffff;
+
+        .order-info {
+          flex-direction: column;
+          gap: 10px;
+          text-align: center;
         }
-        
-        .button.approve:hover {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.3);
+
+        .info-box ul {
+          margin-left: 15px;
         }
-        
-        .button.changes {
-            background: #ffffff;
-            color: #1e293b;
-            border: 2px solid #e2e8f0;
-        }
-        
-        .button.changes:hover {
-            background: #f8fafc;
-            border-color: #94a3b8;
-            transform: translateY(-2px);
-        }
-        
-        /* Deadline Notice */
-        .deadline-notice {
-            background-color: #fef3c7;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 25px 0;
-            text-align: center;
-            color: #92400e;
-            border-left: 4px solid #f59e0b;
-        }
-        
-        .deadline-notice strong {
-            color: #b45309;
-        }
-        
-        /* Additional Info */
-        .additional-info {
-            margin: 30px 0;
-            padding: 20px;
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-        }
-        
-        .info-row {
-            display: flex;
-            align-items: center;
-            margin: 10px 0;
-        }
-        
-        .info-icon {
-            width: 32px;
-            height: 32px;
-            background-color: #e2e8f0;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 12px;
-            font-size: 16px;
-        }
-        
-        /* Footer */
-        .email-footer {
-            background-color: #f8fafc;
-            padding: 30px;
-            text-align: center;
-            border-top: 1px solid #e2e8f0;
-        }
-        
-        .footer-text {
-            color: #64748b;
-            font-size: 14px;
-            margin: 5px 0;
-        }
-        
-        .social-links {
-            margin: 20px 0;
-        }
-        
-        .social-links a {
-            display: inline-block;
-            margin: 0 10px;
-            text-decoration: none;
-            font-size: 20px;
-        }
-        
-        /* Responsive */
-        @media only screen and (max-width: 600px) {
-            .email-content {
-                padding: 30px 20px;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-            }
-            
-            .button {
-                width: 100%;
-            }
-            
-            .order-info {
-                flex-direction: column;
-                gap: 10px;
-                text-align: center;
-            }
-            
-            .info-box ul {
-                margin-left: 15px;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="email-container">
-        <!-- Header -->
-        <div class="email-header">
-            <img src="cid:ample_logo" alt="Ample Printhub" class="logo" width="180" height="auto">
-            <h1 class="header-title">Your Design is Ready! 🎨</h1>
-            <p class="header-subtitle">Review and approve to start production</p>
+      <!-- Header -->
+      <div class="email-header">
+        <img
+          src="cid:ample_logo"
+          alt="Ample Printhub"
+          class="logo"
+          width="180"
+          height="auto"
+        />
+        <h1 class="header-title">Your Design is Ready! 🎨</h1>
+        <p class="header-subtitle">Review and approve to start production</p>
+      </div>
+
+      <!-- Content -->
+      <div class="email-content">
+        <p class="greeting">Hello {{name}},</p>
+
+        <p class="message">
+          Good news! Your design for
+          <strong style="color: #3b82f6">{{productName}}</strong> is ready for
+          your review. Please take a moment to look it over and let us know what
+          you think.
+        </p>
+
+        <!-- Order Info -->
+        <div class="order-info">
+          <span class="order-number">Order #{{orderNumber}}</span>
+          <span class="product-name">{{productName}}</span>
         </div>
-        
-        <!-- Content -->
-        <div class="email-content">
-            <p class="greeting">Hello {{name}},</p>
-            
-            <p class="message">
-                Good news! Your design for <strong style="color: #3b82f6;">{{productName}}</strong> is ready for your review.
-                Please take a moment to look it over and let us know what you think.
-            </p>
-            
-            <!-- Order Info -->
-            <div class="order-info">
-                <span class="order-number">Order #{{orderNumber}}</span>
-                <span class="product-name">{{productName}}</span>
-            </div>
-            
-            <!-- Design Preview -->
-            <div class="design-preview">
+
+        <!-- Design Preview -->
+        <!-- <div class="design-preview">
                 <span class="preview-label">Design Preview</span>
                 <img src="{{designUrl}}" alt="Design Preview" class="preview-image" style="max-width: 100%; border-radius: 8px;">
-            </div>
-            
-            <!-- Info Box with Options -->
-            <div class="info-box">
+            </div> -->
+
+        <!-- Info Box with Options -->
+        <!-- <div class="info-box">
                 <p><strong>✨ What would you like to do?</strong></p>
                 <ul>
                     <li>
@@ -370,22 +394,24 @@
                         <span style="color: #64748b; font-size: 14px;">If you'd like adjustments, let us know what to change and we'll update the design</span>
                     </li>
                 </ul>
-            </div>
-            
-            <!-- Action Buttons -->
-            <div class="action-buttons">
+            </div> -->
+
+        <!-- Action Buttons -->
+        <!-- <div class="action-buttons">
                 <a href="{{approveUrl}}" class="button approve">✅ Approve Design</a>
                 <a href="{{changesUrl}}" class="button changes">✏️ Request Changes</a>
-            </div>
-            
-            <!-- Deadline Notice -->
-            <div class="deadline-notice">
-                <strong>⏰ 48 Hour Review Period</strong>
-                <p style="margin-top: 8px; color: #92400e;">Please review and respond within 48 hours to keep your order on schedule. If we don't hear from you, we'll send a reminder.</p>
-            </div>
-            
-            <!-- Additional Info -->
-            <div class="additional-info">
+            </div> -->
+
+        <!-- Deadline Notice -->
+        <div class="deadline-notice">
+          <strong>Next step:</strong>
+          <p style="margin-top: 8px; color: #92400e">
+            Login to your dashboard to approve or reject the design..
+          </p>
+        </div>
+
+        <!-- Additional Info -->
+        <!-- <div class="additional-info">
                 <div class="info-row">
                     <div class="info-icon">📋</div>
                     <div style="color: #475569;">
@@ -400,29 +426,49 @@
                         <span style="display: block; font-size: 14px;">Reply to this email or contact our support team for assistance.</span>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Note -->
-            <p style="color: #94a3b8; font-size: 14px; margin-top: 20px; text-align: center; font-style: italic;">
-                Once approved, your order will move to production. We'll keep you updated on the progress!
-            </p>
+            </div> -->
+
+        <!-- Note -->
+        <p
+          style="
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: 20px;
+            text-align: center;
+            font-style: italic;
+          "
+        >
+          Once approved, your order will move to production. We'll keep you
+          updated on the progress!
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div class="email-footer">
+        <div class="social-links">
+          <a href="https://facebook.com/ampleprinthub">📘</a>
+          <a href="https://instagram.com/ampleprinthub">📷</a>
+          <a href="https://twitter.com/ampleprinthub">🐦</a>
+          <a href="https://tiktok.com/@ampleprinthub">🎵</a>
         </div>
-        
-        <!-- Footer -->
-        <div class="email-footer">
-            <div class="social-links">
-                <a href="https://facebook.com/ampleprinthub">📘</a>
-                <a href="https://instagram.com/ampleprinthub">📷</a>
-                <a href="https://twitter.com/ampleprinthub">🐦</a>
-                <a href="https://tiktok.com/@ampleprinthub">🎵</a>
-            </div>
-            <p class="footer-text">© {{year}} Ample Printhub. All rights reserved.</p>
-            <p class="footer-text">5 Boyle Street, Shomolu, Lagos</p>
-            <p class="footer-text">
-                <a href="{{privacyUrl}}" style="color: #64748b; text-decoration: underline;">Privacy Policy</a> |
-                <a href="{{unsubscribeUrl}}" style="color: #64748b; text-decoration: underline;">Unsubscribe</a>
-            </p>
-        </div>
+        <p class="footer-text">
+          © {{year}} Ample Printhub. All rights reserved.
+        </p>
+        <p class="footer-text">5 Boyle Street, Shomolu, Lagos</p>
+        <p class="footer-text">
+          <a
+            href="{{privacyUrl}}"
+            style="color: #64748b; text-decoration: underline"
+            >Privacy Policy</a
+          >
+          |
+          <a
+            href="{{unsubscribeUrl}}"
+            style="color: #64748b; text-decoration: underline"
+            >Unsubscribe</a
+          >
+        </p>
+      </div>
     </div>
-</body>
+  </body>
 </html>

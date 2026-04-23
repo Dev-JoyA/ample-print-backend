@@ -47,8 +47,8 @@ export interface IShipping extends Document {
   // Dates
   estimatedDelivery?: Date;
   actualDelivery?: Date;
-    driverName?: string;        // NEW: Driver's name
-  driverPhone?: string; 
+  driverName?: string; // NEW: Driver's name
+  driverPhone?: string;
 
   // Metadata for internal use
   metadata?: {
@@ -87,13 +87,15 @@ const ShippingSchema = new Schema<IShipping>(
       type: String,
       sparse: true, // Allows null/undefined for pickup
     },
-     carrier: {
+    carrier: {
       type: String,
     },
-    driverName: {              // NEW
+    driverName: {
+      // NEW
       type: String,
     },
-    driverPhone: {             // NEW
+    driverPhone: {
+      // NEW
       type: String,
     },
     recipientName: {

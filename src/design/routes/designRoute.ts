@@ -16,7 +16,7 @@ import {
   checkSuperAdmin,
   checkAdmin,
   checkOwnership,
-  checkRole, 
+  checkRole,
   checkDesignOwnership,
 } from "../../middleware/authorization.js";
 import { UserRole } from "../../users/model/userModel.js"; // ✅ Add if using checkRole
@@ -28,9 +28,9 @@ const router = Router();
 router.use(authMiddleware);
 
 router.post(
-  "/orders/:orderId", 
+  "/orders/:orderId",
   checkAdmin,
-  upload.array("images", 10), 
+  upload.array("images", 10),
   createDesignController,
 );
 
@@ -49,11 +49,7 @@ router.delete("/delete/:designId", checkSuperAdmin, deleteDesignController);
 
 // ==================== APPROVE DESIGN ====================
 // PUT /api/v1/design/:designId/approve
-router.put(
-  "/:designId/approve",
-  checkDesignOwnership,
-  approveDesignController,
-);
+router.put("/:designId/approve", checkDesignOwnership, approveDesignController);
 
 // ==================== GET USER DESIGNS ====================
 // GET /api/v1/design/users/:userId

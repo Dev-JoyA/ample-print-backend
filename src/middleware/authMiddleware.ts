@@ -17,7 +17,11 @@ export const authMiddleware = (
       role: string;
       email: string;
     };
-    req.user = { _id: decoded.userId, role: decoded.role, email: decoded.email };
+    req.user = {
+      _id: decoded.userId,
+      role: decoded.role,
+      email: decoded.email,
+    };
     next();
   } catch {
     return res.status(401).json({ message: "Invalid token or expired token" });

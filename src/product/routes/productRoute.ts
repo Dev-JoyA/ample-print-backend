@@ -2,10 +2,7 @@ import express from "express";
 import * as productController from "../controller/productController.js";
 import upload from "../../config/upload.js";
 import { authMiddleware } from "../../middleware/authMiddleware.js";
-import {
-  checkSuperAdmin,
-  checkAdmin,
-} from "../../middleware/authorization.js";
+import { checkSuperAdmin, checkAdmin } from "../../middleware/authorization.js";
 
 const router = express.Router();
 
@@ -16,7 +13,7 @@ router.post(
   "/collections",
   authMiddleware,
   checkAdmin,
-  productController.createCollection
+  productController.createCollection,
 );
 
 // Update collection
@@ -24,7 +21,7 @@ router.put(
   "/collections/:id",
   authMiddleware,
   checkAdmin,
-  productController.updateCollection
+  productController.updateCollection,
 );
 
 // Delete collection
@@ -32,7 +29,7 @@ router.delete(
   "/collections/:id",
   authMiddleware,
   checkAdmin,
-  productController.deleteCollection
+  productController.deleteCollection,
 );
 
 // Get collections (paginated)
@@ -65,7 +62,7 @@ router.put(
   authMiddleware,
   checkAdmin,
   upload.array("images", 10),
-  productController.updateProduct
+  productController.updateProduct,
 );
 
 // Delete product
@@ -73,7 +70,7 @@ router.delete(
   "/products/:id",
   authMiddleware,
   checkAdmin,
-  productController.deleteProduct
+  productController.deleteProduct,
 );
 
 /* ===================== PRODUCT LISTING ===================== */
@@ -84,14 +81,17 @@ router.get("/products", productController.getProductsPaginated);
 // Get products by collection
 router.get(
   "/collections/:collectionId/all-products",
-  productController.getProductsByCollectionId
+  productController.getProductsByCollectionId,
 );
 
 // Get collection by ID
 router.get("/collections/:id", productController.getCollectionById);
 
 // Optional: make products route match frontend expectations
-router.get("/collections/:id/products", productController.getProductsByCollectionId);
+router.get(
+  "/collections/:id/products",
+  productController.getProductsByCollectionId,
+);
 
 /* ===================== PRODUCT BY ID (KEEP LAST) ===================== */
 

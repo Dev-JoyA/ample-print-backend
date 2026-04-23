@@ -6,7 +6,9 @@ export async function getActive(req: Request, res: Response) {
     const active = await bankAccountService.getActiveBankAccount();
     return res.status(200).json({ bankAccount: active });
   } catch (e: any) {
-    return res.status(500).json({ message: e?.message || "Failed to fetch active bank account" });
+    return res
+      .status(500)
+      .json({ message: e?.message || "Failed to fetch active bank account" });
   }
 }
 
@@ -15,7 +17,9 @@ export async function list(req: Request, res: Response) {
     const bankAccounts = await bankAccountService.listBankAccounts();
     return res.status(200).json({ bankAccounts });
   } catch (e: any) {
-    return res.status(500).json({ message: e?.message || "Failed to list bank accounts" });
+    return res
+      .status(500)
+      .json({ message: e?.message || "Failed to list bank accounts" });
   }
 }
 
@@ -23,7 +27,9 @@ export async function create(req: Request, res: Response) {
   try {
     const { accountName, accountNumber, bankName, isActive } = req.body || {};
     if (!accountName || !accountNumber || !bankName) {
-      return res.status(400).json({ message: "accountName, accountNumber and bankName are required" });
+      return res.status(400).json({
+        message: "accountName, accountNumber and bankName are required",
+      });
     }
 
     const createdBy = (req.user as any)?._id as string | undefined;
@@ -34,29 +40,38 @@ export async function create(req: Request, res: Response) {
     return res.status(201).json({ bankAccount });
   } catch (e: any) {
     const status = e?.status || 500;
-    return res.status(status).json({ message: e?.message || "Failed to create bank account" });
+    return res
+      .status(status)
+      .json({ message: e?.message || "Failed to create bank account" });
   }
 }
 
 export async function setActive(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const bankAccount = await bankAccountService.setActiveBankAccount(Array.isArray(id) ? id[0] : id);
+    const bankAccount = await bankAccountService.setActiveBankAccount(
+      Array.isArray(id) ? id[0] : id,
+    );
     return res.status(200).json({ bankAccount });
   } catch (e: any) {
     const status = e?.status || 500;
-    return res.status(status).json({ message: e?.message || "Failed to set active bank account" });
+    return res
+      .status(status)
+      .json({ message: e?.message || "Failed to set active bank account" });
   }
 }
 
 export async function remove(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const result = await bankAccountService.deleteBankAccount(Array.isArray(id) ? id[0] : id);
+    const result = await bankAccountService.deleteBankAccount(
+      Array.isArray(id) ? id[0] : id,
+    );
     return res.status(200).json({ ...result, message: "Bank account deleted" });
   } catch (e: any) {
     const status = e?.status || 500;
-    return res.status(status).json({ message: e?.message || "Failed to delete bank account" });
+    return res
+      .status(status)
+      .json({ message: e?.message || "Failed to delete bank account" });
   }
 }
-

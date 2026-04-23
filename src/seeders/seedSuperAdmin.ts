@@ -7,7 +7,8 @@ import { hashPassword } from "../utils/auth.js";
 
 dotenv.config();
 
-const DB_URL = process.env.MONGO_URI ?? "mongodb://localhost:27017/ample_printhub";
+const DB_URL =
+  process.env.MONGO_URI ?? "mongodb://localhost:27017/ample_printhub";
 
 async function seedSuperAdmin() {
   try {
@@ -16,7 +17,9 @@ async function seedSuperAdmin() {
     console.log("Connected successfully");
 
     // Check if superadmin already exists
-    const existingSuperAdmin = await User.findOne({ role: UserRole.SuperAdmin });
+    const existingSuperAdmin = await User.findOne({
+      role: UserRole.SuperAdmin,
+    });
     if (existingSuperAdmin) {
       console.log("SuperAdmin already exists. Clearing existing data...");
       await User.deleteMany({ role: UserRole.SuperAdmin });
@@ -44,8 +47,11 @@ async function seedSuperAdmin() {
     console.log("✅ SuperAdmin created successfully:");
     console.log("   Email:", superAdminUser.email);
     console.log("   Password: StrongPassword123");
-    console.log("   Profile:", superAdminProfile.firstName, superAdminProfile.lastName);
-    
+    console.log(
+      "   Profile:",
+      superAdminProfile.firstName,
+      superAdminProfile.lastName,
+    );
   } catch (err) {
     console.error("❌ Error seeding superadmin:", err);
   } finally {

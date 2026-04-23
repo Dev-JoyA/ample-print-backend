@@ -10,8 +10,6 @@ const uri = process.env.MONGODB_URI as string;
 //   console.log("✅ Connected to MongoDB");
 // };
 
-
-
 export const startServer = async () => {
   try {
     await mongoose.connect(uri, {
@@ -26,5 +24,3 @@ export const startServer = async () => {
     process.exit(1);
   }
 };
-
-

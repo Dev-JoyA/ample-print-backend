@@ -33,103 +33,91 @@ router.post(
   "/customer/orders/:orderId/products/:productId/brief",
   checkRole([UserRole.Customer]),
   uploadBriefFiles,
-  submitCustomerBrief
+  submitCustomerBrief,
 );
 
 router.put(
   "/customer/orders/:orderId/products/:productId/brief",
   checkRole([UserRole.Customer]),
   uploadBriefFiles,
-  submitCustomerBrief
+  submitCustomerBrief,
 );
 
 router.post(
   "/customer/orders/:orderId/products/:productId/reply",
   checkRole([UserRole.Customer]),
   uploadBriefFiles,
-  customerReplyToAdmin
+  customerReplyToAdmin,
 );
 
 router.get(
   "/customer/briefs/pending-responses",
   checkRole([UserRole.Customer]),
-  getCustomerPendingBriefResponses
+  getCustomerPendingBriefResponses,
 );
 
 router.get(
   "/customer/briefs",
   checkRole([UserRole.Customer]),
-  getUserCustomerBriefs
+  getUserCustomerBriefs,
 );
 
 router.get(
   "/briefs/order/:orderId/all",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
-  getAllBriefsByOrderId
+  getAllBriefsByOrderId,
 );
 
 router.post(
   "/admin/orders/:orderId/products/:productId/respond",
   checkAdmin,
   uploadBriefFiles,
-  adminRespondToBrief
+  adminRespondToBrief,
 );
 
 router.put(
   "/admin/orders/:orderId/products/:productId/respond",
   checkAdmin,
   uploadBriefFiles,
-  adminRespondToBrief
+  adminRespondToBrief,
 );
 
 router.get("/admin/briefs", checkAdmin, getAdminCustomerBriefs);
 
-router.patch(
-  "/briefs/:briefId/view",
-  authMiddleware,
-  markBriefAsViewed
-);
+router.patch("/briefs/:briefId/view", authMiddleware, markBriefAsViewed);
 
-router.patch(
-  "/briefs/:briefId/complete",
-  authMiddleware,
-  markBriefAsComplete
-);
+router.patch("/briefs/:briefId/complete", authMiddleware, markBriefAsComplete);
 
 router.get(
   "/briefs/orders/:orderId/products/:productId",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
-  getBriefByOrderAndProduct
+  getBriefByOrderAndProduct,
 );
 
 router.get(
   "/briefs/:briefId",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
-  getCustomerBriefById
+  getCustomerBriefById,
 );
 
 router.get(
   "/briefs/status/:orderId/:productId",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
-  checkAdminResponseStatus
+  checkAdminResponseStatus,
 );
 
 router.get(
   "/briefs/order/:orderId/status",
   checkRole([UserRole.Admin, UserRole.SuperAdmin]),
-  getOrderBriefStatus
+  getOrderBriefStatus,
 );
 
-router.delete(
-  "/briefs/:briefId",
-  checkSuperAdmin,
-  deleteCustomerBrief
-);
+router.delete("/briefs/:briefId", checkSuperAdmin, deleteCustomerBrief);
 
 router.patch(
   "/admin/briefs/:briefId/mark-viewed",
   checkAdmin,
-  markBriefAsViewedByAdmin
+  markBriefAsViewedByAdmin,
 );
 
 export default router;

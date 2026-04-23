@@ -58,11 +58,11 @@ export async function updateCollection(
       throw new Error("Collection does not exist");
     }
 
-    const nameExists = await Collection.findOne({ 
-      name, 
-      _id: { $ne: id } 
+    const nameExists = await Collection.findOne({
+      name,
+      _id: { $ne: id },
     }).session(session);
-    
+
     if (nameExists) {
       await session.abortTransaction();
       session.endSession();
@@ -89,11 +89,15 @@ export async function deleteCollection(id: string): Promise<string> {
 
   try {
     // Check if collection has any products
-    const productsCount = await Product.countDocuments({ collectionId: id }).session(session);
+    const productsCount = await Product.countDocuments({
+      collectionId: id,
+    }).session(session);
     if (productsCount > 0) {
       await session.abortTransaction();
       session.endSession();
-      throw new Error("Cannot delete collection that has products. Delete the products first.");
+      throw new Error(
+        "Cannot delete collection that has products. Delete the products first.",
+      );
     }
 
     const deleted = await Collection.findByIdAndDelete(id).session(session);
@@ -124,7 +128,9 @@ export async function getAllCollections(): Promise<ICollection[]> {
   return await Collection.find().sort({ createdAt: -1 });
 }
 
-export async function searchCollections(search: string): Promise<ICollection[]> {
+export async function searchCollections(
+  search: string,
+): Promise<ICollection[]> {
   if (!search) return [];
   return await Collection.find({
     name: { $regex: `.*${search}.*`, $options: "i" },
@@ -161,7 +167,9 @@ export async function createProduct(
       throw new Error("Collection not found");
     }
 
-    const existingProduct = await Product.findOne({ name: data.name }).session(session);
+    const existingProduct = await Product.findOne({ name: data.name }).session(
+      session,
+    );
     if (existingProduct) {
       await session.abortTransaction();
       session.endSession();
@@ -175,24 +183,26 @@ export async function createProduct(
     }
 
     const [product] = await Product.create(
-      [{
-        collectionId: collection._id,
-        name: data.name,
-        description: data.description || "",
-        price: data.price,
-        dimension: {
-          width: data.dimension?.width || null,
-          height: data.dimension?.height || null,
+      [
+        {
+          collectionId: collection._id,
+          name: data.name,
+          description: data.description || "",
+          price: data.price,
+          dimension: {
+            width: data.dimension?.width || null,
+            height: data.dimension?.height || null,
+          },
+          minOrder: data.minOrder,
+          image: data.image,
+          filename: data.filename,
+          images: data.images || [],
+          filenames: data.filenames || [],
+          material: data.material,
+          deliveryDay: data.deliveryDay,
+          status: ProductStatus.Active,
         },
-        minOrder: data.minOrder,
-        image: data.image,
-        filename: data.filename,
-        images: data.images || [],
-        filenames: data.filenames || [],
-        material: data.material,
-        deliveryDay: data.deliveryDay,
-        status: ProductStatus.Active,
-      }],
+      ],
       { session },
     );
 
@@ -217,11 +227,11 @@ export async function updateProduct(
   try {
     // If name is being updated, check for duplicates
     if (data.name) {
-      const existingProduct = await Product.findOne({ 
-        name: data.name, 
-        _id: { $ne: id } 
+      const existingProduct = await Product.findOne({
+        name: data.name,
+        _id: { $ne: id },
       }).session(session);
-      
+
       if (existingProduct) {
         await session.abortTransaction();
         session.endSession();
@@ -229,12 +239,12 @@ export async function updateProduct(
       }
     }
 
-    const updated = await Product.findByIdAndUpdate(
-      id, 
-      data, 
-      { new: true, runValidators: true, session }
-    );
-    
+    const updated = await Product.findByIdAndUpdate(id, data, {
+      new: true,
+      runValidators: true,
+      session,
+    });
+
     if (!updated) {
       await session.abortTransaction();
       session.endSession();
@@ -259,7 +269,7 @@ export async function deleteProduct(id: string): Promise<string> {
   try {
     // Check if product is used in any orders (optional - depends on your business logic)
     // You might want to check Order collection here
-    
+
     const deleted = await Product.findByIdAndDelete(id).session(session);
     if (!deleted) {
       await session.abortTransaction();

@@ -21,7 +21,9 @@ export async function createBankAccount(
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const activeExists = await BankAccount.exists({ isActive: true }).session(session);
+    const activeExists = await BankAccount.exists({ isActive: true }).session(
+      session,
+    );
     const shouldBeActive = data.isActive || !activeExists;
 
     if (shouldBeActive) {
@@ -39,7 +41,9 @@ export async function createBankAccount(
           accountNumber: data.accountNumber,
           bankName: data.bankName,
           isActive: !!shouldBeActive,
-          createdBy: createdBy ? new mongoose.Types.ObjectId(createdBy) : undefined,
+          createdBy: createdBy
+            ? new mongoose.Types.ObjectId(createdBy)
+            : undefined,
         },
       ],
       { session },
@@ -62,7 +66,8 @@ export async function setActiveBankAccount(
   session.startTransaction();
   try {
     const target = await BankAccount.findById(bankAccountId).session(session);
-    if (!target) throw Object.assign(new Error("Bank account not found"), { status: 404 });
+    if (!target)
+      throw Object.assign(new Error("Bank account not found"), { status: 404 });
 
     await BankAccount.updateMany(
       { _id: { $ne: target._id }, isActive: true },
@@ -90,7 +95,8 @@ export async function deleteBankAccount(
   session.startTransaction();
   try {
     const toDelete = await BankAccount.findById(bankAccountId).session(session);
-    if (!toDelete) throw Object.assign(new Error("Bank account not found"), { status: 404 });
+    if (!toDelete)
+      throw Object.assign(new Error("Bank account not found"), { status: 404 });
 
     const wasActive = toDelete.isActive;
     await BankAccount.deleteOne({ _id: toDelete._id }).session(session);
@@ -121,4 +127,3 @@ export async function deleteBankAccount(
     session.endSession();
   }
 }
-

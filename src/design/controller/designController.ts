@@ -10,9 +10,9 @@ const getIO = (req: Request) => {
 export const createDesignController = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params; // This is orderId
-    console.log('🔍 Controller - Received orderId:', orderId);
-    console.log('🔍 Controller - orderId type:', typeof orderId);
-    console.log('🔍 Controller - orderId length:', orderId.length);
+    console.log("🔍 Controller - Received orderId:", orderId);
+    console.log("🔍 Controller - orderId type:", typeof orderId);
+    console.log("🔍 Controller - orderId length:", orderId.length);
 
     const admin = req.user as { _id: string; fullname: string };
     const files = req.files as Express.Multer.File[];
@@ -25,8 +25,8 @@ export const createDesignController = async (req: Request, res: Response) => {
     }
 
     const { productId } = req.body;
-    console.log('🔍 Controller - productId:', productId);
-    
+    console.log("🔍 Controller - productId:", productId);
+
     if (!productId) {
       return res
         .status(400)
@@ -43,9 +43,13 @@ export const createDesignController = async (req: Request, res: Response) => {
       filenames: files.map((file) => file.filename),
     };
 
-    console.log('🔍 Controller - Calling uploadDesign with orderId:', orderId);
-    const design = await designService.uploadDesign(orderId, data as IDesign, io);
-    
+    console.log("🔍 Controller - Calling uploadDesign with orderId:", orderId);
+    const design = await designService.uploadDesign(
+      orderId,
+      data as IDesign,
+      io,
+    );
+
     const populatedDesign = await design.populate(
       "uploadedBy",
       "fullname email",
@@ -57,11 +61,10 @@ export const createDesignController = async (req: Request, res: Response) => {
       data: populatedDesign,
     });
   } catch (error: any) {
-    console.error('❌ Controller error:', error);
+    console.error("❌ Controller error:", error);
     res.status(400).json({ success: false, message: error.message });
   }
 };
-
 
 export const updatedDesignController = async (req: Request, res: Response) => {
   try {

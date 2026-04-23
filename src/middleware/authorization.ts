@@ -4,7 +4,6 @@ import mongoose from "mongoose";
 import { Design } from "../design/model/designModel.js";
 import { Order } from "../order/model/orderModel.js";
 
-
 export const checkDesignOwnership = async (
   req: Request,
   res: Response,
@@ -16,7 +15,8 @@ export const checkDesignOwnership = async (
 
     if (!loggedInUser || !loggedInUser._id) {
       return res.status(403).json({
-        message: "Unauthorized: You do not have permission to modify this design",
+        message:
+          "Unauthorized: You do not have permission to modify this design",
       });
     }
 

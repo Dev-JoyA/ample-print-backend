@@ -9,20 +9,38 @@ const router = Router();
 router.use(authMiddleware);
 
 // Get notification history with pagination
-router.get("/history", notificationController.getNotificationHistory as RequestHandler);
+router.get(
+  "/history",
+  notificationController.getNotificationHistory as RequestHandler,
+);
 
 // Get unread count
-router.get("/unread-count", notificationController.getUnreadCount as RequestHandler);
+router.get(
+  "/unread-count",
+  notificationController.getUnreadCount as RequestHandler,
+);
 
 // Mark a specific notification as read
-router.patch("/:notificationId/read", notificationController.markAsRead as RequestHandler);
+router.patch(
+  "/:notificationId/read",
+  notificationController.markAsRead as RequestHandler,
+);
 
 // Mark all notifications as read
-router.post("/mark-all-read", notificationController.markAllAsRead as RequestHandler);
+router.post(
+  "/mark-all-read",
+  notificationController.markAllAsRead as RequestHandler,
+);
 
 // Delete a specific notification
-router.delete("/:notificationId", notificationController.deleteNotification as RequestHandler);
+router.delete(
+  "/:notificationId",
+  notificationController.deleteNotification as RequestHandler,
+);
 
 // Clear all notifications
-router.delete("/clear-all", notificationController.clearAllNotifications as RequestHandler);
+router.delete(
+  "/clear-all",
+  notificationController.clearAllNotifications as RequestHandler,
+);
 export default router;
