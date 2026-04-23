@@ -14,7 +14,10 @@ export const createCollection = async (req: Request, res: Response) => {
   }
 };
 
-export const updateCollection = async (req: Request<{ id: string }>, res: Response) => {
+export const updateCollection = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
   try {
     const { name } = req.body;
     const { id } = req.params;
@@ -25,7 +28,10 @@ export const updateCollection = async (req: Request<{ id: string }>, res: Respon
   }
 };
 
-export const deleteCollection = async (req: Request<{ id: string }>, res: Response) => {
+export const deleteCollection = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
     const message = await productService.deleteCollection(id);
@@ -46,7 +52,10 @@ export const getCollectionsPaginated = async (req: Request, res: Response) => {
   }
 };
 
-export const getCollectionById = async (req: Request<{ id: string }>, res: Response) => {
+export const getCollectionById = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
     const collection = await productService.getCollectionById(id);
@@ -58,31 +67,42 @@ export const getCollectionById = async (req: Request<{ id: string }>, res: Respo
 
 // ---------------- PRODUCT ---------------- //
 
-export const createProduct = async (req: Request<{ collectionId: string }>, res: Response) => {
+export const createProduct = async (
+  req: Request<{ collectionId: string }>,
+  res: Response,
+) => {
   try {
     const { collectionId } = req.params;
     const files = req.files as Express.Multer.File[];
 
     if (!files || files.length === 0)
-      return res.status(400).json({ success: false, message: "At least one image is required." });
+      return res
+        .status(400)
+        .json({ success: false, message: "At least one image is required." });
 
     const parsedProductData = JSON.parse(req.body.productData) as ProductData;
     const productData: ProductData = {
       ...parsedProductData,
       image: `/uploads/${files[0].filename}`,
       filename: files[0].filename,
-      images: files.map(f => `/uploads/${f.filename}`),
-      filenames: files.map(f => f.filename),
+      images: files.map((f) => `/uploads/${f.filename}`),
+      filenames: files.map((f) => f.filename),
     };
 
-    const product = await productService.createProduct(collectionId, productData);
+    const product = await productService.createProduct(
+      collectionId,
+      productData,
+    );
     res.status(201).json({ success: true, product });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
 };
 
-export const updateProduct = async (req: Request<{ id: string }>, res: Response) => {
+export const updateProduct = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
     const files = req.files as Express.Multer.File[];
@@ -91,8 +111,8 @@ export const updateProduct = async (req: Request<{ id: string }>, res: Response)
     if (files && files.length > 0) {
       updatedData.image = `/uploads/${files[0].filename}`;
       updatedData.filename = files[0].filename;
-      updatedData.images = files.map(f => `/uploads/${f.filename}`);
-      updatedData.filenames = files.map(f => f.filename);
+      updatedData.images = files.map((f) => `/uploads/${f.filename}`);
+      updatedData.filenames = files.map((f) => f.filename);
     }
 
     const updatedProduct = await productService.updateProduct(id, updatedData);
@@ -102,7 +122,10 @@ export const updateProduct = async (req: Request<{ id: string }>, res: Response)
   }
 };
 
-export const deleteProduct = async (req: Request<{ id: string }>, res: Response) => {
+export const deleteProduct = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
     const message = await productService.deleteProduct(id);
@@ -112,7 +135,10 @@ export const deleteProduct = async (req: Request<{ id: string }>, res: Response)
   }
 };
 
-export const getProductById = async (req: Request<{ id: string }>, res: Response) => {
+export const getProductById = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
     const product = await productService.getProductById(id);
@@ -156,10 +182,14 @@ export const filterProducts = async (req: Request, res: Response) => {
   }
 };
 
-export const getProductsByCollectionId = async (req: Request<{ collectionId: string }>, res: Response) => {
+export const getProductsByCollectionId = async (
+  req: Request<{ collectionId: string }>,
+  res: Response,
+) => {
   try {
     const { collectionId } = req.params;
-    const products = await productService.getProductsByCollectionId(collectionId);
+    const products =
+      await productService.getProductsByCollectionId(collectionId);
     res.status(200).json({ success: true, products });
   } catch (error: any) {
     res.status(404).json({ success: false, message: error.message });
@@ -172,7 +202,11 @@ export const searchProductsByName = async (req: Request, res: Response) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
 
-    const result = await productService.searchProductsByName(search as string, page, limit);
+    const result = await productService.searchProductsByName(
+      search as string,
+      page,
+      limit,
+    );
     res.status(200).json({ success: true, ...result });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });

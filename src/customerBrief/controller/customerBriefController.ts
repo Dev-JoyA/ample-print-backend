@@ -49,7 +49,7 @@ export const submitCustomerBrief = async (req: Request, res: Response) => {
     }
 
     let finalDescription = description;
-    if (!finalDescription || finalDescription.trim() === '') {
+    if (!finalDescription || finalDescription.trim() === "") {
       finalDescription = "Custom order - please check product specifications";
     }
 
@@ -164,7 +164,7 @@ export const customerReplyToAdmin = async (req: Request, res: Response) => {
     }
 
     let finalDescription = description;
-    if (!finalDescription || finalDescription.trim() === '') {
+    if (!finalDescription || finalDescription.trim() === "") {
       finalDescription = "Reply to admin";
     }
 
@@ -258,8 +258,9 @@ export const getBriefByOrderAndProduct = async (
     );
 
     const filteredBriefs = briefs.filter((brief) => {
-      const briefProductId = (brief.productId as any)?._id?.toString() 
-          || brief.productId?.toString();
+      const briefProductId =
+        (brief.productId as any)?._id?.toString() ||
+        brief.productId?.toString();
       return briefProductId === productId;
     });
 
@@ -564,21 +565,25 @@ export const markBriefAsViewedByAdmin = async (req: Request, res: Response) => {
   }
 };
 
-export const getCustomerPendingBriefResponses = async (req: Request, res: Response) => {
+export const getCustomerPendingBriefResponses = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const user = req.user as { _id: string; role: UserRole };
-    
-    const pendingResponses = await customerBriefService.getCustomerPendingBriefResponses(user._id);
-    
+
+    const pendingResponses =
+      await customerBriefService.getCustomerPendingBriefResponses(user._id);
+
     res.status(200).json({
       success: true,
-      data: pendingResponses
+      data: pendingResponses,
     });
   } catch (error: any) {
-    console.error('Error fetching pending brief responses:', error);
+    console.error("Error fetching pending brief responses:", error);
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };

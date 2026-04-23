@@ -9,7 +9,7 @@ export enum CustomerBriefRole {
 export enum CustomerBriefStatus {
   Pending = "pending",
   Responded = "responded",
-  Complete = "complete"
+  Complete = "complete",
 }
 
 export interface ICustomerBrief extends Document {
@@ -106,11 +106,11 @@ CustomerBriefSchema.index({ orderId: 1, productId: 1, role: 1 });
 CustomerBriefSchema.index({ orderId: 1 });
 CustomerBriefSchema.index({ role: 1, createdAt: -1 });
 CustomerBriefSchema.index({ status: 1 });
-CustomerBriefSchema.index({ 
-  role: 1, 
-  status: 1, 
-  viewed: 1, 
-  createdAt: -1 
+CustomerBriefSchema.index({
+  role: 1,
+  status: 1,
+  viewed: 1,
+  createdAt: -1,
 });
 
 export const CustomerBrief = model<ICustomerBrief>(

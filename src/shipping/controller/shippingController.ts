@@ -56,7 +56,13 @@ export const updateShippingTracking = async (req: Request, res: Response) => {
     const io = getIO(req);
     const user = req.user as { _id: string; role: string };
     const { shippingId } = req.params as { shippingId: string };
-    const { trackingNumber, carrier, driverName, driverPhone, estimatedDelivery } = req.body;
+    const {
+      trackingNumber,
+      carrier,
+      driverName,
+      driverPhone,
+      estimatedDelivery,
+    } = req.body;
 
     if (!user) {
       return res.status(401).json({
@@ -79,7 +85,9 @@ export const updateShippingTracking = async (req: Request, res: Response) => {
         carrier,
         driverName,
         driverPhone,
-        estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : undefined,
+        estimatedDelivery: estimatedDelivery
+          ? new Date(estimatedDelivery)
+          : undefined,
       },
       user._id,
       io,

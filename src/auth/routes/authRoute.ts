@@ -70,35 +70,35 @@ router.post(
 // ==================== TOKEN VERIFICATION ROUTES ====================
 router.get("/verify-token", (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
-  
+
   console.log("Verify token request received");
   console.log("Authorization header:", authHeader);
-  
+
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     console.log("No token provided");
-    return res.status(401).json({ 
+    return res.status(401).json({
       success: false,
-      message: "No token provided" 
+      message: "No token provided",
     });
   }
 
   const token = authHeader.split(" ")[1];
   console.log("Token extracted:", token.substring(0, 20) + "...");
-  
+
   try {
     const decoded = verifyToken(token);
     console.log("Token verified successfully:", decoded);
-    res.json({ 
+    res.json({
       success: true,
-      valid: true, 
-      user: decoded 
+      valid: true,
+      user: decoded,
     });
   } catch (error: any) {
     console.error("Token verification failed:", error.message);
-    res.status(401).json({ 
+    res.status(401).json({
       success: false,
-      valid: false, 
-      message: "Invalid token" 
+      valid: false,
+      message: "Invalid token",
     });
   }
 });
@@ -118,10 +118,10 @@ router.get(
     const token = generateToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
-    res.json({ 
+    res.json({
       success: true,
-      token, 
-      refreshToken 
+      token,
+      refreshToken,
     });
   },
 );
@@ -131,9 +131,9 @@ router.post(
   authenticateToken,
   (req: Request, res: Response) => {
     const refreshToken = generateRefreshToken(req.user!);
-    res.json({ 
+    res.json({
       success: true,
-      refreshToken 
+      refreshToken,
     });
   },
 );
@@ -141,9 +141,9 @@ router.post(
 // ==================== GOOGLE OAUTH ROUTES ====================
 router.get(
   "/google",
-  passport.authenticate("google", { 
+  passport.authenticate("google", {
     scope: ["email", "profile"],
-    session: false, 
+    session: false,
   }),
 );
 
@@ -155,7 +155,9 @@ router.get(
       const user = req.user as any;
 
       if (!user) {
-        return res.redirect(`${process.env.FRONTEND_URL}/auth/sign-in?error=google_auth_failed`);
+        return res.redirect(
+          `${process.env.FRONTEND_URL}/auth/sign-in?error=google_auth_failed`,
+        );
       }
 
       const payload = {
@@ -172,15 +174,17 @@ router.get(
       return res.redirect(302, redirectUrl);
     } catch (error: any) {
       console.error("Google OAuth callback error:", error.message);
-      return res.redirect(`${process.env.FRONTEND_URL}/auth/sign-in?error=google_auth_failed`);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth/sign-in?error=google_auth_failed`,
+      );
     }
-  }
+  },
 );
 
 router.get("/google/failure", (req: Request, res: Response) => {
-  res.status(401).json({ 
+  res.status(401).json({
     success: false,
-    message: "Google OAuth failed" 
+    message: "Google OAuth failed",
   });
 });
 

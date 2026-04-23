@@ -28,7 +28,8 @@ const isValidEmail = (email: string): boolean => {
 };
 
 const isValidPhone = (phone: string): boolean => {
-  const phoneRegex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/;
+  const phoneRegex =
+    /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/;
   return phoneRegex.test(phone);
 };
 
@@ -40,18 +41,18 @@ const isValidUserName = (userName: string): boolean => {
 export async function getAllUsers(): Promise<IUserResponse[]> {
   try {
     const users = await User.find().lean().exec();
-    
+
     if (!users.length) {
       return [];
     }
 
     const profiles = await Profile.find({
       userId: { $in: users.map((u) => u._id) },
-    }).lean().exec();
+    })
+      .lean()
+      .exec();
 
-    const profileMap = new Map(
-      profiles.map((p) => [p.userId.toString(), p])
-    );
+    const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
 
     return users.map((u) => {
       const profile = profileMap.get(u._id.toString());
@@ -104,7 +105,9 @@ export async function getUserById(userId: string): Promise<IUserResponse> {
   }
 }
 
-export async function getUserByEmail(email: string): Promise<IUserResponse | null> {
+export async function getUserByEmail(
+  email: string,
+): Promise<IUserResponse | null> {
   if (!email || !isValidEmail(email)) {
     throw new Error("Valid email is required");
   }
@@ -131,7 +134,9 @@ export async function getUserByEmail(email: string): Promise<IUserResponse | nul
   }
 }
 
-export async function getProfileByUserId(userId: string): Promise<IProfile | null> {
+export async function getProfileByUserId(
+  userId: string,
+): Promise<IProfile | null> {
   if (!mongoose.Types.ObjectId.isValid(userId)) {
     throw new Error("Invalid user ID format");
   }
@@ -160,14 +165,18 @@ export async function updateProfileDetails(
     if (profileData.userName) {
       const trimmedUserName = profileData.userName.trim().toLowerCase();
       if (!isValidUserName(trimmedUserName)) {
-        throw new Error("Username must be 3-20 characters and can only contain letters, numbers, and underscores");
+        throw new Error(
+          "Username must be 3-20 characters and can only contain letters, numbers, and underscores",
+        );
       }
-      
-      const existingUser = await Profile.findOne({ 
+
+      const existingUser = await Profile.findOne({
         userName: trimmedUserName,
-        userId: { $ne: userId }
-      }).lean().exec();
-      
+        userId: { $ne: userId },
+      })
+        .lean()
+        .exec();
+
       if (existingUser) {
         throw new Error("Username is already taken");
       }
@@ -206,19 +215,21 @@ export async function updateProfileDetails(
       throw new Error("No valid fields to update");
     }
 
-    const profile = await Profile.findOneAndUpdate(
-      { userId }, 
-      updates, 
-      { new: true, runValidators: true }
-    ).exec();
-    
+    const profile = await Profile.findOneAndUpdate({ userId }, updates, {
+      new: true,
+      runValidators: true,
+    }).exec();
+
     if (!profile) {
       throw new Error(`Profile not found`);
     }
 
     return { user, profile };
   } catch (error: any) {
-    if (error.message === "Profile not found" || error.message.includes("Username is already taken")) {
+    if (
+      error.message === "Profile not found" ||
+      error.message.includes("Username is already taken")
+    ) {
       throw error;
     }
     throw new Error(`Failed to update profile: ${error.message}`);
@@ -250,7 +261,7 @@ export async function deleteUser(userId: string) {
   } catch (error: any) {
     await session.abortTransaction();
     session.endSession();
-    
+
     if (error.message === "User not found") {
       throw error;
     }
@@ -281,8 +292,10 @@ export async function changeUserRole(userId: string, newRole: UserRole) {
     if (user.role === UserRole.SuperAdmin && newRole !== UserRole.SuperAdmin) {
       const superAdminCount = await User.countDocuments({
         role: UserRole.SuperAdmin,
-        _id: { $ne: userId }
-      }).session(session).exec();
+        _id: { $ne: userId },
+      })
+        .session(session)
+        .exec();
 
       if (superAdminCount === 0) {
         await session.abortTransaction();
@@ -302,7 +315,10 @@ export async function changeUserRole(userId: string, newRole: UserRole) {
     await session.abortTransaction();
     session.endSession();
 
-    if (error.message === "User not found" || error.message.includes("last superadmin")) {
+    if (
+      error.message === "User not found" ||
+      error.message.includes("last superadmin")
+    ) {
       throw error;
     }
     throw new Error(`Failed to change user role: ${error.message}`);
@@ -342,7 +358,10 @@ export async function toggleUserActiveness(userId: string) {
     await session.abortTransaction();
     session.endSession();
 
-    if (error.message === "User not found" || error.message.includes("SuperAdmin accounts cannot be deactivated")) {
+    if (
+      error.message === "User not found" ||
+      error.message.includes("SuperAdmin accounts cannot be deactivated")
+    ) {
       throw error;
     }
     throw new Error(`Failed to toggle user activeness: ${error.message}`);

@@ -79,7 +79,7 @@ const OrderItemSchema = new Schema(
       material: String,
     },
   },
-  { _id: true }
+  { _id: true },
 );
 
 export interface IOrderModel extends Document {
@@ -131,11 +131,11 @@ const OrderSchema = new Schema<IOrderModel>(
       type: String,
       required: true,
       index: true,
-      unique: true
+      unique: true,
     },
     items: {
-        type: [OrderItemSchema],
-        default: [],
+      type: [OrderItemSchema],
+      default: [],
     },
     totalAmount: { type: Number, required: true },
     amountPaid: { type: Number, default: 0 },

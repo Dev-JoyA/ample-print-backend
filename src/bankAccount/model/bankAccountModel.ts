@@ -26,5 +26,7 @@ BankAccountSchema.index(
   { partialFilterExpression: { isActive: true } },
 );
 
-export const BankAccount = model<IBankAccount>("BankAccount", BankAccountSchema);
-
+export const BankAccount = model<IBankAccount>(
+  "BankAccount",
+  BankAccountSchema,
+);

@@ -1,541 +1,595 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>Shipping Update - Ample Printhub</title>
     <style>
-        /* Reset styles */
-        body, table, td, p, a {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            border: 0;
-            font-size: 100%;
-            font: inherit;
-            vertical-align: baseline;
+      /* Reset styles */
+      body,
+      table,
+      td,
+      p,
+      a {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        font-size: 100%;
+        font: inherit;
+        vertical-align: baseline;
+      }
+
+      body {
+        background-color: #f4f7fb;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        padding: 20px;
+      }
+
+      table {
+        border-collapse: collapse;
+        mso-table-lspace: 0;
+        mso-table-rspace: 0;
+      }
+
+      /* Container */
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow:
+          0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+
+      /* Header - Base styles */
+      .email-header {
+        padding: 40px 30px;
+        text-align: center;
+      }
+
+      .header-delivery {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      }
+
+      .header-pickup {
+        background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+      }
+
+      .logo {
+        max-width: 180px;
+        height: auto;
+        margin-bottom: 20px;
+      }
+
+      .header-title {
+        color: #ffffff;
+        font-size: 32px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.5px;
+      }
+
+      .header-subtitle-delivery {
+        color: #bfdbfe;
+        font-size: 16px;
+        margin-top: 10px;
+      }
+
+      .header-subtitle-pickup {
+        color: #ddd6fe;
+        font-size: 16px;
+        margin-top: 10px;
+      }
+
+      .shipping-icon {
+        font-size: 48px;
+        margin-bottom: 20px;
+        animation: bounce 2s infinite;
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: translateY(0);
         }
-        
-        body {
-            background-color: #f4f7fb;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            padding: 20px;
+        50% {
+          transform: translateY(-10px);
         }
-        
-        table {
-            border-collapse: collapse;
-            mso-table-lspace: 0;
-            mso-table-rspace: 0;
-        }
-        
-        /* Container */
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        
-        /* Header - Base styles */
-        .email-header {
-            padding: 40px 30px;
-            text-align: center;
-        }
-        
-        .header-delivery {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        }
-        
-        .header-pickup {
-            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-        }
-        
-        .logo {
-            max-width: 180px;
-            height: auto;
-            margin-bottom: 20px;
-        }
-        
-        .header-title {
-            color: #ffffff;
-            font-size: 32px;
-            font-weight: 700;
-            margin: 0;
-            letter-spacing: -0.5px;
-        }
-        
-        .header-subtitle-delivery {
-            color: #bfdbfe;
-            font-size: 16px;
-            margin-top: 10px;
-        }
-        
-        .header-subtitle-pickup {
-            color: #ddd6fe;
-            font-size: 16px;
-            margin-top: 10px;
-        }
-        
-        .shipping-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-            animation: bounce 2s infinite;
-        }
-        
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        
-        /* Content */
+      }
+
+      /* Content */
+      .email-content {
+        padding: 40px 30px;
+        background-color: #ffffff;
+      }
+
+      .greeting {
+        color: #1e293b;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+      }
+
+      .message {
+        color: #475569;
+        font-size: 16px;
+        margin-bottom: 25px;
+      }
+
+      .highlight-delivery {
+        color: #2563eb;
+        font-weight: 700;
+        font-size: 18px;
+      }
+
+      .highlight-pickup {
+        color: #6d28d9;
+        font-weight: 700;
+        font-size: 18px;
+      }
+
+      /* Info Box */
+      .info-box {
+        background-color: #f8fafc;
+        border-radius: 16px;
+        padding: 25px;
+        margin: 25px 0;
+        border: 1px solid #e2e8f0;
+      }
+
+      .info-box h3 {
+        color: #1e293b;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .shipping-details {
+        margin: 15px 0;
+      }
+
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px dashed #e2e8f0;
+      }
+
+      .detail-row:last-child {
+        border-bottom: none;
+      }
+
+      .detail-label {
+        color: #64748b;
+        font-weight: 500;
+      }
+
+      .detail-value {
+        color: #1e293b;
+        font-weight: 600;
+      }
+
+      .detail-value-delivery {
+        color: #2563eb;
+        font-size: 18px;
+      }
+
+      .detail-value-pickup {
+        color: #6d28d9;
+        font-size: 18px;
+      }
+
+      .address-block {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+      }
+
+      .address-block p {
+        margin: 5px 0;
+        color: #475569;
+      }
+
+      .address-block strong {
+        color: #1e293b;
+      }
+
+      /* Store Card */
+      .store-card {
+        background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+        border-radius: 16px;
+        padding: 25px;
+        margin: 25px 0;
+        border: 1px solid #c4b5fd;
+      }
+
+      .store-card h4 {
+        color: #6d28d9;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 15px;
+      }
+
+      .store-info {
+        margin: 15px 0;
+      }
+
+      .store-info p {
+        color: #4c1d95;
+        margin: 8px 0;
+      }
+
+      .store-icon {
+        font-size: 32px;
+        margin-bottom: 10px;
+      }
+
+      /* Map Placeholder */
+      .map-placeholder {
+        background-color: #e2e8f0;
+        border-radius: 8px;
+        height: 120px;
+        margin: 20px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        font-size: 14px;
+      }
+
+      /* Tracking Info */
+      .tracking-info {
+        background-color: #eff6ff;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+        border-left: 4px solid #3b82f6;
+      }
+
+      .tracking-info p {
+        color: #1e3a8a;
+        margin: 5px 0;
+      }
+
+      .tracking-number {
+        font-family: monospace;
+        font-size: 18px;
+        font-weight: 700;
+        color: #2563eb;
+        background-color: #ffffff;
+        padding: 8px 16px;
+        border-radius: 8px;
+        display: inline-block;
+        margin: 10px 0;
+        border: 1px solid #bfdbfe;
+      }
+
+      /* Pickup Instructions */
+      .pickup-instructions {
+        background-color: #f5f3ff;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+        border-left: 4px solid #8b5cf6;
+      }
+
+      .pickup-instructions p {
+        color: #4c1d95;
+        margin: 5px 0;
+      }
+
+      .instruction-icon {
+        font-size: 20px;
+        margin-right: 8px;
+      }
+
+      /* Button */
+      .button-container {
+        text-align: center;
+        margin: 35px 0;
+      }
+
+      .button-delivery {
+        display: inline-block;
+        padding: 16px 36px;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 16px;
+        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
+        transition: all 0.3s ease;
+      }
+
+      .button-pickup {
+        display: inline-block;
+        padding: 16px 36px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 16px;
+        box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.2);
+        transition: all 0.3s ease;
+      }
+
+      .button-delivery:hover,
+      .button-pickup:hover {
+        transform: translateY(-2px);
+      }
+
+      .button-delivery:hover {
+        box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.3);
+      }
+
+      .button-pickup:hover {
+        box-shadow: 0 6px 8px -1px rgba(139, 92, 246, 0.3);
+      }
+
+      /* Important Note */
+      .important-note {
+        background-color: #fef3c7;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 25px 0;
+        border-left: 4px solid #f59e0b;
+      }
+
+      .important-note p {
+        color: #92400e;
+        margin: 5px 0;
+      }
+
+      .important-note strong {
+        color: #b45309;
+      }
+
+      /* Footer */
+      .email-footer {
+        background-color: #f8fafc;
+        padding: 30px;
+        text-align: center;
+        border-top: 1px solid #e2e8f0;
+      }
+
+      .footer-text {
+        color: #64748b;
+        font-size: 14px;
+        margin: 5px 0;
+      }
+
+      .social-links {
+        margin: 20px 0;
+      }
+
+      .social-links a {
+        display: inline-block;
+        margin: 0 10px;
+        text-decoration: none;
+        font-size: 20px;
+      }
+
+      .contact-link-delivery {
+        color: #3b82f6;
+      }
+
+      .contact-link-pickup {
+        color: #8b5cf6;
+      }
+
+      /* Responsive */
+      @media only screen and (max-width: 600px) {
         .email-content {
-            padding: 40px 30px;
-            background-color: #ffffff;
+          padding: 30px 20px;
         }
-        
-        .greeting {
-            color: #1e293b;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-        
-        .message {
-            color: #475569;
-            font-size: 16px;
-            margin-bottom: 25px;
-        }
-        
-        .highlight-delivery {
-            color: #2563eb;
-            font-weight: 700;
-            font-size: 18px;
-        }
-        
-        .highlight-pickup {
-            color: #6d28d9;
-            font-weight: 700;
-            font-size: 18px;
-        }
-        
-        /* Info Box */
-        .info-box {
-            background-color: #f8fafc;
-            border-radius: 16px;
-            padding: 25px;
-            margin: 25px 0;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .info-box h3 {
-            color: #1e293b;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .shipping-details {
-            margin: 15px 0;
-        }
-        
+
         .detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px dashed #e2e8f0;
+          flex-direction: column;
+          gap: 5px;
         }
-        
-        .detail-row:last-child {
-            border-bottom: none;
-        }
-        
-        .detail-label {
-            color: #64748b;
-            font-weight: 500;
-        }
-        
-        .detail-value {
-            color: #1e293b;
-            font-weight: 600;
-        }
-        
-        .detail-value-delivery {
-            color: #2563eb;
-            font-size: 18px;
-        }
-        
-        .detail-value-pickup {
-            color: #6d28d9;
-            font-size: 18px;
-        }
-        
-        .address-block {
-            margin-top: 15px;
-            padding: 15px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .address-block p {
-            margin: 5px 0;
-            color: #475569;
-        }
-        
-        .address-block strong {
-            color: #1e293b;
-        }
-        
-        /* Store Card */
-        .store-card {
-            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-            border-radius: 16px;
-            padding: 25px;
-            margin: 25px 0;
-            border: 1px solid #c4b5fd;
-        }
-        
-        .store-card h4 {
-            color: #6d28d9;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 15px;
-        }
-        
-        .store-info {
-            margin: 15px 0;
-        }
-        
-        .store-info p {
-            color: #4c1d95;
-            margin: 8px 0;
-        }
-        
-        .store-icon {
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-        
-        /* Map Placeholder */
-        .map-placeholder {
-            background-color: #e2e8f0;
-            border-radius: 8px;
-            height: 120px;
-            margin: 20px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #64748b;
-            font-size: 14px;
-        }
-        
-        /* Tracking Info */
-        .tracking-info {
-            background-color: #eff6ff;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
-            border-left: 4px solid #3b82f6;
-        }
-        
-        .tracking-info p {
-            color: #1e3a8a;
-            margin: 5px 0;
-        }
-        
-        .tracking-number {
-            font-family: monospace;
-            font-size: 18px;
-            font-weight: 700;
-            color: #2563eb;
-            background-color: #ffffff;
-            padding: 8px 16px;
-            border-radius: 8px;
-            display: inline-block;
-            margin: 10px 0;
-            border: 1px solid #bfdbfe;
-        }
-        
-        /* Pickup Instructions */
-        .pickup-instructions {
-            background-color: #f5f3ff;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
-            border-left: 4px solid #8b5cf6;
-        }
-        
-        .pickup-instructions p {
-            color: #4c1d95;
-            margin: 5px 0;
-        }
-        
-        .instruction-icon {
-            font-size: 20px;
-            margin-right: 8px;
-        }
-        
-        /* Button */
-        .button-container {
-            text-align: center;
-            margin: 35px 0;
-        }
-        
-        .button-delivery {
-            display: inline-block;
-            padding: 16px 36px;
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: #ffffff !important;
-            text-decoration: none;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 16px;
-            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
-            transition: all 0.3s ease;
-        }
-        
+
+        .button-delivery,
         .button-pickup {
-            display: inline-block;
-            padding: 16px 36px;
-            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-            color: #ffffff !important;
-            text-decoration: none;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 16px;
-            box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.2);
-            transition: all 0.3s ease;
+          display: block;
+          width: 100%;
         }
-        
-        .button-delivery:hover, .button-pickup:hover {
-            transform: translateY(-2px);
+
+        .tracking-number {
+          font-size: 16px;
+          word-break: break-all;
         }
-        
-        .button-delivery:hover {
-            box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.3);
-        }
-        
-        .button-pickup:hover {
-            box-shadow: 0 6px 8px -1px rgba(139, 92, 246, 0.3);
-        }
-        
-        /* Important Note */
-        .important-note {
-            background-color: #fef3c7;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 25px 0;
-            border-left: 4px solid #f59e0b;
-        }
-        
-        .important-note p {
-            color: #92400e;
-            margin: 5px 0;
-        }
-        
-        .important-note strong {
-            color: #b45309;
-        }
-        
-        /* Footer */
-        .email-footer {
-            background-color: #f8fafc;
-            padding: 30px;
-            text-align: center;
-            border-top: 1px solid #e2e8f0;
-        }
-        
-        .footer-text {
-            color: #64748b;
-            font-size: 14px;
-            margin: 5px 0;
-        }
-        
-        .social-links {
-            margin: 20px 0;
-        }
-        
-        .social-links a {
-            display: inline-block;
-            margin: 0 10px;
-            text-decoration: none;
-            font-size: 20px;
-        }
-        
-        .contact-link-delivery {
-            color: #3b82f6;
-        }
-        
-        .contact-link-pickup {
-            color: #8b5cf6;
-        }
-        
-        /* Responsive */
-        @media only screen and (max-width: 600px) {
-            .email-content {
-                padding: 30px 20px;
-            }
-            
-            .detail-row {
-                flex-direction: column;
-                gap: 5px;
-            }
-            
-            .button-delivery, .button-pickup {
-                display: block;
-                width: 100%;
-            }
-            
-            .tracking-number {
-                font-size: 16px;
-                word-break: break-all;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="email-container">
-        <!-- Header - Conditional class applied -->
-        <div class="email-header {{#if (eq shippingMethod 'delivery')}}header-delivery{{else}}header-pickup{{/if}}">
-            <div class="shipping-icon">
-                {{#if (eq shippingMethod 'delivery')}}🚚{{else}}🏢{{/if}}
-            </div>
-            <img src="cid:ample_logo" alt="Ample Printhub" class="logo" width="180" height="auto">
-            <h1 class="header-title">
-                {{#if (eq shippingMethod 'delivery')}}
-                Shipping Arranged! 🚚
-                {{else}}
-                Ready for Pickup! 🏢
-                {{/if}}
-            </h1>
-            <p class="{{#if (eq shippingMethod 'delivery')}}header-subtitle-delivery{{else}}header-subtitle-pickup{{/if}}">
-                {{#if (eq shippingMethod 'delivery')}}
-                Your order is on its way
-                {{else}}
-                Come visit us to collect your order
-                {{/if}}
-            </p>
+      <!-- Header - Conditional class applied -->
+      <div
+        class="email-header {{#if (eq shippingMethod 'delivery')}}header-delivery{{else}}header-pickup{{/if}}"
+      >
+        <div class="shipping-icon">
+          {{#if (eq shippingMethod 'delivery')}}🚚{{else}}🏢{{/if}}
         </div>
-        
-        <!-- Content -->
-        <div class="email-content">
-            <p class="greeting">Hello {{name}},</p>
-            
-            {{#if (eq shippingMethod 'delivery')}}
-            <p class="message">
-                Great news! Shipping has been arranged for your order 
-                <span class="highlight-delivery">#{{orderNumber}}</span>. Your package will be on its way soon! 🚚
-            </p>
-            {{else}}
-            <p class="message">
-                Your order <span class="highlight-pickup">#{{orderNumber}}</span> is now ready for pickup at our store. 
-                We can't wait to see you! 🏢
-            </p>
-            {{/if}}
-            
-            <!-- Shipping Details -->
-            <div class="info-box">
-                <h3>
-                    <span>📋</span>
-                    Shipping Details
-                </h3>
-                
-                <div class="shipping-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Method:</span>
-                        <span class="detail-value">
-                            {{#if (eq shippingMethod 'delivery')}}
-                            🚚 Doorstep Delivery
-                            {{else}}
-                            🏢 Store Pickup
-                            {{/if}}
-                        </span>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <span class="detail-label">Cost:</span>
-                        <span class="detail-value {{#if (eq shippingMethod 'delivery')}}detail-value-delivery{{else}}detail-value-pickup{{/if}}">₦{{shippingCost}}</span>
-                    </div>
-                </div>
-                
-                {{#if (eq shippingMethod 'delivery')}}
-                <!-- Delivery Details -->
-                <div class="address-block">
-                    <p><strong>📦 Delivery Address:</strong></p>
-                    <p>{{address}}</p>
-                    
-                    <p style="margin-top: 15px;"><strong>👤 Recipient:</strong></p>
-                    <p>{{recipientName}} ({{recipientPhone}})</p>
-                </div>
-                
-                <!-- Tracking Info -->
-                <div class="tracking-info">
-                    <p><strong>🔍 Tracking Information:</strong></p>
-                    <p>You'll receive tracking details once your package is shipped.</p>
-                    <p style="margin-top: 10px; font-size: 13px;">Tracking number will be sent via email and SMS.</p>
-                </div>
-                
-                <!-- Estimated Delivery -->
-                <div style="margin-top: 20px; padding: 15px; background-color: #f0f9ff; border-radius: 8px;">
-                    <p style="color: #0369a1; margin: 0;">
-                        <strong>📅 Estimated Delivery:</strong> {{estimatedDelivery}}
-                    </p>
-                </div>
-                
-                {{else}}
-                <!-- Pickup Details -->
-                <div class="store-card">
-                    <div class="store-icon">🏪</div>
-                    <h4>Store Pickup Location</h4>
-                    
-                    <div class="store-info">
-                        <p><strong>📍 Address:</strong></p>
-                        <p>5 Boyle Street, Shomolu, Lagos</p>
-                        
-                        <p style="margin-top: 15px;"><strong>🕒 Store Hours:</strong></p>
-                        <p>Mon-Fri, 9am - 5pm</p>
-                        
-                        <p style="margin-top: 15px;"><strong>📞 Contact:</strong></p>
-                        <p>+234 8142534202</p>
-                    </div>
-                </div>
-                
-                <!-- Pickup Instructions -->
-                <div class="pickup-instructions">
-                    <p><span class="instruction-icon">🆔</span> <strong>Please bring a valid ID</strong> when picking up your order.</p>
-                    <p><span class="instruction-icon">📱</span> Have your order number ready ({{orderNumber}}).</p>
-                    <p><span class="instruction-icon">⏱️</span> Orders are held for 14 days after notification.</p>
-                </div>
-                
-                <!-- Map Link -->
-                <div style="text-align: center; margin: 20px 0;">
-                    <a href="https://maps.google.com/?q=5+Boyle+Street+Shomolu+Lagos" style="color: #8b5cf6; text-decoration: underline;">
-                        View on Google Maps →
-                    </a>
-                </div>
-                {{/if}}
+        <img
+          src="cid:ample_logo"
+          alt="Ample Printhub"
+          class="logo"
+          width="180"
+          height="auto"
+        />
+        <h1 class="header-title">
+          {{#if (eq shippingMethod 'delivery')}} Shipping Arranged! 🚚 {{else}}
+          Ready for Pickup! 🏢 {{/if}}
+        </h1>
+        <p
+          class="{{#if (eq shippingMethod 'delivery')}}header-subtitle-delivery{{else}}header-subtitle-pickup{{/if}}"
+        >
+          {{#if (eq shippingMethod 'delivery')}} Your order is on its way
+          {{else}} Come visit us to collect your order {{/if}}
+        </p>
+      </div>
+
+      <!-- Content -->
+      <div class="email-content">
+        <p class="greeting">Hello {{name}},</p>
+
+        {{#if (eq shippingMethod 'delivery')}}
+        <p class="message">
+          Great news! Shipping has been arranged for your order
+          <span class="highlight-delivery">#{{orderNumber}}</span>. Your package
+          will be on its way soon! 🚚
+        </p>
+        {{else}}
+        <p class="message">
+          Your order <span class="highlight-pickup">#{{orderNumber}}</span> is
+          now ready for pickup at our store. We can't wait to see you! 🏢
+        </p>
+        {{/if}}
+
+        <!-- Shipping Details -->
+        <div class="info-box">
+          <h3>
+            <span>📋</span>
+            Shipping Details
+          </h3>
+
+          <div class="shipping-details">
+            <div class="detail-row">
+              <span class="detail-label">Method:</span>
+              <span class="detail-value">
+                {{#if (eq shippingMethod 'delivery')}} 🚚 Doorstep Delivery
+                {{else}} 🏢 Store Pickup {{/if}}
+              </span>
             </div>
-            
-            <!-- Important Note -->
-            <div class="important-note">
-                <p><strong>⚠️ Important:</strong></p>
-                {{#if (eq shippingMethod 'delivery')}}
-                <p>Please ensure someone is available at the delivery address during business hours.</p>
-                {{else}}
-                <p>Orders are held for 14 days. After this period, storage fees may apply.</p>
-                {{/if}}
+
+            <div class="detail-row">
+              <span class="detail-label">Cost:</span>
+              <span
+                class="detail-value {{#if (eq shippingMethod 'delivery')}}detail-value-delivery{{else}}detail-value-pickup{{/if}}"
+                >₦{{shippingCost}}</span
+              >
             </div>
-            
-            <!-- Action Button -->
-            <!-- <div class="button-container">
+          </div>
+
+          {{#if (eq shippingMethod 'delivery')}}
+          <!-- Delivery Details -->
+          <div class="address-block">
+            <p><strong>📦 Delivery Address:</strong></p>
+            <p>{{address}}</p>
+
+            <p style="margin-top: 15px"><strong>👤 Recipient:</strong></p>
+            <p>{{recipientName}} ({{recipientPhone}})</p>
+          </div>
+
+          <!-- Tracking Info -->
+          <div class="tracking-info">
+            <p><strong>🔍 Tracking Information:</strong></p>
+            <p>You'll receive tracking details once your package is shipped.</p>
+            <p style="margin-top: 10px; font-size: 13px">
+              Tracking number will be sent via email and SMS.
+            </p>
+          </div>
+
+          <!-- Estimated Delivery -->
+          <div
+            style="
+              margin-top: 20px;
+              padding: 15px;
+              background-color: #f0f9ff;
+              border-radius: 8px;
+            "
+          >
+            <p style="color: #0369a1; margin: 0">
+              <strong>📅 Estimated Delivery:</strong> {{estimatedDelivery}}
+            </p>
+          </div>
+
+          {{else}}
+          <!-- Pickup Details -->
+          <div class="store-card">
+            <div class="store-icon">🏪</div>
+            <h4>Store Pickup Location</h4>
+
+            <div class="store-info">
+              <p><strong>📍 Address:</strong></p>
+              <p>5 Boyle Street, Shomolu, Lagos</p>
+
+              <p style="margin-top: 15px"><strong>🕒 Store Hours:</strong></p>
+              <p>Mon-Fri, 9am - 5pm</p>
+
+              <p style="margin-top: 15px"><strong>📞 Contact:</strong></p>
+              <p>+234 8142534202</p>
+            </div>
+          </div>
+
+          <!-- Pickup Instructions -->
+          <div class="pickup-instructions">
+            <p>
+              <span class="instruction-icon">🆔</span>
+              <strong>Please bring a valid ID</strong> when picking up your
+              order.
+            </p>
+            <p>
+              <span class="instruction-icon">📱</span> Have your order number
+              ready ({{orderNumber}}).
+            </p>
+            <p>
+              <span class="instruction-icon">⏱️</span> Orders are held for 14
+              days after notification.
+            </p>
+          </div>
+
+          <!-- Map Link -->
+          <div style="text-align: center; margin: 20px 0">
+            <a
+              href="https://maps.google.com/?q=5+Boyle+Street+Shomolu+Lagos"
+              style="color: #8b5cf6; text-decoration: underline"
+            >
+              View on Google Maps →
+            </a>
+          </div>
+          {{/if}}
+        </div>
+
+        <!-- Important Note -->
+        <div class="important-note">
+          <p><strong>⚠️ Important:</strong></p>
+          {{#if (eq shippingMethod 'delivery')}}
+          <p>
+            Please ensure someone is available at the delivery address during
+            business hours.
+          </p>
+          {{else}}
+          <p>
+            Orders are held for 14 days. After this period, storage fees may
+            apply.
+          </p>
+          {{/if}}
+        </div>
+
+        <!-- Action Button -->
+        <!-- <div class="button-container">
                 <a href="{{orderUrl}}" class="{{#if (eq shippingMethod 'delivery')}}button-delivery{{else}}button-pickup{{/if}}">
                     {{#if (eq shippingMethod 'delivery')}}
                     Track Your Order
@@ -544,31 +598,33 @@
                     {{/if}}
                 </a>
             </div> -->
-            
-            <!-- Contact Info -->
-            <!-- <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 20px;">
+
+        <!-- Contact Info -->
+        <!-- <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 20px;">
                 Questions about your shipment? 
                 <a href="{{supportUrl}}" class="{{#if (eq shippingMethod 'delivery')}}contact-link-delivery{{else}}contact-link-pickup{{/if}}" style="text-decoration: underline;">
                     Contact Support
                 </a>
             </p> -->
+      </div>
+
+      <!-- Footer -->
+      <div class="email-footer">
+        <div class="social-links">
+          <a href="https://facebook.com/ampleprinthub">📘</a>
+          <a href="https://instagram.com/ampleprinthub">📷</a>
+          <a href="https://twitter.com/ampleprinthub">🐦</a>
+          <a href="https://tiktok.com/@ampleprinthub">🎵</a>
         </div>
-        
-        <!-- Footer -->
-        <div class="email-footer">
-            <div class="social-links">
-                <a href="https://facebook.com/ampleprinthub">📘</a>
-                <a href="https://instagram.com/ampleprinthub">📷</a>
-                <a href="https://twitter.com/ampleprinthub">🐦</a>
-                <a href="https://tiktok.com/@ampleprinthub">🎵</a>
-            </div>
-            <p class="footer-text">© {{year}} Ample Printhub. All rights reserved.</p>
-            <p class="footer-text">5 Boyle Street, Shomolu, Lagos</p>
-            <!-- <p class="footer-text">
+        <p class="footer-text">
+          © {{year}} Ample Printhub. All rights reserved.
+        </p>
+        <p class="footer-text">5 Boyle Street, Shomolu, Lagos</p>
+        <!-- <p class="footer-text">
                 <a href="{{privacyUrl}}" style="color: #64748b; text-decoration: underline;">Privacy Policy</a> |
                 <a href="{{unsubscribeUrl}}" style="color: #64748b; text-decoration: underline;">Unsubscribe</a>
             </p> -->
-        </div>
+      </div>
     </div>
-</body>
+  </body>
 </html>

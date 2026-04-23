@@ -1,10 +1,9 @@
 import { Request, Response } from "express";
 import * as invoiceService from "../service/invoiceService.js";
 import { InvoiceStatus, InvoiceType, Invoice } from "../model/invoiceModel.js";
-import PDFDocument from 'pdfkit';
-import fs from 'fs';
-import path from 'path';
-
+import PDFDocument from "pdfkit";
+import fs from "fs";
+import path from "path";
 
 const getIO = (req: Request) => {
   return (req as any).io || req.app.get("io");
@@ -270,7 +269,7 @@ export const getAllInvoices = async (req: Request, res: Response) => {
 export const getInvoiceById = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
-    const { invoiceId } = req.params as { invoiceId: string }; 
+    const { invoiceId } = req.params as { invoiceId: string };
 
     const invoice = await invoiceService.getInvoiceById(
       invoiceId,
@@ -421,191 +420,235 @@ export const filterInvoices = async (req: Request, res: Response) => {
 
 export const generateInvoicePDF = async (req: Request, res: Response) => {
   let doc: PDFKit.PDFDocument | null = null;
-  
+
   try {
     const { invoiceId } = req.params as { invoiceId: string };
-    
-    const invoice = await Invoice.findById(invoiceId)
-      .populate({
-        path: 'orderId',
-        populate: [
-          { path: 'items.productId', model: 'Product' },
-          {
-            path: 'userId',
-            model: 'User',
-            populate: { path: 'profile', model: 'Profile' }
-          }
-        ]
-      });
-    
+
+    const invoice = await Invoice.findById(invoiceId).populate({
+      path: "orderId",
+      populate: [
+        { path: "items.productId", model: "Product" },
+        {
+          path: "userId",
+          model: "User",
+          populate: { path: "profile", model: "Profile" },
+        },
+      ],
+    });
+
     if (!invoice) {
-      return res.status(404).json({ success: false, message: 'Invoice not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Invoice not found" });
     }
-    
+
     // Create clean filename
-    const cleanInvoiceNumber = invoice.invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '');
+    const cleanInvoiceNumber = invoice.invoiceNumber.replace(
+      /[^a-zA-Z0-9-]/g,
+      "",
+    );
     const filename = `invoice-${cleanInvoiceNumber}.pdf`;
-    
+
     // Create PDF document
     doc = new PDFDocument({ margin: 40 });
-    
+
     // Set response headers
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Transfer-Encoding', 'binary');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Transfer-Encoding", "binary");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+
     // Pipe PDF to response
     doc.pipe(res);
-    
+
     // Helper function to get user full name
     const getUserFullName = (order: any) => {
       const user = order?.userId as any;
       const profile = user?.profile as any;
       if (profile?.firstName || profile?.lastName) {
-        return `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+        return `${profile.firstName || ""} ${profile.lastName || ""}`.trim();
       }
-      return user?.email?.split('@')[0] || 'Customer';
+      return user?.email?.split("@")[0] || "Customer";
     };
-    
+
     // Header
-    doc.fontSize(18).font('Helvetica-Bold').text('INVOICE', { align: 'center' });
+    doc
+      .fontSize(18)
+      .font("Helvetica-Bold")
+      .text("INVOICE", { align: "center" });
     doc.moveDown(0.5);
-    
+
     // Invoice Info
     const leftColumn = 40;
     const rightColumn = 300;
-    
-    doc.fontSize(9).font('Helvetica');
+
+    doc.fontSize(9).font("Helvetica");
     doc.text(`Invoice Number:`, leftColumn, doc.y);
     doc.text(invoice.invoiceNumber, rightColumn, doc.y);
-    
+
     doc.text(`Invoice Date:`, leftColumn, doc.y);
-    doc.text(new Date(invoice.issueDate).toLocaleDateString(), rightColumn, doc.y);
-    
+    doc.text(
+      new Date(invoice.issueDate).toLocaleDateString(),
+      rightColumn,
+      doc.y,
+    );
+
     doc.text(`Due Date:`, leftColumn, doc.y);
-    doc.text(new Date(invoice.dueDate).toLocaleDateString(), rightColumn, doc.y);
-    
+    doc.text(
+      new Date(invoice.dueDate).toLocaleDateString(),
+      rightColumn,
+      doc.y,
+    );
+
     doc.text(`Status:`, leftColumn, doc.y);
     doc.text(invoice.status, rightColumn, doc.y);
-    
+
     doc.moveDown(0.5);
-    
+
     // Bill To Section
     const order = invoice.orderId as any;
     const customerName = getUserFullName(order);
-    const customerEmail = order?.userId?.email || '';
-    
-    doc.font('Helvetica-Bold').fontSize(10).text('Bill To:', 40, doc.y);
-    doc.font('Helvetica').fontSize(9);
+    const customerEmail = order?.userId?.email || "";
+
+    doc.font("Helvetica-Bold").fontSize(10).text("Bill To:", 40, doc.y);
+    doc.font("Helvetica").fontSize(9);
     doc.text(customerName, 40, doc.y);
     if (customerEmail) {
       doc.text(customerEmail, 40, doc.y);
     }
     doc.moveDown(0.5);
-    
+
     // Order Info
-    doc.font('Helvetica-Bold').text(`Order Number:`, 40, doc.y);
-    doc.font('Helvetica').text(invoice.orderNumber, 150, doc.y - 12);
+    doc.font("Helvetica-Bold").text(`Order Number:`, 40, doc.y);
+    doc.font("Helvetica").text(invoice.orderNumber, 150, doc.y - 12);
     doc.moveDown(0.5);
-    
+
     // Items Table
     const tableTop = doc.y + 10;
     const colPositions = { item: 40, qty: 280, unitPrice: 350, total: 450 };
-    
-    doc.font('Helvetica-Bold').fontSize(9);
-    doc.text('Item', colPositions.item, tableTop);
-    doc.text('Qty', colPositions.qty, tableTop);
-    doc.text('Unit Price (₦)', colPositions.unitPrice, tableTop);
-    doc.text('Total (₦)', colPositions.total, tableTop);
-    
-    doc.moveTo(40, tableTop + 15).lineTo(560, tableTop + 15).stroke();
-    
+
+    doc.font("Helvetica-Bold").fontSize(9);
+    doc.text("Item", colPositions.item, tableTop);
+    doc.text("Qty", colPositions.qty, tableTop);
+    doc.text("Unit Price (₦)", colPositions.unitPrice, tableTop);
+    doc.text("Total (₦)", colPositions.total, tableTop);
+
+    doc
+      .moveTo(40, tableTop + 15)
+      .lineTo(560, tableTop + 15)
+      .stroke();
+
     let currentY = tableTop + 25;
-    doc.font('Helvetica').fontSize(9);
-    
+    doc.font("Helvetica").fontSize(9);
+
     let subtotal = 0;
     const invoiceItems = invoice.items;
-    
+
     if (invoiceItems && invoiceItems.length > 0) {
       for (const item of invoiceItems) {
-        const productName = item.description || 'Product';
+        const productName = item.description || "Product";
         const quantity = item.quantity || 1;
         const unitPrice = item.unitPrice || 0;
         const total = quantity * unitPrice;
         subtotal += total;
-        
+
         doc.text(productName.substring(0, 35), colPositions.item, currentY);
         doc.text(quantity.toString(), colPositions.qty, currentY);
         doc.text(unitPrice.toLocaleString(), colPositions.unitPrice, currentY);
         doc.text(total.toLocaleString(), colPositions.total, currentY);
-        
+
         currentY = doc.y + 15;
       }
     }
-    
-    doc.moveTo(40, currentY - 5).lineTo(560, currentY - 5).stroke();
-    
+
+    doc
+      .moveTo(40, currentY - 5)
+      .lineTo(560, currentY - 5)
+      .stroke();
+
     // Totals
     const totalsStartX = 380;
     let totalsY = currentY + 10;
-    
-    doc.font('Helvetica-Bold');
-    doc.text('Subtotal:', totalsStartX, totalsY);
-    doc.font('Helvetica');
-    doc.text(`₦${(invoice.subtotal || subtotal).toLocaleString()}`, totalsStartX + 70, totalsY);
-    
+
+    doc.font("Helvetica-Bold");
+    doc.text("Subtotal:", totalsStartX, totalsY);
+    doc.font("Helvetica");
+    doc.text(
+      `₦${(invoice.subtotal || subtotal).toLocaleString()}`,
+      totalsStartX + 70,
+      totalsY,
+    );
+
     totalsY = doc.y + 15;
-    doc.font('Helvetica-Bold');
-    doc.text('Discount:', totalsStartX, totalsY);
-    doc.font('Helvetica');
-    doc.text(`₦${(invoice.discount || 0).toLocaleString()}`, totalsStartX + 70, totalsY);
-    
+    doc.font("Helvetica-Bold");
+    doc.text("Discount:", totalsStartX, totalsY);
+    doc.font("Helvetica");
+    doc.text(
+      `₦${(invoice.discount || 0).toLocaleString()}`,
+      totalsStartX + 70,
+      totalsY,
+    );
+
     totalsY = doc.y + 15;
-    doc.font('Helvetica-Bold');
-    doc.text('Total:', totalsStartX, totalsY);
-    doc.font('Helvetica');
-    doc.text(`₦${(invoice.totalAmount || subtotal).toLocaleString()}`, totalsStartX + 70, totalsY);
-    
+    doc.font("Helvetica-Bold");
+    doc.text("Total:", totalsStartX, totalsY);
+    doc.font("Helvetica");
+    doc.text(
+      `₦${(invoice.totalAmount || subtotal).toLocaleString()}`,
+      totalsStartX + 70,
+      totalsY,
+    );
+
     if (invoice.depositAmount && invoice.depositAmount > 0) {
       totalsY = doc.y + 15;
-      doc.text('Deposit:', totalsStartX, totalsY);
-      doc.text(`₦${invoice.depositAmount.toLocaleString()}`, totalsStartX + 70, totalsY);
+      doc.text("Deposit:", totalsStartX, totalsY);
+      doc.text(
+        `₦${invoice.depositAmount.toLocaleString()}`,
+        totalsStartX + 70,
+        totalsY,
+      );
     }
-    
+
     if (invoice.remainingAmount && invoice.remainingAmount > 0) {
       totalsY = doc.y + 15;
-      doc.text('Remaining:', totalsStartX, totalsY);
-      doc.text(`₦${invoice.remainingAmount.toLocaleString()}`, totalsStartX + 70, totalsY);
+      doc.text("Remaining:", totalsStartX, totalsY);
+      doc.text(
+        `₦${invoice.remainingAmount.toLocaleString()}`,
+        totalsStartX + 70,
+        totalsY,
+      );
     }
-    
+
     doc.moveDown(1);
-    
+
     // Payment Instructions
     if (invoice.paymentInstructions) {
       doc.fontSize(8);
-      doc.text('Payment Instructions:', { underline: true });
+      doc.text("Payment Instructions:", { underline: true });
       doc.fontSize(8).text(invoice.paymentInstructions);
     }
-    
+
     // Footer
     const pageHeight = doc.page.height;
     doc.fontSize(8);
-    doc.text('Thank you for your business!', 40, pageHeight - 30, { align: 'center' });
-    
+    doc.text("Thank you for your business!", 40, pageHeight - 30, {
+      align: "center",
+    });
+
     // End the document
     doc.end();
-    
+
     // Handle any errors
-    doc.on('error', (err) => {
-      console.error('PDF generation error:', err);
+    doc.on("error", (err) => {
+      console.error("PDF generation error:", err);
       if (!res.headersSent) {
-        res.status(500).json({ success: false, message: 'Error generating PDF' });
+        res
+          .status(500)
+          .json({ success: false, message: "Error generating PDF" });
       }
     });
-    
   } catch (error: any) {
-    console.error('Error generating invoice PDF:', error);
+    console.error("Error generating invoice PDF:", error);
     if (doc) {
       doc.end();
     }
@@ -614,4 +657,3 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
     }
   }
 };
-

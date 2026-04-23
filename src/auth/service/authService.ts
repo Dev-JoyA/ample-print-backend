@@ -17,10 +17,13 @@ dotenv.config();
 
 const FRONTEND_BASE = process.env.FRONTEND_URL ?? "http://localhost:3000";
 const RESET_PATH = process.env.PASSWORD_RESET_PATH ?? "reset-password";
-const RESET_TOKEN_TTL_MS = Number(process.env.RESET_TOKEN_TTL_MS) || 60 * 60 * 1000;
-const PERMANENT_SUPERADMIN_EMAIL = process.env.PERMANENT_SUPERADMIN_EMAIL ?? "ampleprinthub@gmail.com";
+const RESET_TOKEN_TTL_MS =
+  Number(process.env.RESET_TOKEN_TTL_MS) || 60 * 60 * 1000;
+const PERMANENT_SUPERADMIN_EMAIL =
+  process.env.PERMANENT_SUPERADMIN_EMAIL ?? "ampleprinthub@gmail.com";
 
-const generateRandomToken = (): string => crypto.randomBytes(32).toString("hex");
+const generateRandomToken = (): string =>
+  crypto.randomBytes(32).toString("hex");
 
 const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -28,7 +31,8 @@ const isValidEmail = (email: string): boolean => {
 };
 
 const isValidPhone = (phone: string): boolean => {
-  const phoneRegex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/;
+  const phoneRegex =
+    /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/;
   return phoneRegex.test(phone);
 };
 
@@ -90,15 +94,15 @@ export async function signUpService(data: SignUpData) {
   if (!email || !password || !phoneNumber || !firstName || !userName) {
     throw new Error("All fields are required");
   }
-  
+
   if (!isValidEmail(email)) {
     throw new Error("Please provide a valid email address");
   }
-  
+
   if (!isValidPhone(phoneNumber)) {
     throw new Error("Please provide a valid phone number");
   }
-  
+
   if (password.length < 5) {
     throw new Error("Password must be at least 5 characters");
   }
@@ -163,11 +167,11 @@ export async function signUpService(data: SignUpData) {
 
 export async function signInService(data: SignInData): Promise<AuthResponse> {
   const { email, password } = data;
-  
+
   if (!email || !password) {
     throw new Error("Email and password are required");
   }
-  
+
   if (!isValidEmail(email)) {
     throw new Error("Please provide a valid email address");
   }
@@ -190,20 +194,20 @@ export async function signInService(data: SignInData): Promise<AuthResponse> {
   const refreshToken = generateRefreshToken({
     userId: user._id,
     role: user.role,
-    email: user.email
+    email: user.email,
   });
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   await RefreshToken.findOneAndUpdate(
     { userId: user._id },
     { token: refreshToken, expiresAt },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
 
   const accessToken = generateToken({
-    userId: user._id, 
+    userId: user._id,
     role: user.role,
-    email: user.email
+    email: user.email,
   });
 
   return {
@@ -223,7 +227,7 @@ export async function refreshTokenService(refreshToken: string) {
   if (!existing) {
     throw new Error("Invalid refresh token");
   }
-  
+
   if (existing.expiresAt < new Date()) {
     await RefreshToken.deleteOne({ token: refreshToken });
     throw new Error("Session expired, please sign in again");
@@ -237,22 +241,22 @@ export async function refreshTokenService(refreshToken: string) {
   const newRefreshToken = generateRefreshToken({
     userId: user._id,
     role: user.role,
-    email: user.email
+    email: user.email,
   });
   const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   await RefreshToken.findOneAndUpdate(
     { userId: user._id },
     { token: newRefreshToken, expiresAt: newExpiry },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
 
-  const newAccessToken = generateToken({ 
-    userId: user._id, 
-    role: user.role, 
-    email: user.email 
+  const newAccessToken = generateToken({
+    userId: user._id,
+    role: user.role,
+    email: user.email,
   });
-  
+
   return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 }
 
@@ -260,7 +264,10 @@ export async function logoutService(refreshToken: string) {
   await RefreshToken.deleteOne({ token: refreshToken });
 }
 
-export async function createAdminService(data: SignUpData, superAdmin: AdminData) {
+export async function createAdminService(
+  data: SignUpData,
+  superAdmin: AdminData,
+) {
   const {
     firstName,
     lastName,
@@ -271,18 +278,25 @@ export async function createAdminService(data: SignUpData, superAdmin: AdminData
     address,
   } = data;
 
-  if (!email || !password || !phoneNumber || !firstName || !lastName || !userName) {
+  if (
+    !email ||
+    !password ||
+    !phoneNumber ||
+    !firstName ||
+    !lastName ||
+    !userName
+  ) {
     throw new Error("All fields are required");
   }
-  
+
   if (!isValidEmail(email)) {
     throw new Error("Please provide a valid email address");
   }
-  
+
   if (!isValidPhone(phoneNumber)) {
     throw new Error("Please provide a valid phone number");
   }
-  
+
   if (password.length < 5) {
     throw new Error("Password must be at least 5 characters");
   }
@@ -335,7 +349,7 @@ export async function createAdminService(data: SignUpData, superAdmin: AdminData
     const superAdminUser = await User.findOne({
       role: UserRole.SuperAdmin,
     }).lean();
-    
+
     if (superAdminUser?.email) {
       await emailService
         .sendAdminNewOrder(
@@ -351,11 +365,11 @@ export async function createAdminService(data: SignUpData, superAdmin: AdminData
 
     const token = generateRandomToken();
     const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
-    
+
     await PasswordResetToken.findOneAndUpdate(
       { userId: newUser._id },
       { token, expiresAt },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     const resetUrl = `${FRONTEND_BASE}/${RESET_PATH}?token=${token}`;
@@ -386,18 +400,25 @@ export async function createSuperAdminService(data: SignUpData) {
     address,
   } = data;
 
-  if (!email || !password || !phoneNumber || !firstName || !lastName || !userName) {
+  if (
+    !email ||
+    !password ||
+    !phoneNumber ||
+    !firstName ||
+    !lastName ||
+    !userName
+  ) {
     throw new Error("All fields are required");
   }
-  
+
   if (!isValidEmail(email)) {
     throw new Error("Please provide a valid email address");
   }
-  
+
   if (!isValidPhone(phoneNumber)) {
     throw new Error("Please provide a valid phone number");
   }
-  
+
   if (password.length < 5) {
     throw new Error("Password must be at least 5 characters");
   }
@@ -464,11 +485,11 @@ export async function deactivateAdminService(email: string) {
   if (!email) {
     throw new Error("Email is required");
   }
-  
+
   if (!isValidEmail(email)) {
     throw new Error("Please provide a valid email address");
   }
-  
+
   if (email === PERMANENT_SUPERADMIN_EMAIL) {
     throw new Error("Cannot deactivate the permanent superadmin account");
   }
@@ -477,7 +498,7 @@ export async function deactivateAdminService(email: string) {
   if (!superAdmin) {
     throw new Error("SuperAdmin not found");
   }
-  
+
   const superAdminProfile = await Profile.findOne({
     userId: superAdmin._id,
   }).lean();
@@ -490,15 +511,15 @@ export async function deactivateAdminService(email: string) {
   if (!user) {
     throw new Error("Admin not found");
   }
-  
+
   if (user.role === UserRole.Customer) {
     throw new Error("User is not an admin");
   }
-  
+
   if (user.email === superAdmin.email) {
     throw new Error("Cannot deactivate yourself");
   }
-  
+
   if (!user.isActive) {
     throw new Error("User is already deactivated");
   }
@@ -524,7 +545,7 @@ export async function reactivateAdminService(email: string) {
   if (!email) {
     throw new Error("Email is required");
   }
-  
+
   if (!isValidEmail(email)) {
     throw new Error("Please provide a valid email address");
   }
@@ -533,7 +554,7 @@ export async function reactivateAdminService(email: string) {
   if (!superAdmin) {
     throw new Error("SuperAdmin not found");
   }
-  
+
   const superAdminProfile = await Profile.findOne({
     userId: superAdmin._id,
   }).lean();
@@ -546,11 +567,11 @@ export async function reactivateAdminService(email: string) {
   if (!user) {
     throw new Error("Admin not found");
   }
-  
+
   if (user.role === UserRole.Customer) {
     throw new Error("User is not an admin");
   }
-  
+
   if (user.isActive) {
     throw new Error("User is already active");
   }
@@ -580,14 +601,16 @@ export async function forgotPasswordService(email: string) {
   if (!email) {
     throw new Error("Email is required");
   }
-  
+
   if (!isValidEmail(email)) {
     throw new Error("Please provide a valid email address");
   }
 
   const user = await User.findOne({ email }).exec();
   if (!user || !user.isActive) {
-    throw new Error("If an account exists with this email, you will receive a password reset link");
+    throw new Error(
+      "If an account exists with this email, you will receive a password reset link",
+    );
   }
 
   const profile = await Profile.findOne({ userId: user._id }).exec();
@@ -601,7 +624,7 @@ export async function forgotPasswordService(email: string) {
   await PasswordResetToken.findOneAndUpdate(
     { userId: user._id },
     { token, expiresAt },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
 
   const resetUrl = `${FRONTEND_BASE}/${RESET_PATH}?token=${token}`;
@@ -610,7 +633,10 @@ export async function forgotPasswordService(email: string) {
     .sendPasswordReset(email, profile.firstName, resetUrl)
     .catch(console.error);
 
-  return { message: "If an account exists with this email, you will receive a password reset link" };
+  return {
+    message:
+      "If an account exists with this email, you will receive a password reset link",
+  };
 }
 
 export async function effectForgotPassword(
@@ -621,15 +647,15 @@ export async function effectForgotPassword(
   if (!token) {
     throw new Error("Reset token is required");
   }
-  
+
   if (!newPassword || !confirmPassword) {
     throw new Error("Password and confirmation are required");
   }
-  
+
   if (newPassword !== confirmPassword) {
     throw new Error("Passwords do not match");
   }
-  
+
   if (newPassword.length < 5) {
     throw new Error("Password must be at least 5 characters");
   }
@@ -638,7 +664,7 @@ export async function effectForgotPassword(
   if (!resetToken) {
     throw new Error("Invalid or expired reset token");
   }
-  
+
   if (resetToken.expiresAt < new Date()) {
     await PasswordResetToken.deleteOne({ _id: resetToken._id }).catch(() => {});
     throw new Error("Reset token has expired");
@@ -661,7 +687,10 @@ export async function effectForgotPassword(
       .catch(console.error);
   }
 
-  return { message: "Password reset successful. You can now sign in with your new password." };
+  return {
+    message:
+      "Password reset successful. You can now sign in with your new password.",
+  };
 }
 
 export async function resetPasswordService(
@@ -672,11 +701,11 @@ export async function resetPasswordService(
   if (!newPassword || !confirmPassword) {
     throw new Error("Password and confirmation are required");
   }
-  
+
   if (newPassword !== confirmPassword) {
     throw new Error("Passwords do not match");
   }
-  
+
   if (newPassword.length < 5) {
     throw new Error("Password must be at least 5 characters");
   }
@@ -697,5 +726,8 @@ export async function resetPasswordService(
       .catch(console.error);
   }
 
-  return { message: "Password reset successful. You can now sign in with your new password." };
+  return {
+    message:
+      "Password reset successful. You can now sign in with your new password.",
+  };
 }

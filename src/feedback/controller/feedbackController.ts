@@ -63,16 +63,16 @@ export const respondToFeedback = async (req: Request, res: Response) => {
     const user = req.user as { _id: string; role: string };
     const io = getIO(req);
     const { feedbackId } = req.params;
-    
+
     let response: string;
     let attachments: string[] = [];
-    
-    if (req.is('multipart/form-data')) {
+
+    if (req.is("multipart/form-data")) {
       response = req.body.response;
-      
+
       const files = req.files as Express.Multer.File[];
       if (files && files.length > 0) {
-        attachments = files.map(file => `/uploads/${file.filename}`);
+        attachments = files.map((file) => `/uploads/${file.filename}`);
       }
     } else {
       response = req.body.response;
@@ -232,8 +232,12 @@ export const filterFeedback = async (req: Request, res: Response) => {
     const status = req.query.status as FeedBackStatus;
     const orderId = req.query.orderId as string;
     const userId = req.query.userId as string;
-    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
-    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+    const startDate = req.query.startDate
+      ? new Date(req.query.startDate as string)
+      : undefined;
+    const endDate = req.query.endDate
+      ? new Date(req.query.endDate as string)
+      : undefined;
 
     const result = await feedbackService.filterFeedback({
       page,
@@ -314,10 +318,10 @@ export const getUserFeedback = async (req: Request, res: Response) => {
     const status = req.query.status as FeedBackStatus; // Get status from query
 
     const result = await feedbackService.getUserFeedback(
-      user._id, 
-      page, 
+      user._id,
+      page,
       limit,
-      status 
+      status,
     );
 
     res.status(200).json({
