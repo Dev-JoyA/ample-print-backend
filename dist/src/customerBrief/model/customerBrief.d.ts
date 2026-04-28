@@ -4,6 +4,11 @@ export declare enum CustomerBriefRole {
     Admin = "admin",
     SuperAdmin = "super-admin"
 }
+export declare enum CustomerBriefStatus {
+    Pending = "pending",
+    Responded = "responded",
+    Complete = "complete"
+}
 export interface ICustomerBrief extends Document {
     orderId: Types.ObjectId;
     role: CustomerBriefRole;
@@ -16,6 +21,9 @@ export interface ICustomerBrief extends Document {
     logo?: string;
     viewed: boolean;
     viewedAt?: Date;
+    adminViewed?: boolean;
+    adminViewedAt?: Date;
+    status: CustomerBriefStatus;
     createdAt: Date;
     updatedAt: Date;
 }

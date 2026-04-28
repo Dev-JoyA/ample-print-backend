@@ -11,7 +11,6 @@ interface AuthRequest extends Request {
 }
 
 export const notificationController = {
-  // GET /api/v1/notifications/history
   getNotificationHistory: async (
     req: AuthRequest,
     res: Response,
@@ -57,7 +56,6 @@ export const notificationController = {
     }
   },
 
-  // GET /api/v1/notifications/unread-count
   getUnreadCount: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const userId = req.user?._id;
@@ -85,7 +83,6 @@ export const notificationController = {
     }
   },
 
-  // PATCH /api/v1/notifications/:notificationId/read
   markAsRead: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const userId = req.user?._id;
@@ -108,7 +105,7 @@ export const notificationController = {
       }
 
       const notification = await notificationService.markAsRead(
-        notificationId,
+        notificationId as string,
         userId,
       );
 
@@ -134,7 +131,6 @@ export const notificationController = {
     }
   },
 
-  // POST /api/v1/notifications/mark-all-read
   markAllAsRead: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const userId = req.user?._id;
@@ -162,7 +158,6 @@ export const notificationController = {
     }
   },
 
-  // DELETE /api/v1/notifications/:notificationId
   deleteNotification: async (
     req: AuthRequest,
     res: Response,
@@ -188,7 +183,7 @@ export const notificationController = {
       }
 
       const deleted = await notificationService.deleteNotification(
-        notificationId,
+        notificationId as string,
         userId,
       );
 
@@ -213,7 +208,6 @@ export const notificationController = {
     }
   },
 
-  // DELETE /api/v1/notifications/clear-all
   clearAllNotifications: async (
     req: AuthRequest,
     res: Response,

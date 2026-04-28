@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { Discount } from "../model/discountModel.js";
 
-// Create discount
 export const createDiscount = async (req: Request, res: Response) => {
   try {
     const {
@@ -16,7 +15,6 @@ export const createDiscount = async (req: Request, res: Response) => {
       usageLimit,
     } = req.body;
 
-    // Check if discount code already exists
     const existingDiscount = await Discount.findOne({
       code: code.toUpperCase(),
     });
@@ -53,7 +51,6 @@ export const createDiscount = async (req: Request, res: Response) => {
   }
 };
 
-// Get all discounts (with filters)
 export const getAllDiscounts = async (req: Request, res: Response) => {
   try {
     const { active, type } = req.query;
@@ -81,7 +78,6 @@ export const getAllDiscounts = async (req: Request, res: Response) => {
   }
 };
 
-// Get active discounts (for checkout)
 export const getActiveDiscounts = async (req: Request, res: Response) => {
   try {
     const now = new Date();
@@ -111,7 +107,6 @@ export const getActiveDiscounts = async (req: Request, res: Response) => {
   }
 };
 
-// Get discount by ID
 export const getDiscountById = async (req: Request, res: Response) => {
   try {
     const discount = await Discount.findById(req.params.id);
@@ -135,7 +130,6 @@ export const getDiscountById = async (req: Request, res: Response) => {
   }
 };
 
-// Update discount
 export const updateDiscount = async (req: Request, res: Response) => {
   try {
     const {
@@ -150,7 +144,6 @@ export const updateDiscount = async (req: Request, res: Response) => {
       usageLimit,
     } = req.body;
 
-    // Check if code is being changed and if it already exists
     if (code) {
       const existingDiscount = await Discount.findOne({
         code: code.toUpperCase(),
@@ -200,7 +193,6 @@ export const updateDiscount = async (req: Request, res: Response) => {
   }
 };
 
-// Toggle discount active status
 export const toggleDiscountStatus = async (req: Request, res: Response) => {
   try {
     const discount = await Discount.findById(req.params.id);
@@ -228,7 +220,6 @@ export const toggleDiscountStatus = async (req: Request, res: Response) => {
   }
 };
 
-// Delete discount
 export const deleteDiscount = async (req: Request, res: Response) => {
   try {
     const discount = await Discount.findByIdAndDelete(req.params.id);
@@ -252,7 +243,6 @@ export const deleteDiscount = async (req: Request, res: Response) => {
   }
 };
 
-// Validate discount code (public endpoint for checkout)
 export const validateDiscount = async (req: Request, res: Response) => {
   try {
     const { code, amount } = req.body;
@@ -278,7 +268,6 @@ export const validateDiscount = async (req: Request, res: Response) => {
 
     const now = new Date();
 
-    // Check validity period
     if (discount.validFrom && discount.validFrom > now) {
       return res.status(400).json({
         success: false,
@@ -293,7 +282,6 @@ export const validateDiscount = async (req: Request, res: Response) => {
       });
     }
 
-    // Check minimum order amount
     if (discount.minOrderAmount && amount < discount.minOrderAmount) {
       return res.status(400).json({
         success: false,
@@ -301,7 +289,6 @@ export const validateDiscount = async (req: Request, res: Response) => {
       });
     }
 
-    // Check usage limit
     if (discount.usageLimit && discount.usedCount >= discount.usageLimit) {
       return res.status(400).json({
         success: false,
@@ -309,7 +296,6 @@ export const validateDiscount = async (req: Request, res: Response) => {
       });
     }
 
-    // Calculate discount amount
     let discountAmount = 0;
     if (discount.type === "percentage") {
       discountAmount = (amount * discount.value) / 100;

@@ -7,6 +7,7 @@ import { defineConfig } from "eslint/config";
 
 export default defineConfig([
   {
+    ignores: ["dist/**", "node_modules/**"],
     files: ["**/*.{js,mjs,cjs,ts,mts,cts}"],
     languageOptions: {
       globals: {
@@ -28,4 +29,15 @@ export default defineConfig([
 
   // TypeScript-specific rules
   ...tseslint.configs.recommended,
+  {
+    rules: {
+      "no-useless-escape": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-empty-object-type": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_" },
+      ],
+    },
+  },
 ]);

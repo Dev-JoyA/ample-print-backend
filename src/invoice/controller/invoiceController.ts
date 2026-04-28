@@ -2,8 +2,6 @@ import { Request, Response } from "express";
 import * as invoiceService from "../service/invoiceService.js";
 import { InvoiceStatus, InvoiceType, Invoice } from "../model/invoiceModel.js";
 import PDFDocument from "pdfkit";
-import fs from "fs";
-import path from "path";
 
 const getIO = (req: Request) => {
   return (req as any).io || req.app.get("io");
@@ -21,10 +19,9 @@ export const createInvoice = async (req: Request, res: Response) => {
       dueDate,
       notes,
       paymentInstructions,
-      items, // Add this
+      items,
     } = req.body;
 
-    // Validate required fields
     if (!paymentType || !dueDate) {
       return res.status(400).json({
         success: false,
@@ -48,7 +45,7 @@ export const createInvoice = async (req: Request, res: Response) => {
         dueDate: new Date(dueDate),
         notes,
         paymentInstructions,
-        items, // Pass items to service
+        items,
       },
       user._id,
       io,
@@ -67,64 +64,6 @@ export const createInvoice = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== CREATE INVOICE (Super Admin only) ====================
-// export const createInvoice = async (req: Request, res: Response) => {
-//   try {
-//     const io = getIO(req);
-//     const user = req.user as { _id: string; role: string };
-//     const { orderId } = req.params;
-//     const {
-//       paymentType,
-//       depositAmount,
-//       discount,
-//       dueDate,
-//       notes,
-//       paymentInstructions,
-//     } = req.body;
-
-//     // Validate required fields
-//     if (!paymentType || !dueDate) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "paymentType and dueDate are required",
-//       });
-//     }
-
-//     if (!["full", "part"].includes(paymentType)) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "paymentType must be 'full' or 'part'",
-//       });
-//     }
-
-//     const invoice = await invoiceService.createInvoice(
-//       orderId,
-//       {
-//         paymentType,
-//         depositAmount,
-//         discount,
-//         dueDate: new Date(dueDate),
-//         notes,
-//         paymentInstructions,
-//       },
-//       user._id,
-//       io,
-//     );
-
-//     res.status(201).json({
-//       success: true,
-//       message: "Invoice created successfully",
-//       data: invoice,
-//     });
-//   } catch (error: any) {
-//     res.status(400).json({
-//       success: false,
-//       message: error.message,
-//     });
-//   }
-// };
-
-// ==================== CREATE SHIPPING INVOICE (Admin only) ====================
 export const createShippingInvoice = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
@@ -135,7 +74,6 @@ export const createShippingInvoice = async (req: Request, res: Response) => {
     };
     const { shippingCost, dueDate, notes } = req.body;
 
-    // Validate required fields
     if (!shippingCost || !dueDate) {
       return res.status(400).json({
         success: false,
@@ -168,7 +106,6 @@ export const createShippingInvoice = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== UPDATE INVOICE ====================
 export const updateInvoice = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
@@ -197,7 +134,6 @@ export const updateInvoice = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== DELETE INVOICE ====================
 export const deleteInvoice = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
@@ -218,7 +154,6 @@ export const deleteInvoice = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== SEND INVOICE TO CUSTOMER ====================
 export const sendInvoiceToCustomer = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
@@ -245,7 +180,6 @@ export const sendInvoiceToCustomer = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET ALL INVOICES (Admin) ====================
 export const getAllInvoices = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -265,7 +199,6 @@ export const getAllInvoices = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET INVOICE BY ID ====================
 export const getInvoiceById = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -289,7 +222,6 @@ export const getInvoiceById = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET INVOICE BY INVOICE NUMBER ====================
 export const getInvoiceByNumber = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -313,7 +245,6 @@ export const getInvoiceByNumber = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET INVOICE BY ORDER ID ====================
 export const getInvoiceByOrderId = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -337,7 +268,6 @@ export const getInvoiceByOrderId = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET INVOICE BY ORDER NUMBER ====================
 export const getInvoiceByOrderNumber = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -361,7 +291,6 @@ export const getInvoiceByOrderNumber = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET USER INVOICES ====================
 export const getUserInvoices = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -382,7 +311,6 @@ export const getUserInvoices = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== FILTER INVOICES (Admin) ====================
 export const filterInvoices = async (req: Request, res: Response) => {
   try {
     const filters = {
@@ -442,26 +370,21 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
         .json({ success: false, message: "Invoice not found" });
     }
 
-    // Create clean filename
     const cleanInvoiceNumber = invoice.invoiceNumber.replace(
       /[^a-zA-Z0-9-]/g,
       "",
     );
     const filename = `invoice-${cleanInvoiceNumber}.pdf`;
 
-    // Create PDF document
     doc = new PDFDocument({ margin: 40 });
 
-    // Set response headers
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Transfer-Encoding", "binary");
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 
-    // Pipe PDF to response
     doc.pipe(res);
 
-    // Helper function to get user full name
     const getUserFullName = (order: any) => {
       const user = order?.userId as any;
       const profile = user?.profile as any;
@@ -471,14 +394,12 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       return user?.email?.split("@")[0] || "Customer";
     };
 
-    // Header
     doc
       .fontSize(18)
       .font("Helvetica-Bold")
       .text("INVOICE", { align: "center" });
     doc.moveDown(0.5);
 
-    // Invoice Info
     const leftColumn = 40;
     const rightColumn = 300;
 
@@ -505,7 +426,6 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
 
     doc.moveDown(0.5);
 
-    // Bill To Section
     const order = invoice.orderId as any;
     const customerName = getUserFullName(order);
     const customerEmail = order?.userId?.email || "";
@@ -518,12 +438,10 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
     }
     doc.moveDown(0.5);
 
-    // Order Info
     doc.font("Helvetica-Bold").text(`Order Number:`, 40, doc.y);
     doc.font("Helvetica").text(invoice.orderNumber, 150, doc.y - 12);
     doc.moveDown(0.5);
 
-    // Items Table
     const tableTop = doc.y + 10;
     const colPositions = { item: 40, qty: 280, unitPrice: 350, total: 450 };
 
@@ -566,7 +484,6 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       .lineTo(560, currentY - 5)
       .stroke();
 
-    // Totals
     const totalsStartX = 380;
     let totalsY = currentY + 10;
 
@@ -621,24 +538,20 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
 
     doc.moveDown(1);
 
-    // Payment Instructions
     if (invoice.paymentInstructions) {
       doc.fontSize(8);
       doc.text("Payment Instructions:", { underline: true });
       doc.fontSize(8).text(invoice.paymentInstructions);
     }
 
-    // Footer
     const pageHeight = doc.page.height;
     doc.fontSize(8);
     doc.text("Thank you for your business!", 40, pageHeight - 30, {
       align: "center",
     });
 
-    // End the document
     doc.end();
 
-    // Handle any errors
     doc.on("error", (err) => {
       console.error("PDF generation error:", err);
       if (!res.headersSent) {

@@ -1,4 +1,4 @@
-import { Document, Schema, model, Types } from "mongoose";
+import { Schema, model } from "mongoose";
 import { ICollection } from "./productInterface.js";
 
 const CollectionSchema = new Schema<ICollection>(

@@ -11,11 +11,7 @@ import {
   PaymentStatus,
   OrderStatus,
 } from "../../order/model/orderModel.js";
-import {
-  Invoice,
-  InvoiceStatus,
-  InvoiceType,
-} from "../../invoice/model/invoiceModel.js";
+import { Invoice, InvoiceStatus } from "../../invoice/model/invoiceModel.js";
 import { User, UserRole } from "../../users/model/userModel.js";
 import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
@@ -34,13 +30,13 @@ const generateTransactionReference = (): string => {
   return `TXN-${Date.now()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 };
 
-const getSuperAdminEmails = async (): Promise<string[]> => {
-  const superAdmins = await User.find({
-    role: UserRole.SuperAdmin,
-    isActive: true,
-  }).select("email");
-  return superAdmins.map((admin) => admin.email);
-};
+// const getSuperAdminEmails = async (): Promise<string[]> => {
+//   const superAdmins = await User.find({
+//     role: UserRole.SuperAdmin,
+//     isActive: true,
+//   }).select("email");
+//   return superAdmins.map((admin) => admin.email);
+// };
 
 const updateOrderAndInvoiceAfterPayment = async (
   orderId: string,

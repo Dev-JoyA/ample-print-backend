@@ -1,5 +1,5 @@
 import mongoose, { Types } from "mongoose";
-import { Notification, INotification } from "../models/notificationModel.js";
+import { Notification } from "../models/notificationModel.js";
 import { User, UserRole } from "../../users/model/userModel.js";
 
 export interface NotificationFilter {

@@ -11,4 +11,5 @@ export declare const getInvoiceByOrderId: (req: Request, res: Response) => Promi
 export declare const getInvoiceByOrderNumber: (req: Request, res: Response) => Promise<void>;
 export declare const getUserInvoices: (req: Request, res: Response) => Promise<void>;
 export declare const filterInvoices: (req: Request, res: Response) => Promise<void>;
+export declare const generateInvoicePDF: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 //# sourceMappingURL=invoiceController.d.ts.map

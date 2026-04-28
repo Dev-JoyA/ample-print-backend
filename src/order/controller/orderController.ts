@@ -39,7 +39,6 @@ export const createOrder = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== UPDATE ORDER ====================
 export const updateOrder = async (req: Request, res: Response) => {
   try {
     const orderId = Array.isArray(req.params.id)
@@ -55,7 +54,6 @@ export const updateOrder = async (req: Request, res: Response) => {
       });
     }
 
-    // Remove id from data if present
     delete data._id;
     delete data.id;
 
@@ -79,7 +77,6 @@ export const updateOrder = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== DELETE ORDER ====================
 export const deleteOrder = async (req: Request, res: Response) => {
   try {
     const orderId = Array.isArray(req.params.id)
@@ -112,7 +109,6 @@ export const deleteOrder = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET ORDER BY ID ====================
 export const getOrderById = async (req: Request, res: Response) => {
   try {
     const orderId = Array.isArray(req.params.id)
@@ -141,7 +137,6 @@ export const getOrderById = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET USER ORDERS ====================
 export const getUserOrders = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -177,7 +172,6 @@ export const getUserOrders = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET ALL ORDERS (Admin) ====================
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -212,7 +206,6 @@ export const getAllOrders = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== MARK ORDER AS AWAITING INVOICE (NEW) ====================
 export const markOrderAsAwaitingInvoice = async (
   req: Request,
   res: Response,
@@ -248,7 +241,6 @@ export const markOrderAsAwaitingInvoice = async (
   }
 };
 
-// ==================== SEARCH BY ORDER NUMBER ====================
 export const searchByOrderNumber = async (req: Request, res: Response) => {
   try {
     const orderNumber = Array.isArray(req.params.orderNumber)
@@ -280,7 +272,7 @@ export const searchByOrderNumber = async (req: Request, res: Response) => {
         message: err.message,
       });
     }
-    // For other errors, return 400
+
     res.status(400).json({
       success: false,
       message: err.message,
@@ -288,7 +280,6 @@ export const searchByOrderNumber = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== UPDATE ORDER STATUS ====================
 export const updateOrderStatus = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
@@ -333,7 +324,6 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== FILTER ORDERS ====================
 export const filterOrders = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -377,8 +367,6 @@ export const filterOrders = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET ORDERS READY FOR INVOICE ====================
-
 export const getOrdersReadyForInvoice = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -407,32 +395,6 @@ export const getOrdersReadyForInvoice = async (req: Request, res: Response) => {
   }
 };
 
-// export const getOrdersReadyForInvoice = async (req: Request, res: Response) => {
-//   try {
-//     const user = req.user as { _id: string; role: string };
-
-//     if (!user) {
-//       return res.status(401).json({
-//         success: false,
-//         message: "Unauthorized",
-//       });
-//     }
-
-//     const orders = await orderService.getOrdersReadyForInvoice(user.role);
-
-//     res.status(200).json({
-//       success: true,
-//       orders,
-//     });
-//   } catch (err: any) {
-//     res.status(400).json({
-//       success: false,
-//       message: err.message,
-//     });
-//   }
-// };
-
-// ==================== GET PAID ORDERS ====================
 export const getPaidOrders = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -460,7 +422,6 @@ export const getPaidOrders = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET PARTIALLY PAID ORDERS ====================
 export const getPartiallyPaidOrders = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -492,7 +453,6 @@ export const getPartiallyPaidOrders = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET PENDING PAYMENT ORDERS ====================
 export const getPendingPaymentOrders = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -524,7 +484,6 @@ export const getPendingPaymentOrders = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET ORDERS READY FOR SHIPPING ====================
 export const getOrdersReadyForShipping = async (
   req: Request,
   res: Response,
@@ -559,7 +518,6 @@ export const getOrdersReadyForShipping = async (
   }
 };
 
-// ==================== SUPER ADMIN CREATE ORDER ====================
 export const superAdminCreateOrder = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
@@ -576,7 +534,6 @@ export const superAdminCreateOrder = async (req: Request, res: Response) => {
       });
     }
 
-    // Only super admin can use this
     if (user.role !== "SuperAdmin") {
       return res.status(403).json({
         success: false,
@@ -642,7 +599,6 @@ export const addItemToOrder = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET USER ACTIVE ORDERS ====================
 export const getUserActiveOrders = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -652,7 +608,7 @@ export const getUserActiveOrders = async (req: Request, res: Response) => {
       OrderStatus.OrderReceived,
       OrderStatus.Pending,
       OrderStatus.FilesUploaded,
-      OrderStatus.AwaitingInvoice, // Added AwaitingInvoice
+      OrderStatus.AwaitingInvoice,
     ];
 
     if (statuses) {

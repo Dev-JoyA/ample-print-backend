@@ -5,10 +5,8 @@ import * as controller from "../controller/bankAccountController.js";
 
 const router = Router();
 
-// Public (used by customers for payment details)
 router.get("/active", controller.getActive);
 
-// Super Admin
 router.get("/", authMiddleware, checkSuperAdmin, controller.list);
 router.post("/", authMiddleware, checkSuperAdmin, controller.create);
 router.patch(

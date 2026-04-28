@@ -1,14 +1,15 @@
 import * as designService from "../service/designService.js";
-import { Types } from "mongoose"; // ✅ Add this import
+import { Types } from "mongoose";
 const getIO = (req) => {
     return req.io || req.app.get("io");
 };
+const getParam = (param) => Array.isArray(param) ? param[0] : param;
 export const createDesignController = async (req, res) => {
     try {
-        const { orderId } = req.params; // This is orderId
-        console.log('🔍 Controller - Received orderId:', orderId);
-        console.log('🔍 Controller - orderId type:', typeof orderId);
-        console.log('🔍 Controller - orderId length:', orderId.length);
+        const orderId = getParam(req.params.orderId);
+        console.log("🔍 Controller - Received orderId:", orderId);
+        console.log("🔍 Controller - orderId type:", typeof orderId);
+        console.log("🔍 Controller - orderId length:", orderId.length);
         const admin = req.user;
         const files = req.files;
         const io = getIO(req);
@@ -18,13 +19,12 @@ export const createDesignController = async (req, res) => {
                 .json({ success: false, message: "At least one image is required." });
         }
         const { productId } = req.body;
-        console.log('🔍 Controller - productId:', productId);
+        console.log("🔍 Controller - productId:", productId);
         if (!productId) {
             return res
                 .status(400)
                 .json({ success: false, message: "productId is required." });
         }
-        // Convert string IDs to ObjectId
         const data = {
             productId: new Types.ObjectId(productId),
             uploadedBy: new Types.ObjectId(admin._id),
@@ -33,7 +33,7 @@ export const createDesignController = async (req, res) => {
             otherImage: files.map((file) => `/uploads/${file.filename}`),
             filenames: files.map((file) => file.filename),
         };
-        console.log('🔍 Controller - Calling uploadDesign with orderId:', orderId);
+        console.log("🔍 Controller - Calling uploadDesign with orderId:", orderId);
         const design = await designService.uploadDesign(orderId, data, io);
         const populatedDesign = await design.populate("uploadedBy", "fullname email");
         res.status(201).json({
@@ -43,26 +43,23 @@ export const createDesignController = async (req, res) => {
         });
     }
     catch (error) {
-        console.error('❌ Controller error:', error);
+        console.error("❌ Controller error:", error);
         res.status(400).json({ success: false, message: error.message });
     }
 };
 export const updatedDesignController = async (req, res) => {
     try {
-        const { orderId } = req.params; // This is designId
+        const orderId = getParam(req.params.orderId);
         const admin = req.user;
         const files = req.files;
         const io = getIO(req);
-        // ✅ FIX: Convert string IDs to ObjectId
         const updatedData = {
             ...req.body,
-            uploadedBy: new Types.ObjectId(admin._id), // Convert to ObjectId
+            uploadedBy: new Types.ObjectId(admin._id),
         };
-        // Convert productId if provided
         if (req.body.productId) {
             updatedData.productId = new Types.ObjectId(req.body.productId);
         }
-        // Only update files if new ones are provided
         if (files && files.length > 0) {
             updatedData.designUrl = `/uploads/${files[0].filename}`;
             updatedData.filename = files[0].filename;
@@ -83,7 +80,7 @@ export const updatedDesignController = async (req, res) => {
 };
 export const deleteDesignController = async (req, res) => {
     try {
-        const { id } = req.params;
+        const id = getParam(req.params.id);
         const message = await designService.deleteDesign(id);
         res.status(200).json({
             success: true,
@@ -96,7 +93,7 @@ export const deleteDesignController = async (req, res) => {
 };
 export const approveDesignController = async (req, res) => {
     try {
-        const { designId } = req.params;
+        const designId = getParam(req.params.designId);
         const design = await designService.approveDesign(designId);
         res.status(200).json({
             success: true,
@@ -110,7 +107,7 @@ export const approveDesignController = async (req, res) => {
 };
 export const getDesignByIdController = async (req, res) => {
     try {
-        const { designId } = req.params;
+        const designId = getParam(req.params.designId);
         const design = await designService.getDesignById(designId);
         res.status(200).json({
             success: true,
@@ -123,7 +120,7 @@ export const getDesignByIdController = async (req, res) => {
 };
 export const getUserDesignsController = async (req, res) => {
     try {
-        const { userId } = req.params; // userId
+        const userId = getParam(req.params.userId);
         const designs = await designService.getUserDesigns(userId);
         res.status(200).json({
             success: true,
@@ -137,7 +134,7 @@ export const getUserDesignsController = async (req, res) => {
 };
 export const getDesignByOrderIdController = async (req, res) => {
     try {
-        const { id } = req.params; // orderId
+        const id = getParam(req.params.orderId);
         const designs = await designService.getDesignsByOrderId(id);
         res.status(200).json({
             success: true,
@@ -151,8 +148,8 @@ export const getDesignByOrderIdController = async (req, res) => {
 };
 export const getDesignByProductIdController = async (req, res) => {
     try {
-        const { id } = req.params; // productId
-        const designs = await designService.getDesignByProductId(id);
+        const productId = getParam(req.params.productId);
+        const designs = await designService.getDesignByProductId(productId);
         res.status(200).json({
             success: true,
             data: designs,
@@ -165,11 +162,9 @@ export const getDesignByProductIdController = async (req, res) => {
 };
 export const getAllDesignsController = async (req, res) => {
     try {
-        // ✅ Add pagination
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const designs = await designService.getAllDesigns();
-        // Simple pagination (you might want to add this to service)
         const start = (page - 1) * limit;
         const paginatedDesigns = designs.slice(start, start + limit);
         res.status(200).json({
@@ -187,7 +182,6 @@ export const getAllDesignsController = async (req, res) => {
 };
 export const filterDesignController = async (req, res) => {
     try {
-        // ✅ Use query params instead of body for GET request
         const filters = {
             userId: req.query.userId,
             orderId: req.query.orderId,

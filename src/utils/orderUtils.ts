@@ -6,9 +6,9 @@ export const generateOrderNumber = async (): Promise<string> => {
   const counter = await OrderCounter.findOneAndUpdate(
     { year },
     { $inc: { seq: 1 } },
-    { new: true, upsert: true }, // Create if doesn't exist
+    { new: true, upsert: true },
   );
 
-  const seqStr = counter.seq.toString().padStart(3, "0"); // e.g., 001, 002
+  const seqStr = counter.seq.toString().padStart(3, "0");
   return `ORD-${year}-${seqStr}`;
 };

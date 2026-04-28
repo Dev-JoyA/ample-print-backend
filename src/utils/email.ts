@@ -44,7 +44,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..", "..");
 
-// Type definitions
 interface EmailOptions {
   to: string;
   subject: string;
@@ -87,7 +86,7 @@ const getCompiledTemplate = async (
   let source: string;
   try {
     source = await fs.readFile(templatePath, "utf-8");
-  } catch (error) {
+  } catch {
     console.error(
       `Email template ${templateName} not found at ${templatePath}`,
     );
@@ -136,8 +135,6 @@ const sendEmail = async ({
     console.error(`❌ Email failed to ${to}: ${subject}`, error.message);
   }
 };
-
-// ==================== CUSTOMER EMAILS ====================
 
 export const sendWelcomeEmail = (to: string, name: string): Promise<void> =>
   sendEmail({
@@ -188,14 +185,14 @@ export const sendInvoiceReady = (
     unitPrice: number;
     total: number;
   }>,
-  bankAccount?: BankAccountForEmails,
+  //bankAccount?: BankAccountForEmails,
 ): Promise<void> =>
   (async () => {
-    const activeBank =
-      bankAccount ||
-      (await BankAccount.findOne({ isActive: true })
-        .sort({ updatedAt: -1 })
-        .exec());
+    // const activeBank =
+    //   bankAccount ||
+    //   (await BankAccount.findOne({ isActive: true })
+    //     .sort({ updatedAt: -1 })
+    //     .exec());
 
     await sendEmail({
       to,
@@ -338,8 +335,6 @@ export const sendPaymentVerified = (
       year: new Date().getFullYear(),
     },
   });
-
-// ==================== SHIPPING RELATED EMAILS ====================
 
 export const sendFinalPaymentReminder = (
   to: string,
@@ -517,8 +512,6 @@ export const sendShippingCreated = (
     },
   });
 
-// ==================== ACCOUNT EMAILS ====================
-
 export const sendPasswordReset = (
   to: string,
   name: string,
@@ -533,8 +526,6 @@ export const sendPasswordReset = (
       resetLink,
     },
   });
-
-// ==================== ADMIN NOTIFICATIONS ====================
 
 export const sendAdminNewOrder = (
   to: string,
@@ -584,8 +575,6 @@ export const sendAdminNewBrief = (
       adminUrl: `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/admin/orders/${orderNumber}/brief`,
     },
   });
-
-// ==================== EXPORT DEFAULT OBJECT ====================
 
 const emailService = {
   sendWelcomeEmail,

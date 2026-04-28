@@ -52,12 +52,10 @@ passport.use(
           return done(new Error("Google account has no email"), null);
         }
 
-        // 🔍 Find user by googleId OR email
         let user = await User.findOne({
           $or: [{ googleId: profile.id }, { email }],
         });
 
-        // 🆕 Create user if not exists
         if (!user) {
           user = await User.create({
             email,
@@ -73,9 +71,7 @@ passport.use(
             userName: "",
             phoneNumber: "",
           });
-        }
-        // 🔗 Link Google account if user exists but has no googleId
-        else if (!user.googleId) {
+        } else if (!user.googleId) {
           user.googleId = profile.id;
           await user.save();
         }

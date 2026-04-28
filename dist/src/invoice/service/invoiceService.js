@@ -1,5 +1,5 @@
 import { Invoice, InvoiceStatus, InvoiceType, } from "../model/invoiceModel.js";
-import { Order, OrderStatus, } from "../../order/model/orderModel.js";
+import { Order, OrderStatus } from "../../order/model/orderModel.js";
 import { User } from "../../users/model/userModel.js";
 import { Profile } from "../../users/model/profileModel.js";
 import emailService from "../../utils/email.js";
@@ -25,13 +25,13 @@ export const createInvoice = async (orderId, data, superAdminId, io) => {
         let subtotal = 0;
         if (data.items && data.items.length > 0) {
             const priceMap = new Map();
-            data.items.forEach(item => {
+            data.items.forEach((item) => {
                 priceMap.set(item.productId.toString(), {
                     totalPrice: item.totalPrice,
-                    quantity: item.quantity
+                    quantity: item.quantity,
                 });
             });
-            order.items.forEach(item => {
+            order.items.forEach((item) => {
                 const productId = item.productId.toString();
                 const newPriceData = priceMap.get(productId);
                 if (newPriceData) {
@@ -41,7 +41,7 @@ export const createInvoice = async (orderId, data, superAdminId, io) => {
                 }
             });
         }
-        subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        subtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
         const discount = data.discount || 0;
         const totalAmount = subtotal - discount;
         order.totalAmount = totalAmount;
@@ -53,12 +53,12 @@ export const createInvoice = async (orderId, data, superAdminId, io) => {
             depositAmount = data.depositAmount || totalAmount * 0.3;
             remainingAmount = totalAmount - depositAmount;
         }
-        const activeBank = await BankAccount.findOne({ isActive: true })
-            .sort({ updatedAt: -1 })
-            .exec();
-        const defaultPaymentInstructions = activeBank
-            ? `Bank transfer to ${activeBank.bankName} ${activeBank.accountNumber} (${activeBank.accountName})`
-            : "Bank transfer";
+        // const activeBank = await BankAccount.findOne({ isActive: true })
+        //   .sort({ updatedAt: -1 })
+        //   .exec();
+        // const defaultPaymentInstructions = activeBank
+        //   ? `Bank transfer to ${activeBank.bankName} ${activeBank.accountNumber} (${activeBank.accountName})`
+        //   : "Bank transfer";
         const invoiceNumber = await generateInvoiceNumber();
         const [invoice] = await Invoice.create([
             {
@@ -83,7 +83,7 @@ export const createInvoice = async (orderId, data, superAdminId, io) => {
                 issueDate: new Date(),
                 dueDate: data.dueDate,
                 notes: data.notes,
-                paymentInstructions: data.paymentInstructions || defaultPaymentInstructions,
+                paymentInstructions: "login to your dashboard to pay with paystack or view the bank account details for your payment",
                 transactions: [],
             },
         ], { session });
@@ -111,16 +111,26 @@ export const createInvoice = async (orderId, data, superAdminId, io) => {
             createdBy: superAdminId,
         });
         if (user && profile) {
-            const dueDateStr = data.dueDate.toLocaleDateString();
-            await emailService
-                .sendInvoiceReady(user.email, profile.firstName, order.orderNumber, invoice.invoiceNumber, invoice.totalAmount, depositAmount || undefined, dueDateStr, invoice.items, activeBank
-                ? {
-                    accountName: activeBank.accountName,
-                    accountNumber: activeBank.accountNumber,
-                    bankName: activeBank.bankName,
-                }
-                : undefined)
-                .catch((err) => console.error("Error sending invoice email:", err));
+            //const dueDateStr = data.dueDate.toLocaleDateString();
+            //   await emailService
+            //     .sendInvoiceReady(
+            //       user.email,
+            //       profile.firstName,
+            //       order.orderNumber,
+            //       invoice.invoiceNumber,
+            //       invoice.totalAmount,
+            //       depositAmount || undefined,
+            //       dueDateStr,
+            //       invoice.items as any,
+            //       activeBank
+            //         ? {
+            //             accountName: activeBank.accountName,
+            //             accountNumber: activeBank.accountNumber,
+            //             bankName: activeBank.bankName,
+            //           }
+            //         : undefined,
+            //     )
+            //     .catch((err) => console.error("Error sending invoice email:", err));
             io.to(`user-${user._id}`).emit("invoice-created", {
                 invoiceId: invoice._id,
                 orderId: order._id,
@@ -131,8 +141,8 @@ export const createInvoice = async (orderId, data, superAdminId, io) => {
         }
         try {
             await notificationService.createForUser(order.userId, {
-                type: 'invoice-created',
-                title: 'Invoice Created',
+                type: "invoice-created",
+                title: "Invoice Created",
                 message: `Invoice #${invoice.invoiceNumber} has been created for your order #${order.orderNumber}`,
                 data: {
                     invoiceId: invoice._id,
@@ -141,13 +151,13 @@ export const createInvoice = async (orderId, data, superAdminId, io) => {
                     invoiceNumber: invoice.invoiceNumber,
                     totalAmount: invoice.totalAmount,
                     paymentType: data.paymentType,
-                    depositAmount: depositAmount || undefined
+                    depositAmount: depositAmount || undefined,
                 },
-                link: `/dashboards/customer/invoices/${invoice._id}`
+                link: `/dashboards/customer/invoices/${invoice._id}`,
             });
             await notificationService.createForAdmins({
-                type: 'admin-invoice-created',
-                title: 'New Invoice Created',
+                type: "admin-invoice-created",
+                title: "New Invoice Created",
                 message: `Invoice #${invoice.invoiceNumber} created for order #${order.orderNumber} by admin`,
                 data: {
                     invoiceId: invoice._id,
@@ -156,13 +166,13 @@ export const createInvoice = async (orderId, data, superAdminId, io) => {
                     invoiceNumber: invoice.invoiceNumber,
                     totalAmount: invoice.totalAmount,
                     customerId: order.userId,
-                    createdBy: superAdminId
+                    createdBy: superAdminId,
                 },
-                link: `/dashboards/admin/invoices/${invoice._id}`
+                link: `/dashboards/admin/invoices/${invoice._id}`,
             });
         }
         catch (notifErr) {
-            console.error('Failed to create notifications:', notifErr);
+            console.error("Failed to create notifications:", notifErr);
         }
         return invoice;
     }
@@ -247,8 +257,8 @@ export const createShippingInvoice = async (orderId, shippingId, data, adminId, 
         });
         try {
             await notificationService.createForUser(order.userId, {
-                type: 'shipping-invoice-created',
-                title: 'Shipping Invoice Created',
+                type: "shipping-invoice-created",
+                title: "Shipping Invoice Created",
                 message: `Shipping invoice of ₦${data.shippingCost.toLocaleString()} created for your order #${order.orderNumber}`,
                 data: {
                     invoiceId: invoice._id,
@@ -256,13 +266,13 @@ export const createShippingInvoice = async (orderId, shippingId, data, adminId, 
                     orderNumber: order.orderNumber,
                     invoiceNumber: invoice.invoiceNumber,
                     shippingCost: data.shippingCost,
-                    shippingId: shippingId
+                    shippingId: shippingId,
                 },
-                link: `/dashboards/customer/invoices/${invoice._id}`
+                link: `/dashboards/customer/invoices/${invoice._id}`,
             });
             await notificationService.createForAdmins({
-                type: 'admin-shipping-invoice-created',
-                title: 'Shipping Invoice Created',
+                type: "admin-shipping-invoice-created",
+                title: "Shipping Invoice Created",
                 message: `Shipping invoice of ₦${data.shippingCost.toLocaleString()} created for order #${order.orderNumber}`,
                 data: {
                     invoiceId: invoice._id,
@@ -270,25 +280,37 @@ export const createShippingInvoice = async (orderId, shippingId, data, adminId, 
                     orderNumber: order.orderNumber,
                     invoiceNumber: invoice.invoiceNumber,
                     shippingCost: data.shippingCost,
-                    customerId: order.userId
+                    customerId: order.userId,
                 },
-                link: `/dashboards/admin/invoices/${invoice._id}`
+                link: `/dashboards/admin/invoices/${invoice._id}`,
             });
         }
         catch (notifErr) {
-            console.error('Failed to create shipping invoice notifications:', notifErr);
+            console.error("Failed to create shipping invoice notifications:", notifErr);
         }
         if (user && profile) {
-            const dueDateStr = data.dueDate.toLocaleDateString();
-            await emailService
-                .sendInvoiceReady(user.email, profile.firstName, order.orderNumber, invoice.invoiceNumber, data.shippingCost, undefined, dueDateStr, invoice.items, activeBank
-                ? {
-                    accountName: activeBank.accountName,
-                    accountNumber: activeBank.accountNumber,
-                    bankName: activeBank.bankName,
-                }
-                : undefined)
-                .catch((err) => console.error("Error sending shipping invoice email:", err));
+            // const dueDateStr = data.dueDate.toLocaleDateString();
+            //   await emailService
+            //     .sendInvoiceReady(
+            //       user.email,
+            //       profile.firstName,
+            //       order.orderNumber,
+            //       invoice.invoiceNumber,
+            //       data.shippingCost,
+            //       undefined,
+            //       dueDateStr,
+            //       invoice.items as any,
+            //       activeBank
+            //         ? {
+            //             accountName: activeBank.accountName,
+            //             accountNumber: activeBank.accountNumber,
+            //             bankName: activeBank.bankName,
+            //           }
+            //         : undefined,
+            //     )
+            // .catch((err) =>
+            //   console.error("Error sending shipping invoice email:", err),
+            // );
             io.to(`user-${user._id}`).emit("shipping-invoice-created", {
                 invoiceId: invoice._id,
                 orderId: order._id,
@@ -326,13 +348,13 @@ export const updateInvoice = async (invoiceId, data, userId, userRole, io) => {
         const oldDeposit = invoice.depositAmount;
         if (data.customItems && data.customItems.length > 0) {
             const priceMap = new Map();
-            data.customItems.forEach(item => {
+            data.customItems.forEach((item) => {
                 priceMap.set(item.productId.toString(), {
                     totalPrice: item.totalPrice,
-                    quantity: item.quantity
+                    quantity: item.quantity,
                 });
             });
-            order.items.forEach(item => {
+            order.items.forEach((item) => {
                 const productId = item.productId.toString();
                 const newPriceData = priceMap.get(productId);
                 if (newPriceData) {
@@ -340,17 +362,17 @@ export const updateInvoice = async (invoiceId, data, userId, userRole, io) => {
                     item.price = newUnitPrice;
                 }
             });
-            const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const subtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
             const discount = data.discount !== undefined ? data.discount : invoice.discount;
             const totalAmount = subtotal - discount;
             order.totalAmount = totalAmount;
             order.remainingBalance = totalAmount - (order.amountPaid || 0);
             await order.save({ session });
-            invoice.items = order.items.map(item => ({
+            invoice.items = order.items.map((item) => ({
                 description: item.productName,
                 quantity: item.quantity,
                 unitPrice: item.price,
-                total: item.price * item.quantity
+                total: item.price * item.quantity,
             }));
             invoice.subtotal = subtotal;
             invoice.discount = discount;
@@ -378,7 +400,7 @@ export const updateInvoice = async (invoiceId, data, userId, userRole, io) => {
         await session.commitTransaction();
         const orderForNotif = await Order.findById(invoice.orderId);
         if (!orderForNotif) {
-            console.error('Order not found for invoice:', invoice.orderId);
+            console.error("Order not found for invoice:", invoice.orderId);
             return invoice;
         }
         const user = await User.findById(orderForNotif?.userId);
@@ -402,11 +424,12 @@ export const updateInvoice = async (invoiceId, data, userId, userRole, io) => {
                 orderNumber: orderForNotif?.orderNumber,
                 totalAmount: invoice.totalAmount,
             });
-            if (oldTotal !== invoice.totalAmount || oldDeposit !== invoice.depositAmount) {
+            if (oldTotal !== invoice.totalAmount ||
+                oldDeposit !== invoice.depositAmount) {
                 try {
                     await notificationService.createForUser(user._id, {
-                        type: 'invoice-updated',
-                        title: 'Invoice Updated',
+                        type: "invoice-updated",
+                        title: "Invoice Updated",
                         message: `Invoice #${invoice.invoiceNumber} has been updated. New total: ₦${invoice.totalAmount.toLocaleString()}`,
                         data: {
                             invoiceId: invoice._id,
@@ -416,13 +439,13 @@ export const updateInvoice = async (invoiceId, data, userId, userRole, io) => {
                             oldTotal,
                             newTotal: invoice.totalAmount,
                             oldDeposit,
-                            newDeposit: invoice.depositAmount
+                            newDeposit: invoice.depositAmount,
                         },
-                        link: `/dashboards/customer/invoices/${invoice._id}`
+                        link: `/dashboards/customer/invoices/${invoice._id}`,
                     });
                     await notificationService.createForAdmins({
-                        type: 'admin-invoice-updated',
-                        title: 'Invoice Updated',
+                        type: "admin-invoice-updated",
+                        title: "Invoice Updated",
                         message: `Invoice #${invoice.invoiceNumber} for order #${orderForNotif.orderNumber} was updated`,
                         data: {
                             invoiceId: invoice._id,
@@ -431,29 +454,24 @@ export const updateInvoice = async (invoiceId, data, userId, userRole, io) => {
                             invoiceNumber: invoice.invoiceNumber,
                             oldTotal,
                             newTotal: invoice.totalAmount,
-                            updatedBy: userId
+                            updatedBy: userId,
                         },
-                        link: `/dashboards/admin/invoices/${invoice._id}`
+                        link: `/dashboards/admin/invoices/${invoice._id}`,
                     });
                 }
                 catch (notifErr) {
-                    console.error('Failed to create invoice update notifications:', notifErr);
+                    console.error("Failed to create invoice update notifications:", notifErr);
                 }
             }
         }
         if (user && profile && orderForNotif) {
-            if (oldTotal !== invoice.totalAmount || oldDeposit !== invoice.depositAmount) {
-                const activeBank = await BankAccount.findOne({ isActive: true })
-                    .sort({ updatedAt: -1 })
-                    .exec();
+            if (oldTotal !== invoice.totalAmount ||
+                oldDeposit !== invoice.depositAmount) {
+                // const activeBank = await BankAccount.findOne({ isActive: true })
+                //   .sort({ updatedAt: -1 })
+                //   .exec();
                 await emailService
-                    .sendInvoiceReady(user.email, profile.firstName, orderForNotif.orderNumber, invoice.invoiceNumber, invoice.totalAmount, invoice.depositAmount || undefined, invoice.dueDate.toLocaleDateString(), invoice.items, activeBank
-                    ? {
-                        accountName: activeBank.accountName,
-                        accountNumber: activeBank.accountNumber,
-                        bankName: activeBank.bankName,
-                    }
-                    : undefined)
+                    .sendInvoiceReady(user.email, profile.firstName, orderForNotif.orderNumber, invoice.invoiceNumber, invoice.totalAmount, invoice.depositAmount || undefined, invoice.dueDate.toLocaleDateString(), invoice.items)
                     .catch((err) => console.error("Error sending invoice update email:", err));
             }
         }
@@ -496,32 +514,32 @@ export const deleteInvoice = async (invoiceId, userRole, io) => {
                 });
                 try {
                     await notificationService.createForUser(user._id, {
-                        type: 'invoice-deleted',
-                        title: 'Invoice Deleted',
+                        type: "invoice-deleted",
+                        title: "Invoice Deleted",
                         message: `Invoice #${invoice.invoiceNumber} for order #${order.orderNumber} has been deleted`,
                         data: {
                             invoiceId: invoice._id,
                             orderId: order._id,
                             orderNumber: order.orderNumber,
-                            invoiceNumber: invoice.invoiceNumber
+                            invoiceNumber: invoice.invoiceNumber,
                         },
-                        link: `/dashboards/customer/orders/${order._id}`
+                        link: `/dashboards/customer/orders/${order._id}`,
                     });
                     await notificationService.createForAdmins({
-                        type: 'admin-invoice-deleted',
-                        title: 'Invoice Deleted',
+                        type: "admin-invoice-deleted",
+                        title: "Invoice Deleted",
                         message: `Invoice #${invoice.invoiceNumber} for order #${order.orderNumber} was deleted`,
                         data: {
                             invoiceId: invoice._id,
                             orderId: order._id,
                             orderNumber: order.orderNumber,
-                            invoiceNumber: invoice.invoiceNumber
+                            invoiceNumber: invoice.invoiceNumber,
                         },
-                        link: `/dashboards/admin/orders/${order._id}`
+                        link: `/dashboards/admin/orders/${order._id}`,
                     });
                 }
                 catch (notifErr) {
-                    console.error('Failed to create invoice deletion notifications:', notifErr);
+                    console.error("Failed to create invoice deletion notifications:", notifErr);
                 }
             }
         }
@@ -560,17 +578,11 @@ export const sendInvoiceToCustomer = async (invoiceId, userId, userRole, io) => 
         invoice.status = InvoiceStatus.Sent;
         await invoice.save({ session });
         await session.commitTransaction();
-        const activeBank = await BankAccount.findOne({ isActive: true })
-            .sort({ updatedAt: -1 })
-            .exec();
+        // const activeBank = await BankAccount.findOne({ isActive: true })
+        //   .sort({ updatedAt: -1 })
+        //   .exec();
         await emailService
-            .sendInvoiceReady(user.email, profile.firstName, order.orderNumber, invoice.invoiceNumber, invoice.totalAmount, invoice.depositAmount || undefined, invoice.dueDate.toLocaleDateString(), invoice.items, activeBank
-            ? {
-                accountName: activeBank.accountName,
-                accountNumber: activeBank.accountNumber,
-                bankName: activeBank.bankName,
-            }
-            : undefined)
+            .sendInvoiceReady(user.email, profile.firstName, order.orderNumber, invoice.invoiceNumber, invoice.totalAmount, invoice.depositAmount || undefined, invoice.dueDate.toLocaleDateString(), invoice.items)
             .catch((err) => console.error("Error sending invoice email:", err));
         io.to(`user-${user._id}`).emit("invoice-sent", {
             invoiceId: invoice._id,
@@ -586,8 +598,8 @@ export const sendInvoiceToCustomer = async (invoiceId, userId, userRole, io) => 
         });
         try {
             await notificationService.createForUser(order.userId, {
-                type: 'invoice-sent',
-                title: 'Invoice Sent',
+                type: "invoice-sent",
+                title: "Invoice Sent",
                 message: `Invoice #${invoice.invoiceNumber} has been sent to you. Total: ₦${invoice.totalAmount.toLocaleString()}`,
                 data: {
                     invoiceId: invoice._id,
@@ -596,13 +608,13 @@ export const sendInvoiceToCustomer = async (invoiceId, userId, userRole, io) => 
                     invoiceNumber: invoice.invoiceNumber,
                     totalAmount: invoice.totalAmount,
                     depositAmount: invoice.depositAmount || undefined,
-                    dueDate: invoice.dueDate
+                    dueDate: invoice.dueDate,
                 },
-                link: `/dashboards/customer/invoices/${invoice._id}`
+                link: `/dashboards/customer/invoices/${invoice._id}`,
             });
             await notificationService.createForAdmins({
-                type: 'admin-invoice-sent',
-                title: 'Invoice Sent to Customer',
+                type: "admin-invoice-sent",
+                title: "Invoice Sent to Customer",
                 message: `Invoice #${invoice.invoiceNumber} was sent to customer for order #${order.orderNumber}`,
                 data: {
                     invoiceId: invoice._id,
@@ -610,13 +622,13 @@ export const sendInvoiceToCustomer = async (invoiceId, userId, userRole, io) => 
                     orderNumber: order.orderNumber,
                     invoiceNumber: invoice.invoiceNumber,
                     totalAmount: invoice.totalAmount,
-                    customerId: order.userId
+                    customerId: order.userId,
                 },
-                link: `/dashboards/admin/invoices/${invoice._id}`
+                link: `/dashboards/admin/invoices/${invoice._id}`,
             });
         }
         catch (notifErr) {
-            console.error('Failed to create invoice sent notifications:', notifErr);
+            console.error("Failed to create invoice sent notifications:", notifErr);
         }
         return invoice;
     }
@@ -676,18 +688,18 @@ export const updateInvoicePayment = async (invoiceId, paymentAmount, transaction
         });
         if (order) {
             try {
-                let title = 'Payment Received';
+                let title = "Payment Received";
                 let message = `Payment of ₦${paymentAmount.toLocaleString()} received for invoice #${invoice.invoiceNumber}`;
                 if (invoice.status === InvoiceStatus.Paid) {
-                    title = 'Invoice Paid';
+                    title = "Invoice Paid";
                     message = `Invoice #${invoice.invoiceNumber} has been fully paid`;
                 }
                 else if (invoice.status === InvoiceStatus.PartiallyPaid) {
-                    title = 'Partial Payment Received';
+                    title = "Partial Payment Received";
                     message = `Partial payment of ₦${paymentAmount.toLocaleString()} received for invoice #${invoice.invoiceNumber}`;
                 }
                 await notificationService.createForUser(order.userId, {
-                    type: 'invoice-payment-updated',
+                    type: "invoice-payment-updated",
                     title,
                     message,
                     data: {
@@ -698,13 +710,13 @@ export const updateInvoicePayment = async (invoiceId, paymentAmount, transaction
                         amountPaid: paymentAmount,
                         totalPaid: invoice.amountPaid,
                         remainingAmount: invoice.remainingAmount,
-                        status: invoice.status
+                        status: invoice.status,
                     },
-                    link: `/dashboards/customer/invoices/${invoice._id}`
+                    link: `/dashboards/customer/invoices/${invoice._id}`,
                 });
                 await notificationService.createForAdmins({
-                    type: 'admin-payment-received',
-                    title: 'Payment Received',
+                    type: "admin-payment-received",
+                    title: "Payment Received",
                     message: `Payment of ₦${paymentAmount.toLocaleString()} received for invoice #${invoice.invoiceNumber}`,
                     data: {
                         invoiceId: invoice._id,
@@ -715,13 +727,13 @@ export const updateInvoicePayment = async (invoiceId, paymentAmount, transaction
                         totalPaid: invoice.amountPaid,
                         remainingAmount: invoice.remainingAmount,
                         status: invoice.status,
-                        customerId: order.userId
+                        customerId: order.userId,
                     },
-                    link: `/dashboards/admin/invoices/${invoice._id}`
+                    link: `/dashboards/admin/invoices/${invoice._id}`,
                 });
             }
             catch (notifErr) {
-                console.error('Failed to create payment notifications:', notifErr);
+                console.error("Failed to create payment notifications:", notifErr);
             }
         }
         return invoice;
@@ -737,7 +749,7 @@ export const updateInvoicePayment = async (invoiceId, paymentAmount, transaction
 export const getAllInvoices = async (page = 1, limit = 10) => {
     const skip = (page - 1) * limit;
     const modelNames = mongoose.modelNames();
-    const canPopulateTransactions = modelNames.includes('Transaction');
+    const canPopulateTransactions = modelNames.includes("Transaction");
     const query = Invoice.find()
         .populate({
         path: "orderId",
@@ -763,9 +775,8 @@ export const getAllInvoices = async (page = 1, limit = 10) => {
 };
 export const getInvoiceById = async (invoiceId, userId, userRole) => {
     const modelNames = mongoose.modelNames();
-    const canPopulateTransactions = modelNames.includes('Transaction');
-    const query = Invoice.findById(invoiceId)
-        .populate({
+    const canPopulateTransactions = modelNames.includes("Transaction");
+    const query = Invoice.findById(invoiceId).populate({
         path: "orderId",
         populate: { path: "userId", select: "email fullname" },
     });
@@ -784,9 +795,8 @@ export const getInvoiceById = async (invoiceId, userId, userRole) => {
 };
 export const getInvoiceByNumber = async (invoiceNumber, userId, userRole) => {
     const modelNames = mongoose.modelNames();
-    const canPopulateTransactions = modelNames.includes('Transaction');
-    const query = Invoice.findOne({ invoiceNumber })
-        .populate({
+    const canPopulateTransactions = modelNames.includes("Transaction");
+    const query = Invoice.findOne({ invoiceNumber }).populate({
         path: "orderId",
         populate: { path: "userId", select: "email fullname" },
     });
@@ -812,9 +822,8 @@ export const getInvoiceByOrderId = async (orderId, userId, userRole) => {
         throw new Error("Unauthorized to view this invoice");
     }
     const modelNames = mongoose.modelNames();
-    const canPopulateTransactions = modelNames.includes('Transaction');
-    const query = Invoice.findOne({ orderId })
-        .populate({
+    const canPopulateTransactions = modelNames.includes("Transaction");
+    const query = Invoice.findOne({ orderId }).populate({
         path: "orderId",
         populate: { path: "userId", select: "email fullname" },
     });
@@ -833,9 +842,8 @@ export const getInvoiceByOrderNumber = async (orderNumber, userId, userRole) => 
         throw new Error("Unauthorized to view this invoice");
     }
     const modelNames = mongoose.modelNames();
-    const canPopulateTransactions = modelNames.includes('Transaction');
-    const query = Invoice.findOne({ orderId: order._id })
-        .populate({
+    const canPopulateTransactions = modelNames.includes("Transaction");
+    const query = Invoice.findOne({ orderId: order._id }).populate({
         path: "orderId",
         populate: { path: "userId", select: "email fullname" },
     });
@@ -850,7 +858,7 @@ export const getUserInvoices = async (userId, page = 1, limit = 10) => {
     const orderIds = orders.map((o) => o._id);
     const skip = (page - 1) * limit;
     const modelNames = mongoose.modelNames();
-    const canPopulateTransactions = modelNames.includes('Transaction');
+    const canPopulateTransactions = modelNames.includes("Transaction");
     const query = Invoice.find({ orderId: { $in: orderIds } })
         .populate("orderId", "orderNumber status")
         .sort({ createdAt: -1 })
@@ -907,7 +915,7 @@ export const filterInvoices = async (filters) => {
     const sortOptions = {};
     sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
     const modelNames = mongoose.modelNames();
-    const canPopulateTransactions = modelNames.includes('Transaction');
+    const canPopulateTransactions = modelNames.includes("Transaction");
     const findQuery = Invoice.find(query)
         .populate({
         path: "orderId",

@@ -17,8 +17,6 @@ export interface PaginatedProducts {
   limit: number;
 }
 
-// ==================== COLLECTION SERVICES ====================
-
 export async function createCollection(name: string): Promise<ICollection> {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -88,7 +86,6 @@ export async function deleteCollection(id: string): Promise<string> {
   session.startTransaction();
 
   try {
-    // Check if collection has any products
     const productsCount = await Product.countDocuments({
       collectionId: id,
     }).session(session);
@@ -149,8 +146,6 @@ export async function getCollectionsPaginated(
 
   return { collections, total, page, limit };
 }
-
-// ==================== PRODUCT SERVICES ====================
 
 export async function createProduct(
   collectionId: string,
@@ -225,7 +220,6 @@ export async function updateProduct(
   session.startTransaction();
 
   try {
-    // If name is being updated, check for duplicates
     if (data.name) {
       const existingProduct = await Product.findOne({
         name: data.name,
@@ -267,9 +261,6 @@ export async function deleteProduct(id: string): Promise<string> {
   session.startTransaction();
 
   try {
-    // Check if product is used in any orders (optional - depends on your business logic)
-    // You might want to check Order collection here
-
     const deleted = await Product.findByIdAndDelete(id).session(session);
     if (!deleted) {
       await session.abortTransaction();

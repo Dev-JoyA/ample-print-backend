@@ -1,5 +1,6 @@
 import * as userService from "../service/userService.js";
 import { UserRole } from "../model/userModel.js";
+const getParam = (param) => Array.isArray(param) ? param[0] : param;
 export async function getAllUsersController(req, res) {
     try {
         const users = await userService.getAllUsers();
@@ -12,7 +13,7 @@ export async function getAllUsersController(req, res) {
 }
 export async function getUserByIdController(req, res) {
     try {
-        const { userId } = req.params;
+        const userId = getParam(req.params.userId);
         const user = await userService.getUserById(userId);
         res.status(200).json({ user });
     }
@@ -23,7 +24,7 @@ export async function getUserByIdController(req, res) {
 }
 export async function updateProfileController(req, res) {
     try {
-        const { userId } = req.params;
+        const userId = getParam(req.params.userId);
         const profileData = req.body;
         const result = await userService.updateProfileDetails(userId, profileData);
         res.status(200).json(result);
@@ -35,7 +36,7 @@ export async function updateProfileController(req, res) {
 }
 export async function deleteUserController(req, res) {
     try {
-        const { userId } = req.params;
+        const userId = getParam(req.params.userId);
         const user = await userService.deleteUser(userId);
         res.status(200).json({ message: "User deleted successfully", user });
     }
@@ -46,7 +47,7 @@ export async function deleteUserController(req, res) {
 }
 export async function changeUserRoleController(req, res) {
     try {
-        const { userId } = req.params;
+        const userId = getParam(req.params.userId);
         const { newRole } = req.body;
         if (!Object.values(UserRole).includes(newRole)) {
             return res.status(400).json({ message: "Invalid role" });
@@ -61,7 +62,7 @@ export async function changeUserRoleController(req, res) {
 }
 export async function toggleUserActivenessController(req, res) {
     try {
-        const { userId } = req.params;
+        const userId = getParam(req.params.userId);
         const user = await userService.toggleUserActiveness(userId);
         res.status(200).json({ message: "User activeness toggled", user });
     }
@@ -72,7 +73,7 @@ export async function toggleUserActivenessController(req, res) {
 }
 export async function getUserAddressController(req, res) {
     try {
-        const { userId } = req.params;
+        const userId = getParam(req.params.userId);
         const address = await userService.getUserAddress(userId);
         res.status(200).json({ address });
     }

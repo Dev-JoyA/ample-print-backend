@@ -33,6 +33,8 @@ export declare const createShipping: (orderId: string, data: CreateShippingData,
 export declare const updateShippingTracking: (shippingId: string, data: {
     trackingNumber: string;
     carrier?: string;
+    driverName?: string;
+    driverPhone?: string;
     estimatedDelivery?: Date;
 }, adminId: string, io: Server) => Promise<IShipping>;
 export declare const updateShippingStatus: (shippingId: string, status: ShippingStatus, adminId: string, io: Server) => Promise<IShipping>;

@@ -16,7 +16,6 @@ async function seedSuperAdmin() {
     await mongoose.connect(DB_URL);
     console.log("Connected successfully");
 
-    // Check if superadmin already exists
     const existingSuperAdmin = await User.findOne({
       role: UserRole.SuperAdmin,
     });

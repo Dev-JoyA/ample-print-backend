@@ -24,7 +24,6 @@ const NotificationSchema = new Schema<INotification>({
   createdAt: { type: Date, default: Date.now },
 });
 
-// Index for faster queries
 NotificationSchema.index({ userId: 1, createdAt: -1 });
 NotificationSchema.index({ userId: 1, read: 1 });
 

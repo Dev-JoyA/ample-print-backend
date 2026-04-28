@@ -1,18 +1,11 @@
 import { Request, Response } from "express";
 import * as paymentService from "../service/paymentService.js";
 import { TransactionType } from "../model/transactionModel.js";
-import { Types } from "mongoose";
 
 const getIO = (req: Request) => {
   return (req as any).io || req.app.get("io");
 };
 
-// ==================== PAYSTACK PAYMENTS ====================
-
-/**
- * Initialize Paystack payment
- * POST /api/v1/payments/paystack/initialize
- */
 export const initializePaystackPayment = async (
   req: Request,
   res: Response,
@@ -31,7 +24,6 @@ export const initializePaystackPayment = async (
       transactionType,
     });
 
-    // Validate required fields
     if (!orderId || !invoiceId || !amount || !transactionType) {
       return res.status(400).json({
         success: false,
@@ -39,7 +31,6 @@ export const initializePaystackPayment = async (
       });
     }
 
-    // Validate transaction type
     if (!Object.values(TransactionType).includes(transactionType)) {
       return res.status(400).json({
         success: false,
@@ -69,10 +60,6 @@ export const initializePaystackPayment = async (
   }
 };
 
-/**
- * Verify Paystack payment
- * GET /api/v1/payments/paystack/verify?reference=REFERENCE
- */
 export const verifyPaystackPayment = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
@@ -103,12 +90,6 @@ export const verifyPaystackPayment = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== BANK TRANSFER PAYMENTS ====================
-
-/**
- * Upload bank transfer receipt
- * POST /api/v1/payments/bank-transfer/upload-receipt
- */
 export const uploadBankTransferReceipt = async (
   req: Request,
   res: Response,
@@ -119,7 +100,6 @@ export const uploadBankTransferReceipt = async (
     const { orderId, invoiceId, amount, transactionType } = req.body;
     const file = req.file;
 
-    // Validate required fields
     if (!orderId || !invoiceId || !amount || !transactionType) {
       return res.status(400).json({
         success: false,
@@ -127,7 +107,6 @@ export const uploadBankTransferReceipt = async (
       });
     }
 
-    // Validate file upload
     if (!file) {
       return res.status(400).json({
         success: false,
@@ -135,7 +114,6 @@ export const uploadBankTransferReceipt = async (
       });
     }
 
-    // Validate transaction type
     if (!Object.values(TransactionType).includes(transactionType)) {
       return res.status(400).json({
         success: false,
@@ -168,10 +146,6 @@ export const uploadBankTransferReceipt = async (
   }
 };
 
-/**
- * Verify bank transfer (Super Admin only)
- * POST /api/v1/payments/bank-transfer/verify/:transactionId
- */
 export const verifyBankTransfer = async (req: Request, res: Response) => {
   try {
     const io = getIO(req);
@@ -187,7 +161,7 @@ export const verifyBankTransfer = async (req: Request, res: Response) => {
     }
 
     const transaction = await paymentService.verifyBankTransfer(
-      transactionId,
+      transactionId as string,
       superAdmin._id,
       status,
       notes,
@@ -207,10 +181,6 @@ export const verifyBankTransfer = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Get pending bank transfers (Super Admin only)
- * GET /api/v1/payments/bank-transfer/pending?page=1&limit=10
- */
 export const getPendingBankTransfers = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -230,17 +200,13 @@ export const getPendingBankTransfers = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Get transactions by order
- * GET /api/v1/payments/order/:orderId
- */
 export const getTransactionsByOrder = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
     const { orderId } = req.params;
 
     const transactions = await paymentService.getTransactionsByOrder(
-      orderId,
+      orderId as string,
       user.role,
       user._id,
     );
@@ -258,16 +224,13 @@ export const getTransactionsByOrder = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Get transactions by invoice
- * GET /api/v1/payments/invoice/:invoiceId
- */
 export const getTransactionsByInvoice = async (req: Request, res: Response) => {
   try {
     const { invoiceId } = req.params;
 
-    const transactions =
-      await paymentService.getTransactionsByInvoice(invoiceId);
+    const transactions = await paymentService.getTransactionsByInvoice(
+      invoiceId as string,
+    );
 
     res.status(200).json({
       success: true,
@@ -282,17 +245,12 @@ export const getTransactionsByInvoice = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Get user's transactions
- * GET /api/v1/payments/my-transactions?page=1&limit=10
- */
 export const getUserTransactions = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
 
-    // Only customers can view their transactions
     if (user.role !== "Customer") {
       return res.status(403).json({
         success: false,

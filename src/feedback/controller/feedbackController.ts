@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { Types } from "mongoose";
 import * as feedbackService from "../service/feedbackService.js";
 import { FeedBackStatus } from "../model/feedback.js";
 
@@ -7,7 +6,6 @@ const getIO = (req: Request) => {
   return (req as any).io || req.app.get("io");
 };
 
-// ==================== CREATE FEEDBACK ====================
 export const createFeedback = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -16,7 +14,6 @@ export const createFeedback = async (req: Request, res: Response) => {
     const { orderId, designId, message } = req.body;
     const files = req.files as Express.Multer.File[];
 
-    // Validate required fields
     if (!orderId) {
       return res.status(400).json({
         success: false,
@@ -31,7 +28,6 @@ export const createFeedback = async (req: Request, res: Response) => {
       });
     }
 
-    // Process attachments if any
     const attachments = files?.map((file) => `/uploads/${file.filename}`) || [];
 
     const feedback = await feedbackService.createCustomerFeedback(
@@ -85,9 +81,8 @@ export const respondToFeedback = async (req: Request, res: Response) => {
       });
     }
 
-    // Now passing 5 arguments correctly
     const feedback = await feedbackService.adminRespondToFeedback(
-      feedbackId,
+      feedbackId as string,
       response,
       attachments,
       user._id,
@@ -107,7 +102,6 @@ export const respondToFeedback = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== UPDATE FEEDBACK STATUS ====================
 export const updateStatus = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -122,7 +116,6 @@ export const updateStatus = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate status enum
     if (!Object.values(FeedBackStatus).includes(status)) {
       return res.status(400).json({
         success: false,
@@ -131,7 +124,7 @@ export const updateStatus = async (req: Request, res: Response) => {
     }
 
     const feedback = await feedbackService.updateFeedbackStatus(
-      feedbackId,
+      feedbackId as string,
       status,
       user._id,
       user.role,
@@ -151,7 +144,6 @@ export const updateStatus = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== DELETE FEEDBACK ====================
 export const deleteFeedback = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
@@ -159,7 +151,7 @@ export const deleteFeedback = async (req: Request, res: Response) => {
     const { feedbackId } = req.params;
 
     const result = await feedbackService.deleteFeedback(
-      feedbackId,
+      feedbackId as string,
       user._id,
       user.role,
       io,
@@ -177,7 +169,6 @@ export const deleteFeedback = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET PENDING FEEDBACK ====================
 export const getPendingFeedback = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -197,7 +188,6 @@ export const getPendingFeedback = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET ALL FEEDBACK (NEW) ====================
 export const getAllFeedback = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -224,7 +214,6 @@ export const getAllFeedback = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== FILTER FEEDBACK (NEW) ====================
 export const filterFeedback = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -261,14 +250,13 @@ export const filterFeedback = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET FEEDBACK BY ID ====================
 export const getFeedbackById = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
     const { feedbackId } = req.params;
 
     const feedback = await feedbackService.getFeedbackById(
-      feedbackId,
+      feedbackId as string,
       user._id,
       user.role,
     );
@@ -285,14 +273,13 @@ export const getFeedbackById = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== GET FEEDBACK BY ORDER ID ====================
 export const getFeedbackByOrderId = async (req: Request, res: Response) => {
   try {
     const user = req.user as { _id: string; role: string };
     const { orderId } = req.params;
 
     const feedback = await feedbackService.getFeedbackByOrderId(
-      orderId,
+      orderId as string,
       user._id,
       user.role,
     );
@@ -315,7 +302,7 @@ export const getUserFeedback = async (req: Request, res: Response) => {
     const user = req.user as { _id: string; role: string };
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const status = req.query.status as FeedBackStatus; // Get status from query
+    const status = req.query.status as FeedBackStatus;
 
     const result = await feedbackService.getUserFeedback(
       user._id,

@@ -4,19 +4,14 @@ import {
   InvoiceStatus,
   InvoiceType,
 } from "../model/invoiceModel.js";
-import {
-  Order,
-  OrderStatus,
-  PaymentStatus,
-} from "../../order/model/orderModel.js";
-import { User, UserRole } from "../../users/model/userModel.js";
+import { Order, OrderStatus } from "../../order/model/orderModel.js";
+import { User } from "../../users/model/userModel.js";
 import { Profile } from "../../users/model/profileModel.js";
 import emailService from "../../utils/email.js";
 import { notificationService } from "../../notification/service/notificationService.js";
 import { Server } from "socket.io";
 import mongoose from "mongoose";
 import { generateInvoiceNumber } from "../../utils/invoiceUtils.js";
-import { Transaction } from "../../payments/model/transactionModel.js";
 import { Shipping } from "../../shipping/model/shippingModel.js";
 import { BankAccount } from "../../bankAccount/model/bankAccountModel.js";
 
@@ -127,12 +122,12 @@ export const createInvoice = async (
       remainingAmount = totalAmount - depositAmount;
     }
 
-    const activeBank = await BankAccount.findOne({ isActive: true })
-      .sort({ updatedAt: -1 })
-      .exec();
-    const defaultPaymentInstructions = activeBank
-      ? `Bank transfer to ${activeBank.bankName} ${activeBank.accountNumber} (${activeBank.accountName})`
-      : "Bank transfer";
+    // const activeBank = await BankAccount.findOne({ isActive: true })
+    //   .sort({ updatedAt: -1 })
+    //   .exec();
+    // const defaultPaymentInstructions = activeBank
+    //   ? `Bank transfer to ${activeBank.bankName} ${activeBank.accountNumber} (${activeBank.accountName})`
+    //   : "Bank transfer";
 
     const invoiceNumber = await generateInvoiceNumber();
 
@@ -197,7 +192,7 @@ export const createInvoice = async (
     });
 
     if (user && profile) {
-      const dueDateStr = data.dueDate.toLocaleDateString();
+      //const dueDateStr = data.dueDate.toLocaleDateString();
 
       //   await emailService
       //     .sendInvoiceReady(
@@ -406,7 +401,7 @@ export const createShippingInvoice = async (
     }
 
     if (user && profile) {
-      const dueDateStr = data.dueDate.toLocaleDateString();
+      // const dueDateStr = data.dueDate.toLocaleDateString();
 
       //   await emailService
       //     .sendInvoiceReady(
@@ -630,9 +625,9 @@ export const updateInvoice = async (
         oldTotal !== invoice.totalAmount ||
         oldDeposit !== invoice.depositAmount
       ) {
-        const activeBank = await BankAccount.findOne({ isActive: true })
-          .sort({ updatedAt: -1 })
-          .exec();
+        // const activeBank = await BankAccount.findOne({ isActive: true })
+        //   .sort({ updatedAt: -1 })
+        //   .exec();
         await emailService
           .sendInvoiceReady(
             user.email,
@@ -643,13 +638,13 @@ export const updateInvoice = async (
             invoice.depositAmount || undefined,
             invoice.dueDate.toLocaleDateString(),
             invoice.items as any,
-            activeBank
-              ? {
-                  accountName: activeBank.accountName,
-                  accountNumber: activeBank.accountNumber,
-                  bankName: activeBank.bankName,
-                }
-              : undefined,
+            // activeBank
+            //   ? {
+            //       accountName: activeBank.accountName,
+            //       accountNumber: activeBank.accountNumber,
+            //       bankName: activeBank.bankName,
+            //     }
+            //   : undefined,
           )
           .catch((err) =>
             console.error("Error sending invoice update email:", err),
@@ -787,9 +782,9 @@ export const sendInvoiceToCustomer = async (
     await invoice.save({ session });
     await session.commitTransaction();
 
-    const activeBank = await BankAccount.findOne({ isActive: true })
-      .sort({ updatedAt: -1 })
-      .exec();
+    // const activeBank = await BankAccount.findOne({ isActive: true })
+    //   .sort({ updatedAt: -1 })
+    //   .exec();
 
     await emailService
       .sendInvoiceReady(
@@ -801,13 +796,13 @@ export const sendInvoiceToCustomer = async (
         invoice.depositAmount || undefined,
         invoice.dueDate.toLocaleDateString(),
         invoice.items as any,
-        activeBank
-          ? {
-              accountName: activeBank.accountName,
-              accountNumber: activeBank.accountNumber,
-              bankName: activeBank.bankName,
-            }
-          : undefined,
+        // activeBank
+        //   ? {
+        //       accountName: activeBank.accountName,
+        //       accountNumber: activeBank.accountNumber,
+        //       bankName: activeBank.bankName,
+        //     }
+        //   : undefined,
       )
       .catch((err) => console.error("Error sending invoice email:", err));
 

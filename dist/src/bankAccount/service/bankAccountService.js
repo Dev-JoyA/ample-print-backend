@@ -21,7 +21,9 @@ export async function createBankAccount(data, createdBy) {
                 accountNumber: data.accountNumber,
                 bankName: data.bankName,
                 isActive: !!shouldBeActive,
-                createdBy: createdBy ? new mongoose.Types.ObjectId(createdBy) : undefined,
+                createdBy: createdBy
+                    ? new mongoose.Types.ObjectId(createdBy)
+                    : undefined,
             },
         ], { session });
         await session.commitTransaction();

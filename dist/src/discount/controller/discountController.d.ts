@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response } from "express";
 export declare const createDiscount: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const getAllDiscounts: (req: Request, res: Response) => Promise<void>;
 export declare const getActiveDiscounts: (req: Request, res: Response) => Promise<void>;

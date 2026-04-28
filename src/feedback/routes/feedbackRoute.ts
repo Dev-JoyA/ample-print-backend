@@ -42,7 +42,6 @@ const fileFilter = (
   }
 };
 
-// Multer config for file uploads
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, "uploads/"),
@@ -55,10 +54,8 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
-// All routes require authentication
 router.use(authMiddleware);
 
-// ===== CUSTOMER ROUTES =====
 router.post(
   "/",
   checkRole([UserRole.Customer]),
@@ -68,13 +65,10 @@ router.post(
 
 router.get("/user", checkRole([UserRole.Customer]), getUserFeedback);
 
-// ===== ADMIN ROUTES =====
 router.get("/pending", checkAdmin, getPendingFeedback);
 
-// NEW: Get all feedback with pagination and filters
 router.get("/all", checkAdmin, getAllFeedback);
 
-// NEW: Advanced filtering
 router.get("/filter", checkAdmin, filterFeedback);
 
 router.post(
@@ -86,7 +80,6 @@ router.post(
 
 router.patch("/:feedbackId/status", checkAdmin, updateStatus);
 
-// ===== SHARED ROUTES =====
 router.get(
   "/:feedbackId",
   checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
@@ -99,7 +92,6 @@ router.get(
   getFeedbackByOrderId,
 );
 
-// ===== SUPER ADMIN ONLY =====
 router.delete("/:feedbackId", checkRole([UserRole.SuperAdmin]), deleteFeedback);
 
 export default router;

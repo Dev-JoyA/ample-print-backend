@@ -9,7 +9,6 @@ export const createShipping = async (req, res) => {
         const admin = req.user;
         const { orderId } = req.params;
         const { shippingMethod, address, pickupNotes } = req.body;
-        // Validate required fields
         if (!shippingMethod) {
             return res.status(400).json({
                 success: false,
@@ -40,26 +39,33 @@ export const createShipping = async (req, res) => {
         });
     }
 };
-// ==================== UPDATE SHIPPING TRACKING (Admin only) ====================
 export const updateShippingTracking = async (req, res) => {
     try {
         const io = getIO(req);
-        const admin = req.user;
+        const user = req.user;
         const { shippingId } = req.params;
-        const { trackingNumber, carrier, estimatedDelivery } = req.body;
+        const { trackingNumber, carrier, driverName, driverPhone, estimatedDelivery, } = req.body;
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+            });
+        }
         if (!trackingNumber) {
             return res.status(400).json({
                 success: false,
-                message: "trackingNumber is required",
+                message: "Tracking number is required",
             });
         }
         const shipping = await shippingService.updateShippingTracking(shippingId, {
             trackingNumber,
             carrier,
+            driverName,
+            driverPhone,
             estimatedDelivery: estimatedDelivery
                 ? new Date(estimatedDelivery)
                 : undefined,
-        }, admin._id, io);
+        }, user._id, io);
         res.status(200).json({
             success: true,
             message: "Tracking information updated successfully",
@@ -67,13 +73,13 @@ export const updateShippingTracking = async (req, res) => {
         });
     }
     catch (error) {
+        console.error("Error updating tracking:", error);
         res.status(400).json({
             success: false,
             message: error.message,
         });
     }
 };
-// ==================== UPDATE SHIPPING STATUS (Admin only) ====================
 export const updateShippingStatus = async (req, res) => {
     try {
         const io = getIO(req);
@@ -106,7 +112,6 @@ export const updateShippingStatus = async (req, res) => {
         });
     }
 };
-// ==================== GET SHIPPING BY ID ====================
 export const getShippingById = async (req, res) => {
     try {
         const user = req.user;
@@ -124,7 +129,6 @@ export const getShippingById = async (req, res) => {
         });
     }
 };
-// ==================== GET SHIPPING BY ORDER ID ====================
 export const getShippingByOrderId = async (req, res) => {
     try {
         const user = req.user;
@@ -142,7 +146,6 @@ export const getShippingByOrderId = async (req, res) => {
         });
     }
 };
-// ==================== GET ALL SHIPPING (Admin) ====================
 export const getAllShipping = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -160,7 +163,6 @@ export const getAllShipping = async (req, res) => {
         });
     }
 };
-// ==================== FILTER SHIPPING (Admin) ====================
 export const filterShipping = async (req, res) => {
     try {
         const filters = {
@@ -195,7 +197,6 @@ export const filterShipping = async (req, res) => {
         });
     }
 };
-// ==================== GET SHIPPING NEEDING INVOICE (Admin) ====================
 export const getShippingNeedingInvoice = async (req, res) => {
     try {
         const shipping = await shippingService.getShippingNeedingInvoice();
@@ -212,7 +213,6 @@ export const getShippingNeedingInvoice = async (req, res) => {
         });
     }
 };
-// ==================== GET PENDING SHIPPING (Admin) ====================
 export const getPendingShipping = async (req, res) => {
     try {
         const shipping = await shippingService.getPendingShipping();

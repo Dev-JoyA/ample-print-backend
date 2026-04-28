@@ -8,7 +8,7 @@ import {
 import { Order, OrderStatus } from "../../order/model/orderModel.js";
 import { Product } from "../../product/model/productModel.js";
 import { Types } from "mongoose";
-import { User, UserRole } from "../../users/model/userModel.js";
+import { UserRole } from "../../users/model/userModel.js";
 import { Server } from "socket.io";
 import { notificationService } from "../../notification/service/notificationService.js";
 
@@ -452,7 +452,6 @@ export const checkOrderReadyForInvoice = async (
 export const getCustomerPendingBriefResponses = async (
   userId: string,
 ): Promise<any[]> => {
-  // Get all user's order IDs first
   const userOrders = await Order.find({ userId: new Types.ObjectId(userId) })
     .select("_id")
     .lean();
@@ -461,7 +460,6 @@ export const getCustomerPendingBriefResponses = async (
 
   if (orderIds.length === 0) return [];
 
-  // ONE query instead of N queries
   const briefs = await CustomerBrief.find({
     orderId: { $in: orderIds },
     role: { $in: [CustomerBriefRole.Admin, CustomerBriefRole.SuperAdmin] },
@@ -473,9 +471,7 @@ export const getCustomerPendingBriefResponses = async (
     .sort({ createdAt: -1 })
     .lean();
 
-  // Format exactly like your original function with proper type casting
   const pendingResponses = briefs.map((brief: any) => {
-    // Cast to any to access populated fields
     const order = brief.orderId as any;
     const product = brief.productId as any;
 
@@ -579,7 +575,6 @@ export const getAdminCustomerBriefs = async (
       brief.logo
     );
 
-    // Safe access with type checking
     const order = brief.orderId as any;
     const product = brief.productId as any;
     const user = order?.userId as any;
@@ -1112,7 +1107,6 @@ const checkAndUpdateOrderStatus = async (
     throw new Error("Order not found");
   }
 
-  // Only proceed if order is in FilesUploaded status
   if (order.status !== OrderStatus.FilesUploaded) {
     console.log(
       `Order ${order.orderNumber} is not in FilesUploaded status (current: ${order.status})`,
@@ -1125,14 +1119,11 @@ const checkAndUpdateOrderStatus = async (
     return false;
   }
 
-  // Get all unique product IDs in this order
   const productIds = order.items.map((item) => item.productId.toString());
 
-  // Check if each product has at least one COMPLETE brief
   let allProductsHaveCompleteBrief = true;
 
   for (const productId of productIds) {
-    // Find the latest brief for this product (or any brief with status Complete)
     const completeBrief = await CustomerBrief.findOne({
       orderId: orderId,
       productId: productId,
@@ -1146,10 +1137,9 @@ const checkAndUpdateOrderStatus = async (
     }
   }
 
-  // If all products have at least one complete brief, move order to AwaitingInvoice
   if (allProductsHaveCompleteBrief) {
     console.log(
-      `✅ All briefs for order ${order.orderNumber} are complete. Moving to AwaitingInvoice`,
+      `All briefs for order ${order.orderNumber} are complete. Moving to AwaitingInvoice`,
     );
 
     order.status = OrderStatus.AwaitingInvoice;

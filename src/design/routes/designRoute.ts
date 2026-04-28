@@ -5,8 +5,8 @@ import {
   deleteDesignController,
   approveDesignController,
   getDesignByIdController,
-  getUserDesignsController, // ✅ Renamed
-  getDesignByOrderIdController, // ✅ Fixed typo
+  getUserDesignsController,
+  getDesignByOrderIdController,
   getDesignByProductIdController,
   getAllDesignsController,
   filterDesignController,
@@ -15,16 +15,14 @@ import { authMiddleware } from "../../middleware/authMiddleware.js";
 import {
   checkSuperAdmin,
   checkAdmin,
-  checkOwnership,
   checkRole,
   checkDesignOwnership,
 } from "../../middleware/authorization.js";
-import { UserRole } from "../../users/model/userModel.js"; // ✅ Add if using checkRole
-import upload from "../../config/upload.js"; // ✅ Add multer upload
+import { UserRole } from "../../users/model/userModel.js";
+import upload from "../../config/upload.js";
 
 const router = Router();
 
-// All routes require authentication by default
 router.use(authMiddleware);
 
 router.post(
@@ -34,48 +32,29 @@ router.post(
   createDesignController,
 );
 
-// ==================== UPDATE DESIGN ====================
-// PUT /api/v1/design/update/:designId
 router.put(
   "/update/:designId",
   checkAdmin,
-  upload.array("images", 10), // ✅ Add multer for optional file updates
+  upload.array("images", 10),
   updatedDesignController,
 );
 
-// ==================== DELETE DESIGN ====================
-// DELETE /api/v1/design/delete/:designId
 router.delete("/delete/:designId", checkSuperAdmin, deleteDesignController);
 
-// ==================== APPROVE DESIGN ====================
-// PUT /api/v1/design/:designId/approve
 router.put("/:designId/approve", checkDesignOwnership, approveDesignController);
 
-// ==================== GET USER DESIGNS ====================
-// GET /api/v1/design/users/:userId
 router.get(
   "/users/:userId",
-  checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]), // Multiple roles
-  getUserDesignsController, // ✅ Renamed
+  checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]),
+  getUserDesignsController,
 );
 
-// ==================== GET DESIGNS BY ORDER ID ====================
-// GET /api/v1/design/orders/:orderId
-router.get(
-  "/orders/:orderId",
-  getDesignByOrderIdController, // ✅ Fixed typo
-);
+router.get("/orders/:orderId", getDesignByOrderIdController);
 
-// ==================== GET DESIGNS BY PRODUCT ID ====================
-// GET /api/v1/design/products/:productId
 router.get("/products/:productId", getDesignByProductIdController);
 
-// ==================== GET ALL DESIGNS (Admin) ====================
-// GET /api/v1/design/all?page=1&limit=10
 router.get("/all", checkAdmin, getAllDesignsController);
 
-// ==================== FILTER DESIGNS (Admin) ====================
-// GET /api/v1/design/filter?userId=&orderId=&isApproved=
 router.get("/filter", filterDesignController);
 
 router.get("/:designId", getDesignByIdController);
