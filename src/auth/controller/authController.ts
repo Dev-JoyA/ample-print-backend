@@ -297,7 +297,7 @@ export const resetPasswordController = async (req: Request, res: Response) => {
     }
 
     const result = await resetPasswordService(
-      userId,
+      userId as string,
       newPassword,
       confirmPassword,
     );

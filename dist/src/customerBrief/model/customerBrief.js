@@ -5,6 +5,12 @@ export var CustomerBriefRole;
     CustomerBriefRole["Admin"] = "admin";
     CustomerBriefRole["SuperAdmin"] = "super-admin";
 })(CustomerBriefRole || (CustomerBriefRole = {}));
+export var CustomerBriefStatus;
+(function (CustomerBriefStatus) {
+    CustomerBriefStatus["Pending"] = "pending";
+    CustomerBriefStatus["Responded"] = "responded";
+    CustomerBriefStatus["Complete"] = "complete";
+})(CustomerBriefStatus || (CustomerBriefStatus = {}));
 const CustomerBriefSchema = new Schema({
     orderId: {
         type: Schema.Types.ObjectId,
@@ -45,9 +51,30 @@ const CustomerBriefSchema = new Schema({
     viewedAt: {
         type: Date,
     },
+    adminViewed: {
+        type: Boolean,
+        default: false,
+        index: true,
+    },
+    adminViewedAt: {
+        type: Date,
+    },
+    status: {
+        type: String,
+        enum: Object.values(CustomerBriefStatus),
+        default: CustomerBriefStatus.Pending,
+        index: true,
+    },
 }, { timestamps: true });
-CustomerBriefSchema.index({ orderId: 1, productId: 1, role: 1 }, { unique: true });
+CustomerBriefSchema.index({ orderId: 1, productId: 1, role: 1 });
 CustomerBriefSchema.index({ orderId: 1 });
 CustomerBriefSchema.index({ role: 1, createdAt: -1 });
+CustomerBriefSchema.index({ status: 1 });
+CustomerBriefSchema.index({
+    role: 1,
+    status: 1,
+    viewed: 1,
+    createdAt: -1,
+});
 export const CustomerBrief = model("CustomerBrief", CustomerBriefSchema);
 //# sourceMappingURL=customerBrief.js.map

@@ -36,13 +36,13 @@ const UserSchema = new Schema({
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toObject: { virtuals: true },
 });
-UserSchema.virtual('profile', {
-    ref: 'Profile',
-    localField: '_id',
-    foreignField: 'userId',
-    justOne: true
+UserSchema.virtual("profile", {
+    ref: "Profile",
+    localField: "_id",
+    foreignField: "userId",
+    justOne: true,
 });
 export const User = model("User", UserSchema);
 //# sourceMappingURL=userModel.js.map

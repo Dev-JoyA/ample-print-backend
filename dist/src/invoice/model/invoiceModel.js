@@ -78,7 +78,6 @@ const InvoiceSchema = new Schema({
     notes: String,
     paymentInstructions: String,
 }, { timestamps: true });
-// Indexes
 InvoiceSchema.index({ status: 1, dueDate: 1 });
 InvoiceSchema.index({ orderId: 1, invoiceType: 1 });
 export const Invoice = model("Invoice", InvoiceSchema);

@@ -1,14 +1,14 @@
-import { Discount } from '../model/discountModel.js';
-// Create discount
+import { Discount } from "../model/discountModel.js";
 export const createDiscount = async (req, res) => {
     try {
-        const { code, type, value, active, minOrderAmount, maxDiscountAmount, validFrom, validUntil, usageLimit } = req.body;
-        // Check if discount code already exists
-        const existingDiscount = await Discount.findOne({ code: code.toUpperCase() });
+        const { code, type, value, active, minOrderAmount, maxDiscountAmount, validFrom, validUntil, usageLimit, } = req.body;
+        const existingDiscount = await Discount.findOne({
+            code: code.toUpperCase(),
+        });
         if (existingDiscount) {
             return res.status(400).json({
                 success: false,
-                message: 'Discount code already exists',
+                message: "Discount code already exists",
             });
         }
         const discount = await Discount.create({
@@ -25,7 +25,7 @@ export const createDiscount = async (req, res) => {
         });
         res.status(201).json({
             success: true,
-            message: 'Discount created successfully',
+            message: "Discount created successfully",
             data: discount,
         });
     }
@@ -36,13 +36,12 @@ export const createDiscount = async (req, res) => {
         });
     }
 };
-// Get all discounts (with filters)
 export const getAllDiscounts = async (req, res) => {
     try {
         const { active, type } = req.query;
         const query = {};
         if (active !== undefined) {
-            query.active = active === 'true';
+            query.active = active === "true";
         }
         if (type) {
             query.type = type;
@@ -61,7 +60,6 @@ export const getAllDiscounts = async (req, res) => {
         });
     }
 };
-// Get active discounts (for checkout)
 export const getActiveDiscounts = async (req, res) => {
     try {
         const now = new Date();
@@ -69,16 +67,10 @@ export const getActiveDiscounts = async (req, res) => {
             active: true,
             $and: [
                 {
-                    $or: [
-                        { validFrom: { $lte: now } },
-                        { validFrom: null },
-                    ],
+                    $or: [{ validFrom: { $lte: now } }, { validFrom: null }],
                 },
                 {
-                    $or: [
-                        { validUntil: { $gte: now } },
-                        { validUntil: null },
-                    ],
+                    $or: [{ validUntil: { $gte: now } }, { validUntil: null }],
                 },
             ],
         };
@@ -95,14 +87,13 @@ export const getActiveDiscounts = async (req, res) => {
         });
     }
 };
-// Get discount by ID
 export const getDiscountById = async (req, res) => {
     try {
         const discount = await Discount.findById(req.params.id);
         if (!discount) {
             return res.status(404).json({
                 success: false,
-                message: 'Discount not found',
+                message: "Discount not found",
             });
         }
         res.status(200).json({
@@ -117,20 +108,18 @@ export const getDiscountById = async (req, res) => {
         });
     }
 };
-// Update discount
 export const updateDiscount = async (req, res) => {
     try {
-        const { code, type, value, active, minOrderAmount, maxDiscountAmount, validFrom, validUntil, usageLimit } = req.body;
-        // Check if code is being changed and if it already exists
+        const { code, type, value, active, minOrderAmount, maxDiscountAmount, validFrom, validUntil, usageLimit, } = req.body;
         if (code) {
             const existingDiscount = await Discount.findOne({
                 code: code.toUpperCase(),
-                _id: { $ne: req.params.id }
+                _id: { $ne: req.params.id },
             });
             if (existingDiscount) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Discount code already exists',
+                    message: "Discount code already exists",
                 });
             }
         }
@@ -148,12 +137,12 @@ export const updateDiscount = async (req, res) => {
         if (!discount) {
             return res.status(404).json({
                 success: false,
-                message: 'Discount not found',
+                message: "Discount not found",
             });
         }
         res.status(200).json({
             success: true,
-            message: 'Discount updated successfully',
+            message: "Discount updated successfully",
             data: discount,
         });
     }
@@ -164,21 +153,20 @@ export const updateDiscount = async (req, res) => {
         });
     }
 };
-// Toggle discount active status
 export const toggleDiscountStatus = async (req, res) => {
     try {
         const discount = await Discount.findById(req.params.id);
         if (!discount) {
             return res.status(404).json({
                 success: false,
-                message: 'Discount not found',
+                message: "Discount not found",
             });
         }
         discount.active = !discount.active;
         await discount.save();
         res.status(200).json({
             success: true,
-            message: `Discount ${discount.active ? 'activated' : 'deactivated'} successfully`,
+            message: `Discount ${discount.active ? "activated" : "deactivated"} successfully`,
             data: discount,
         });
     }
@@ -189,19 +177,18 @@ export const toggleDiscountStatus = async (req, res) => {
         });
     }
 };
-// Delete discount
 export const deleteDiscount = async (req, res) => {
     try {
         const discount = await Discount.findByIdAndDelete(req.params.id);
         if (!discount) {
             return res.status(404).json({
                 success: false,
-                message: 'Discount not found',
+                message: "Discount not found",
             });
         }
         res.status(200).json({
             success: true,
-            message: 'Discount deleted successfully',
+            message: "Discount deleted successfully",
         });
     }
     catch (error) {
@@ -211,56 +198,55 @@ export const deleteDiscount = async (req, res) => {
         });
     }
 };
-// Validate discount code (public endpoint for checkout)
 export const validateDiscount = async (req, res) => {
     try {
         const { code, amount } = req.body;
         if (!code) {
             return res.status(400).json({
                 success: false,
-                message: 'Discount code is required',
+                message: "Discount code is required",
             });
         }
-        const discount = await Discount.findOne({ code: code.toUpperCase(), active: true });
+        const discount = await Discount.findOne({
+            code: code.toUpperCase(),
+            active: true,
+        });
         if (!discount) {
             return res.status(404).json({
                 success: false,
-                message: 'Invalid or inactive discount code',
+                message: "Invalid or inactive discount code",
             });
         }
         const now = new Date();
-        // Check validity period
         if (discount.validFrom && discount.validFrom > now) {
             return res.status(400).json({
                 success: false,
-                message: 'Discount code is not yet active',
+                message: "Discount code is not yet active",
             });
         }
         if (discount.validUntil && discount.validUntil < now) {
             return res.status(400).json({
                 success: false,
-                message: 'Discount code has expired',
+                message: "Discount code has expired",
             });
         }
-        // Check minimum order amount
         if (discount.minOrderAmount && amount < discount.minOrderAmount) {
             return res.status(400).json({
                 success: false,
                 message: `Minimum order amount of ${discount.minOrderAmount} required for this discount`,
             });
         }
-        // Check usage limit
         if (discount.usageLimit && discount.usedCount >= discount.usageLimit) {
             return res.status(400).json({
                 success: false,
-                message: 'Discount code usage limit reached',
+                message: "Discount code usage limit reached",
             });
         }
-        // Calculate discount amount
         let discountAmount = 0;
-        if (discount.type === 'percentage') {
+        if (discount.type === "percentage") {
             discountAmount = (amount * discount.value) / 100;
-            if (discount.maxDiscountAmount && discountAmount > discount.maxDiscountAmount) {
+            if (discount.maxDiscountAmount &&
+                discountAmount > discount.maxDiscountAmount) {
                 discountAmount = discount.maxDiscountAmount;
             }
         }
@@ -269,7 +255,7 @@ export const validateDiscount = async (req, res) => {
         }
         res.status(200).json({
             success: true,
-            message: 'Discount code is valid',
+            message: "Discount code is valid",
             data: {
                 code: discount.code,
                 type: discount.type,

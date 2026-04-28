@@ -19,9 +19,9 @@ export const notificationService = {
                 .skip(skip)
                 .limit(limit)
                 .lean(),
-            Notification.countDocuments(query)
+            Notification.countDocuments(query),
         ]);
-        const formattedNotifications = notifications.map(n => ({
+        const formattedNotifications = notifications.map((n) => ({
             id: n._id.toString(),
             type: n.type,
             title: n.title,
@@ -29,54 +29,60 @@ export const notificationService = {
             data: n.data,
             timestamp: n.createdAt,
             read: n.read,
-            link: n.link
+            link: n.link,
         }));
         return {
             notifications: formattedNotifications,
             total,
             page,
             limit,
-            pages: Math.ceil(total / limit)
+            pages: Math.ceil(total / limit),
         };
     },
     resolveRecipients: async (recipients) => {
         let userIds = [];
-        if (typeof recipients === 'string') {
+        if (typeof recipients === "string") {
             userIds = [recipients];
         }
         else if (recipients instanceof Types.ObjectId) {
             userIds = [recipients.toString()];
         }
         else if (Array.isArray(recipients)) {
-            userIds = recipients.map(id => id.toString());
+            userIds = recipients.map((id) => id.toString());
         }
-        else if ('userId' in recipients) {
+        else if ("userId" in recipients) {
             userIds = [recipients.userId.toString()];
         }
-        else if ('customer' in recipients || 'notifyAdmins' in recipients || 'notifySuperAdmins' in recipients) {
-            const { customer, notifyAdmins, notifySuperAdmins, specificAdmins, excludeUserId } = recipients;
+        else if ("customer" in recipients ||
+            "notifyAdmins" in recipients ||
+            "notifySuperAdmins" in recipients) {
+            const { customer, notifyAdmins, notifySuperAdmins, specificAdmins, excludeUserId, } = recipients;
             if (customer) {
                 userIds.push(customer.toString());
             }
             if (specificAdmins && specificAdmins.length > 0) {
-                userIds.push(...specificAdmins.map(id => id.toString()));
+                userIds.push(...specificAdmins.map((id) => id.toString()));
             }
             if (notifyAdmins) {
                 const admins = await User.find({
                     role: UserRole.Admin,
-                    isActive: true
-                }).select('_id').lean();
-                userIds.push(...admins.map(a => a._id.toString()));
+                    isActive: true,
+                })
+                    .select("_id")
+                    .lean();
+                userIds.push(...admins.map((a) => a._id.toString()));
             }
             if (notifySuperAdmins) {
                 const superAdmins = await User.find({
                     role: UserRole.SuperAdmin,
-                    isActive: true
-                }).select('_id').lean();
-                userIds.push(...superAdmins.map(sa => sa._id.toString()));
+                    isActive: true,
+                })
+                    .select("_id")
+                    .lean();
+                userIds.push(...superAdmins.map((sa) => sa._id.toString()));
             }
             if (excludeUserId) {
-                userIds = userIds.filter(id => id !== excludeUserId.toString());
+                userIds = userIds.filter((id) => id !== excludeUserId.toString());
             }
         }
         return [...new Set(userIds)];
@@ -87,13 +93,14 @@ export const notificationService = {
         try {
             const userIds = await notificationService.resolveRecipients(recipients);
             if (userIds.length === 0) {
-                console.log('No recipients found for notification');
+                console.log("No recipients found for notification");
                 await session.commitTransaction();
                 session.endSession();
                 return [];
             }
             const notifications = await Promise.all(userIds.map(async (userId) => {
-                const [notification] = await Notification.create([{
+                const [notification] = await Notification.create([
+                    {
                         userId: new Types.ObjectId(userId.toString()),
                         type: data.type,
                         title: data.title,
@@ -101,13 +108,14 @@ export const notificationService = {
                         data: data.data || {},
                         link: data.link,
                         read: false,
-                        createdAt: new Date()
-                    }], { session });
+                        createdAt: new Date(),
+                    },
+                ], { session });
                 return notification;
             }));
             await session.commitTransaction();
             session.endSession();
-            return notifications.map(n => ({
+            return notifications.map((n) => ({
                 id: n._id.toString(),
                 type: n.type,
                 title: n.title,
@@ -115,13 +123,13 @@ export const notificationService = {
                 data: n.data,
                 timestamp: n.createdAt,
                 read: n.read,
-                link: n.link
+                link: n.link,
             }));
         }
         catch (error) {
             await session.abortTransaction();
             session.endSession();
-            console.error('Error creating notifications:', error);
+            console.error("Error creating notifications:", error);
             throw error;
         }
     },
@@ -144,10 +152,10 @@ export const notificationService = {
         try {
             const notification = await Notification.findOneAndUpdate({
                 _id: new Types.ObjectId(notificationId.toString()),
-                userId: new Types.ObjectId(userId.toString())
+                userId: new Types.ObjectId(userId.toString()),
             }, {
                 read: true,
-                readAt: new Date()
+                readAt: new Date(),
             }, { new: true, session }).lean();
             if (!notification) {
                 await session.commitTransaction();
@@ -164,7 +172,7 @@ export const notificationService = {
                 data: notification.data,
                 timestamp: notification.createdAt,
                 read: notification.read,
-                link: notification.link
+                link: notification.link,
             };
         }
         catch (error) {
@@ -179,10 +187,10 @@ export const notificationService = {
         try {
             await Notification.updateMany({
                 userId: new Types.ObjectId(userId.toString()),
-                read: false
+                read: false,
             }, {
                 read: true,
-                readAt: new Date()
+                readAt: new Date(),
             }, { session });
             await session.commitTransaction();
             session.endSession();
@@ -199,7 +207,7 @@ export const notificationService = {
         try {
             const result = await Notification.deleteOne({
                 _id: new Types.ObjectId(notificationId.toString()),
-                userId: new Types.ObjectId(userId.toString())
+                userId: new Types.ObjectId(userId.toString()),
             }).session(session);
             await session.commitTransaction();
             session.endSession();
@@ -214,7 +222,7 @@ export const notificationService = {
     getUnreadCount: async (userId) => {
         return await Notification.countDocuments({
             userId: new Types.ObjectId(userId.toString()),
-            read: false
+            read: false,
         });
     },
     deleteAllUserNotifications: async (userId) => {
@@ -222,7 +230,7 @@ export const notificationService = {
         session.startTransaction();
         try {
             await Notification.deleteMany({
-                userId: new Types.ObjectId(userId.toString())
+                userId: new Types.ObjectId(userId.toString()),
             }).session(session);
             await session.commitTransaction();
             session.endSession();
@@ -232,6 +240,6 @@ export const notificationService = {
             session.endSession();
             throw error;
         }
-    }
+    },
 };
 //# sourceMappingURL=notificationService.js.map

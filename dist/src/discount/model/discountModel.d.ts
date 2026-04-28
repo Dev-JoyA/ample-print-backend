@@ -1,7 +1,7 @@
-import mongoose, { Document } from 'mongoose';
+import mongoose, { Document } from "mongoose";
 export interface IDiscount extends Document {
     code: string;
-    type: 'percentage' | 'fixed';
+    type: "percentage" | "fixed";
     value: number;
     active: boolean;
     minOrderAmount?: number;

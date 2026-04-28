@@ -5,7 +5,7 @@ import {
   PaymentStatus,
 } from "../../order/model/orderModel.js";
 import { Design, IDesign } from "../model/designModel.js";
-import { User, UserRole } from "../../users/model/userModel.js";
+import { User } from "../../users/model/userModel.js";
 import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
 import emailService from "../../utils/email.js";

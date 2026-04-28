@@ -1,6 +1,4 @@
 import { Document, Schema, Types, model } from "mongoose";
-import { Transaction } from "../../payments/model/transactionModel.js";
-import { v4 as uuid } from "uuid";
 
 export enum InvoiceStatus {
   Draft = "Draft",
@@ -41,16 +39,13 @@ export interface IInvoice extends Document {
 
   status: InvoiceStatus;
 
-  // Relationships
   transactions: Types.ObjectId[];
   shippingId?: Types.ObjectId;
 
-  // Dates
   issueDate: Date;
   dueDate: Date;
   paidAt?: Date;
 
-  // Metadata
   notes?: string;
   paymentInstructions?: string;
 
@@ -132,7 +127,6 @@ const InvoiceSchema = new Schema<IInvoice>(
   { timestamps: true },
 );
 
-// Indexes
 InvoiceSchema.index({ status: 1, dueDate: 1 });
 InvoiceSchema.index({ orderId: 1, invoiceType: 1 });
 

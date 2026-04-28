@@ -13,14 +13,13 @@ export enum ShippingStatus {
 
 export interface IShipping extends Document {
   orderId: Types.ObjectId;
-  orderNumber: string; // For easy reference without populating
+  orderNumber: string;
   shippingMethod: ShippingMethod;
 
-  // For delivery orders
   trackingNumber?: string;
-  carrier?: string; // Optional (for pickup)
-  recipientName?: string; // From profile - cannot be changed by customer
-  recipientPhone?: string; // From profile - cannot be changed by customer
+  carrier?: string;
+  recipientName?: string;
+  recipientPhone?: string;
   address?: {
     street: string;
     city: string;
@@ -28,15 +27,12 @@ export interface IShipping extends Document {
     country: string;
   };
 
-  // Cost and invoice
   shippingCost?: number;
   shippingInvoiceId?: Types.ObjectId;
   isPaid: boolean;
 
-  // Status
   status: ShippingStatus;
 
-  // Tracking history (optional but useful)
   trackingHistory?: Array<{
     status: ShippingStatus;
     location?: string;
@@ -44,13 +40,11 @@ export interface IShipping extends Document {
     timestamp: Date;
   }>;
 
-  // Dates
   estimatedDelivery?: Date;
   actualDelivery?: Date;
-  driverName?: string; // NEW: Driver's name
+  driverName?: string;
   driverPhone?: string;
 
-  // Metadata for internal use
   metadata?: {
     createdBy?: Types.ObjectId;
     pickupNotes?: string;
@@ -68,7 +62,7 @@ const ShippingSchema = new Schema<IShipping>(
       type: Schema.Types.ObjectId,
       ref: "Order",
       required: true,
-      unique: true, // One shipping record per order
+      unique: true,
       index: true,
     },
     orderNumber: {
@@ -82,20 +76,17 @@ const ShippingSchema = new Schema<IShipping>(
       required: true,
     },
 
-    // For delivery orders (optional for pickup)
     trackingNumber: {
       type: String,
-      sparse: true, // Allows null/undefined for pickup
+      sparse: true,
     },
     carrier: {
       type: String,
     },
     driverName: {
-      // NEW
       type: String,
     },
     driverPhone: {
-      // NEW
       type: String,
     },
     recipientName: {
@@ -139,7 +130,6 @@ const ShippingSchema = new Schema<IShipping>(
       postalCode: String,
     },
 
-    // Cost and invoice
     shippingCost: {
       type: Number,
       required: true,
@@ -155,7 +145,6 @@ const ShippingSchema = new Schema<IShipping>(
       default: false,
     },
 
-    // Status
     status: {
       type: String,
       enum: Object.values(ShippingStatus),
@@ -164,7 +153,6 @@ const ShippingSchema = new Schema<IShipping>(
       index: true,
     },
 
-    // Tracking history
     trackingHistory: [
       {
         status: {
@@ -181,11 +169,9 @@ const ShippingSchema = new Schema<IShipping>(
       },
     ],
 
-    // Dates
     estimatedDelivery: Date,
     actualDelivery: Date,
 
-    // Metadata
     metadata: {
       type: Schema.Types.Mixed,
     },
@@ -193,7 +179,6 @@ const ShippingSchema = new Schema<IShipping>(
   { timestamps: true },
 );
 
-// Conditional validation: ensure all required fields for delivery
 ShippingSchema.pre("validate", function (next) {
   if (this.shippingMethod === ShippingMethod.Delivery) {
     if (!this.recipientName) {
@@ -209,7 +194,6 @@ ShippingSchema.pre("validate", function (next) {
   next();
 });
 
-// Indexes for performance
 ShippingSchema.index({ status: 1, createdAt: -1 });
 ShippingSchema.index({ trackingNumber: 1 }, { sparse: true });
 ShippingSchema.index({ shippingInvoiceId: 1 });

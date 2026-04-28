@@ -1,4 +1,4 @@
-import { Document, Schema, model, Types } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export interface ICollection extends Document {
   name: string;

@@ -12,7 +12,7 @@ export declare const RefreshToken: import("mongoose").Model<IRefreshToken, {}, {
     _id: Types.ObjectId;
 }> & {
     __v: number;
-}, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, IRefreshToken, Document<unknown, {}, import("mongoose").FlatRecord<IRefreshToken>, {}, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & import("mongoose").FlatRecord<IRefreshToken> & Required<{
+}, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, IRefreshToken, Document<unknown, {}, import("mongoose").FlatRecord<IRefreshToken>, {}, import("mongoose").DefaultSchemaOptions> & import("mongoose").FlatRecord<IRefreshToken> & Required<{
     _id: Types.ObjectId;
 }> & {
     __v: number;

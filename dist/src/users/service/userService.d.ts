@@ -1,4 +1,4 @@
-import { IUser, UserRole } from "../model/userModel.js";
+import { UserRole } from "../model/userModel.js";
 import { IProfile } from "../model/profileModel.js";
 import mongoose from "mongoose";
 export interface IProfileUpdate {
@@ -35,12 +35,12 @@ export declare function deleteUser(userId: string): Promise<{
     message: string;
     userId: string;
 }>;
-export declare function changeUserRole(userId: string, newRole: UserRole): Promise<mongoose.Document<unknown, {}, IUser, {}, {}> & IUser & Required<{
+export declare function changeUserRole(userId: string, newRole: UserRole): Promise<mongoose.Document<unknown, {}, import("../model/userModel.js").IUser, {}, {}> & import("../model/userModel.js").IUser & Required<{
     _id: mongoose.Types.ObjectId;
 }> & {
     __v: number;
 }>;
-export declare function toggleUserActiveness(userId: string): Promise<mongoose.Document<unknown, {}, IUser, {}, {}> & IUser & Required<{
+export declare function toggleUserActiveness(userId: string): Promise<mongoose.Document<unknown, {}, import("../model/userModel.js").IUser, {}, {}> & import("../model/userModel.js").IUser & Required<{
     _id: mongoose.Types.ObjectId;
 }> & {
     __v: number;

@@ -5,27 +5,23 @@ import { Order } from "../order/model/orderModel.js";
 export const checkDesignOwnership = async (req, res, next) => {
     try {
         const loggedInUser = req.user;
-        const { designId } = req.params; // Get designId from params
+        const { designId } = req.params;
         if (!loggedInUser || !loggedInUser._id) {
             return res.status(403).json({
                 message: "Unauthorized: You do not have permission to modify this design",
             });
         }
-        // SuperAdmin bypass
         if (loggedInUser.role === UserRole.SuperAdmin) {
             return next();
         }
-        // Find the design
         const design = await Design.findById(designId);
         if (!design) {
             return res.status(404).json({ message: "Design not found" });
         }
-        // Find the order associated with this design
         const order = await Order.findById(design.orderId);
         if (!order) {
             return res.status(404).json({ message: "Order not found" });
         }
-        // Check if the logged-in user owns the order
         const loggedId = new mongoose.Types.ObjectId(loggedInUser._id);
         const orderUserId = new mongoose.Types.ObjectId(order.userId.toString());
         if (!loggedId.equals(orderUserId)) {
@@ -33,7 +29,6 @@ export const checkDesignOwnership = async (req, res, next) => {
                 message: "Unauthorized: You do not own this design",
             });
         }
-        // Attach design and order to request for later use
         req.design = design;
         req.order = order;
         next();
@@ -127,13 +122,12 @@ export const checkOwnership = (req, res, next) => {
                 message: "Unauthorized: You do not have permission to modify this account",
             });
         }
-        // SuperAdmin bypass
         if (loggedInUser.role === UserRole.SuperAdmin) {
             return next();
         }
-        // create an ObjectId instance with `new` before calling equals
         const loggedId = new mongoose.Types.ObjectId(loggedInUser._id);
-        const targetId = new mongoose.Types.ObjectId(targetUserId);
+        const id = Array.isArray(targetUserId) ? targetUserId[0] : targetUserId;
+        const targetId = new mongoose.Types.ObjectId(id);
         if (!loggedId.equals(targetId)) {
             return res.status(403).json({
                 message: "Unauthorized: You do not have permission to modify this account",
@@ -146,7 +140,7 @@ export const checkOwnership = (req, res, next) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 };
-export const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, req, res) => {
     console.error(err);
     const status = err.status || 500;
     const message = err.message || "Internal Server Error";

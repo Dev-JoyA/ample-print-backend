@@ -119,14 +119,14 @@ export async function signInService(data) {
     const refreshToken = generateRefreshToken({
         userId: user._id,
         role: user.role,
-        email: user.email
+        email: user.email,
     });
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await RefreshToken.findOneAndUpdate({ userId: user._id }, { token: refreshToken, expiresAt }, { upsert: true, new: true });
     const accessToken = generateToken({
         userId: user._id,
         role: user.role,
-        email: user.email
+        email: user.email,
     });
     return {
         user: sanitizeUser(user),
@@ -154,23 +154,29 @@ export async function refreshTokenService(refreshToken) {
     const newRefreshToken = generateRefreshToken({
         userId: user._id,
         role: user.role,
-        email: user.email
+        email: user.email,
     });
     const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await RefreshToken.findOneAndUpdate({ userId: user._id }, { token: newRefreshToken, expiresAt: newExpiry }, { upsert: true, new: true });
     const newAccessToken = generateToken({
         userId: user._id,
         role: user.role,
-        email: user.email
+        email: user.email,
     });
     return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 }
 export async function logoutService(refreshToken) {
     await RefreshToken.deleteOne({ token: refreshToken });
 }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function createAdminService(data, superAdmin) {
     const { firstName, lastName, userName, email, password, phoneNumber, address, } = data;
-    if (!email || !password || !phoneNumber || !firstName || !lastName || !userName) {
+    if (!email ||
+        !password ||
+        !phoneNumber ||
+        !firstName ||
+        !lastName ||
+        !userName) {
         throw new Error("All fields are required");
     }
     if (!isValidEmail(email)) {
@@ -219,7 +225,14 @@ export async function createAdminService(data, superAdmin) {
         }).lean();
         if (superAdminUser?.email) {
             await emailService
-                .sendAdminNewOrder(superAdminUser.email, "N/A", `${firstName} ${lastName}`, email, 0, [{ productName: "Admin Account Creation", quantity: 1, price: 0 }])
+                .sendAdminNewOrder(superAdminUser.email, "N/A", `${firstName} ${lastName}`, email, 0, [
+                {
+                    productName: "Admin Account Creation",
+                    quantity: 1,
+                    price: 0,
+                    total: 0,
+                },
+            ])
                 .catch(console.error);
         }
         const token = generateRandomToken();
@@ -242,7 +255,12 @@ export async function createAdminService(data, superAdmin) {
 }
 export async function createSuperAdminService(data) {
     const { firstName, lastName, userName, email, password, phoneNumber, address, } = data;
-    if (!email || !password || !phoneNumber || !firstName || !lastName || !userName) {
+    if (!email ||
+        !password ||
+        !phoneNumber ||
+        !firstName ||
+        !lastName ||
+        !userName) {
         throw new Error("All fields are required");
     }
     if (!isValidEmail(email)) {
@@ -340,7 +358,7 @@ export async function deactivateAdminService(email) {
     if (superAdmin.email) {
         await emailService
             .sendAdminNewOrder(superAdmin.email, "N/A", profile.userName, email, 0, [
-            { productName: "Admin Deactivation", quantity: 1, price: 0 },
+            { productName: "Admin Deactivation", quantity: 1, price: 0, total: 0 },
         ])
             .catch(console.error);
     }
@@ -381,7 +399,7 @@ export async function reactivateAdminService(email) {
     if (superAdmin.email) {
         await emailService
             .sendAdminNewOrder(superAdmin.email, "N/A", profile.userName, email, 0, [
-            { productName: "Admin Reactivation", quantity: 1, price: 0 },
+            { productName: "Admin Reactivation", quantity: 1, price: 0, total: 0 },
         ])
             .catch(console.error);
     }
@@ -411,7 +429,9 @@ export async function forgotPasswordService(email) {
     await emailService
         .sendPasswordReset(email, profile.firstName, resetUrl)
         .catch(console.error);
-    return { message: "If an account exists with this email, you will receive a password reset link" };
+    return {
+        message: "If an account exists with this email, you will receive a password reset link",
+    };
 }
 export async function effectForgotPassword(token, newPassword, confirmPassword) {
     if (!token) {
@@ -448,7 +468,9 @@ export async function effectForgotPassword(token, newPassword, confirmPassword) 
             .sendPasswordReset(user.email, profile.firstName, loginUrl)
             .catch(console.error);
     }
-    return { message: "Password reset successful. You can now sign in with your new password." };
+    return {
+        message: "Password reset successful. You can now sign in with your new password.",
+    };
 }
 export async function resetPasswordService(userId, newPassword, confirmPassword) {
     if (!newPassword || !confirmPassword) {
@@ -473,6 +495,8 @@ export async function resetPasswordService(userId, newPassword, confirmPassword)
             .sendPasswordReset(user.email, profile.firstName, loginUrl)
             .catch(console.error);
     }
-    return { message: "Password reset successful. You can now sign in with your new password." };
+    return {
+        message: "Password reset successful. You can now sign in with your new password.",
+    };
 }
 //# sourceMappingURL=authService.js.map

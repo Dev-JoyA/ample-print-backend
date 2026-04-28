@@ -266,7 +266,7 @@ export async function logoutService(refreshToken: string) {
 
 export async function createAdminService(
   data: SignUpData,
-  superAdmin: AdminData,
+  _superAdmin: AdminData,
 ) {
   const {
     firstName,
@@ -358,7 +358,14 @@ export async function createAdminService(
           `${firstName} ${lastName}`,
           email,
           0,
-          [{ productName: "Admin Account Creation", quantity: 1, price: 0 }],
+          [
+            {
+              productName: "Admin Account Creation",
+              quantity: 1,
+              price: 0,
+              total: 0,
+            },
+          ],
         )
         .catch(console.error);
     }
@@ -535,7 +542,7 @@ export async function deactivateAdminService(email: string) {
   if (superAdmin.email) {
     await emailService
       .sendAdminNewOrder(superAdmin.email, "N/A", profile.userName, email, 0, [
-        { productName: "Admin Deactivation", quantity: 1, price: 0 },
+        { productName: "Admin Deactivation", quantity: 1, price: 0, total: 0 },
       ])
       .catch(console.error);
   }
@@ -587,7 +594,7 @@ export async function reactivateAdminService(email: string) {
   if (superAdmin.email) {
     await emailService
       .sendAdminNewOrder(superAdmin.email, "N/A", profile.userName, email, 0, [
-        { productName: "Admin Reactivation", quantity: 1, price: 0 },
+        { productName: "Admin Reactivation", quantity: 1, price: 0, total: 0 },
       ])
       .catch(console.error);
   }

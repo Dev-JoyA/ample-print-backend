@@ -11,7 +11,7 @@ export const checkDesignOwnership = async (
 ) => {
   try {
     const loggedInUser = req.user as { _id: string; role: string } | undefined;
-    const { designId } = req.params; // Get designId from params
+    const { designId } = req.params;
 
     if (!loggedInUser || !loggedInUser._id) {
       return res.status(403).json({
@@ -20,24 +20,20 @@ export const checkDesignOwnership = async (
       });
     }
 
-    // SuperAdmin bypass
     if (loggedInUser.role === UserRole.SuperAdmin) {
       return next();
     }
 
-    // Find the design
     const design = await Design.findById(designId);
     if (!design) {
       return res.status(404).json({ message: "Design not found" });
     }
 
-    // Find the order associated with this design
     const order = await Order.findById(design.orderId);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    // Check if the logged-in user owns the order
     const loggedId = new mongoose.Types.ObjectId(loggedInUser._id);
     const orderUserId = new mongoose.Types.ObjectId(order.userId.toString());
 
@@ -47,7 +43,6 @@ export const checkDesignOwnership = async (
       });
     }
 
-    // Attach design and order to request for later use
     (req as any).design = design;
     (req as any).order = order;
 
@@ -170,14 +165,14 @@ export const checkOwnership = (
       });
     }
 
-    // SuperAdmin bypass
     if (loggedInUser.role === UserRole.SuperAdmin) {
       return next();
     }
 
-    // create an ObjectId instance with `new` before calling equals
     const loggedId = new mongoose.Types.ObjectId(loggedInUser._id);
-    const targetId = new mongoose.Types.ObjectId(targetUserId);
+    const id = Array.isArray(targetUserId) ? targetUserId[0] : targetUserId;
+
+    const targetId = new mongoose.Types.ObjectId(id);
     if (!loggedId.equals(targetId)) {
       return res.status(403).json({
         message:
@@ -192,12 +187,7 @@ export const checkOwnership = (
   }
 };
 
-export const errorHandler = (
-  err: any,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const errorHandler = (err: any, req: Request, res: Response) => {
   console.error(err);
   const status = err.status || 500;
   const message = err.message || "Internal Server Error";

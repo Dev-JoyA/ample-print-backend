@@ -43,13 +43,13 @@ const areAllProductsApproved = async (orderId, session) => {
         return false;
     const designs = await Design.find({ orderId }).session(session || null);
     const approvedProducts = new Map();
-    designs.forEach(design => {
+    designs.forEach((design) => {
         const productId = design.productId.toString();
         if (design.isApproved) {
             approvedProducts.set(productId, true);
         }
     });
-    const allApproved = order.items.every(item => {
+    const allApproved = order.items.every((item) => {
         const productId = item.productId.toString();
         return approvedProducts.has(productId);
     });
@@ -63,7 +63,7 @@ export const uploadDesign = async (id, data, io) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-        console.log('🔍 Service - Looking for order with ID:', id);
+        console.log("🔍 Service - Looking for order with ID:", id);
         const order = await Order.findById(id).session(session).exec();
         if (!order) {
             await session.abortTransaction();
@@ -89,7 +89,7 @@ export const uploadDesign = async (id, data, io) => {
         const existingApprovedDesign = await Design.findOne({
             orderId: order._id,
             productId: data.productId,
-            isApproved: true
+            isApproved: true,
         }).session(session);
         if (existingApprovedDesign) {
             await session.abortTransaction();
@@ -98,15 +98,18 @@ export const uploadDesign = async (id, data, io) => {
         }
         const lastDesign = await Design.findOne({
             orderId: order._id,
-            productId: data.productId
-        }).session(session).sort({ version: -1 });
+            productId: data.productId,
+        })
+            .session(session)
+            .sort({ version: -1 });
         const newVersion = lastDesign ? lastDesign.version + 1 : 1;
         if (!data.designUrl) {
             await session.abortTransaction();
             session.endSession();
             throw new Error("A design file must be uploaded.");
         }
-        const [design] = await Design.create([{
+        const [design] = await Design.create([
+            {
                 userId: order.userId,
                 orderId: order._id,
                 productId: data.productId,
@@ -116,7 +119,8 @@ export const uploadDesign = async (id, data, io) => {
                 designUrl: data.designUrl,
                 otherImage: data.otherImage,
                 createdAt: new Date(),
-            }], { session });
+            },
+        ], { session });
         const hasDesigns = await hasAnyDesigns(order._id.toString(), session);
         if (!hasDesigns) {
             order.status = OrderStatus.DesignUploaded;
@@ -164,19 +168,13 @@ export const uploadDesign = async (id, data, io) => {
             designUrl: design.designUrl,
             message: `Design for ${productName} is ready for review`,
         });
-        // await emailService
-        //   .sendDesignReady(
-        //     user.email,
-        //     profile.firstName,
-        //     order.orderNumber,
-        //     productName,
-        //     `${process.env.FRONTEND_URL}/orders/${order.orderNumber}/design`,
-        //   )
-        //   .catch((err) => console.error("Error sending design ready email:", err));
+        await emailService
+            .sendDesignReady(user.email, profile.firstName, order.orderNumber, productName, `${process.env.FRONTEND_URL}/orders/${order.orderNumber}/design`)
+            .catch((err) => console.error("Error sending design ready email:", err));
         try {
             await notificationService.createForUser(user._id, {
-                type: 'design-uploaded',
-                title: 'Design Ready for Review',
+                type: "design-uploaded",
+                title: "Design Ready for Review",
                 message: `A new design for ${productName} (order #${order.orderNumber}) is ready for your review`,
                 data: {
                     designId: design._id,
@@ -186,13 +184,13 @@ export const uploadDesign = async (id, data, io) => {
                     productName,
                     version: design.version,
                     designUrl: design.designUrl,
-                    uploadedBy: design.uploadedBy
+                    uploadedBy: design.uploadedBy,
                 },
-                link: `/orders/${order._id}/products/${design.productId}/design`
+                link: `/orders/${order._id}/products/${design.productId}/design`,
             });
             await notificationService.createForAdmins({
-                type: 'admin-design-uploaded',
-                title: 'Design Uploaded',
+                type: "admin-design-uploaded",
+                title: "Design Uploaded",
                 message: `Design for ${productName} (order #${order.orderNumber}) was uploaded`,
                 data: {
                     designId: design._id,
@@ -203,13 +201,13 @@ export const uploadDesign = async (id, data, io) => {
                     version: design.version,
                     customerId: user._id,
                     customerName: `${profile.firstName} ${profile.lastName}`,
-                    uploadedBy: design.uploadedBy
+                    uploadedBy: design.uploadedBy,
                 },
-                link: `/dashboards/admin/orders/${order._id}/designs/${design._id}`
+                link: `/dashboards/admin/orders/${order._id}/designs/${design._id}`,
             });
         }
         catch (notifErr) {
-            console.error('Failed to create design upload notifications:', notifErr.message);
+            console.error("Failed to create design upload notifications:", notifErr.message);
         }
         return design;
     }
@@ -281,8 +279,8 @@ export const updateDesign = async (id, data, io) => {
         });
         try {
             await notificationService.createForUser(user._id, {
-                type: 'design-updated',
-                title: 'Design Updated',
+                type: "design-updated",
+                title: "Design Updated",
                 message: `The design for ${productName} (order #${orderNumber}) has been updated`,
                 data: {
                     designId: updatedDesign._id,
@@ -292,13 +290,13 @@ export const updateDesign = async (id, data, io) => {
                     productName,
                     version: updatedDesign.version,
                     designUrl: updatedDesign.designUrl,
-                    updatedBy: updatedDesign.uploadedBy
+                    updatedBy: updatedDesign.uploadedBy,
                 },
-                link: `/orders/${order._id}/products/${updatedDesign.productId}/design`
+                link: `/orders/${order._id}/products/${updatedDesign.productId}/design`,
             });
             await notificationService.createForAdmins({
-                type: 'admin-design-updated',
-                title: 'Design Updated',
+                type: "admin-design-updated",
+                title: "Design Updated",
                 message: `Design for ${productName} (order #${orderNumber}) was updated`,
                 data: {
                     designId: updatedDesign._id,
@@ -308,13 +306,13 @@ export const updateDesign = async (id, data, io) => {
                     productName,
                     version: updatedDesign.version,
                     customerId: user._id,
-                    updatedBy: updatedDesign.uploadedBy
+                    updatedBy: updatedDesign.uploadedBy,
                 },
-                link: `/dashboards/admin/orders/${order._id}/designs/${updatedDesign._id}`
+                link: `/dashboards/admin/orders/${order._id}/designs/${updatedDesign._id}`,
             });
         }
         catch (notifErr) {
-            console.error('Failed to create design update notifications:', notifErr.message);
+            console.error("Failed to create design update notifications:", notifErr.message);
         }
         return updatedDesign;
     }
@@ -337,7 +335,10 @@ export const deleteDesign = async (id) => {
         const order = await Order.findById(design.orderId).session(session);
         const user = await User.findById(design.userId);
         const product = await Product.findById(design.productId);
-        const filesToDelete = [design.designUrl, ...(design.otherImage || [])].filter(Boolean);
+        const filesToDelete = [
+            design.designUrl,
+            ...(design.otherImage || []),
+        ].filter(Boolean);
         for (const fileUrl of filesToDelete) {
             if (fileUrl) {
                 const filename = path.basename(fileUrl);
@@ -364,21 +365,21 @@ export const deleteDesign = async (id) => {
         if (user && order) {
             try {
                 await notificationService.createForUser(user._id, {
-                    type: 'design-deleted',
-                    title: 'Design Deleted',
+                    type: "design-deleted",
+                    title: "Design Deleted",
                     message: `A design for order #${order.orderNumber} has been deleted`,
                     data: {
                         designId: design._id,
                         orderId: order._id,
                         orderNumber: order.orderNumber,
                         productId: design.productId,
-                        productName: product?.name
+                        productName: product?.name,
                     },
-                    link: `/orders/${order._id}`
+                    link: `/orders/${order._id}`,
                 });
                 await notificationService.createForAdmins({
-                    type: 'admin-design-deleted',
-                    title: 'Design Deleted',
+                    type: "admin-design-deleted",
+                    title: "Design Deleted",
                     message: `Design for order #${order.orderNumber} was deleted`,
                     data: {
                         designId: design._id,
@@ -386,13 +387,13 @@ export const deleteDesign = async (id) => {
                         orderNumber: order.orderNumber,
                         productId: design.productId,
                         productName: product?.name,
-                        customerId: user._id
+                        customerId: user._id,
                     },
-                    link: `/dashboards/admin/orders/${order._id}`
+                    link: `/dashboards/admin/orders/${order._id}`,
                 });
             }
             catch (notifErr) {
-                console.error('Failed to create design deletion notifications:', notifErr.message);
+                console.error("Failed to create design deletion notifications:", notifErr.message);
             }
         }
         return "Design deleted successfully";
@@ -432,21 +433,21 @@ export const approveDesign = async (id) => {
                     orderId: order._id,
                     orderNumber: order.orderNumber,
                     productId: design.productId,
-                    allProductsApproved
+                    allProductsApproved,
                 });
                 io.to("admin-room").emit("design-approved", {
                     designId: design._id,
                     orderId: order._id,
                     orderNumber: order.orderNumber,
                     productId: design.productId,
-                    allProductsApproved
+                    allProductsApproved,
                 });
                 io.to("superadmin-room").emit("design-approved", {
                     designId: design._id,
                     orderId: order._id,
                     orderNumber: order.orderNumber,
                     productId: design.productId,
-                    allProductsApproved
+                    allProductsApproved,
                 });
             }
         }
@@ -460,15 +461,17 @@ export const approveDesign = async (id) => {
             //       profile.firstName,
             //       order.orderNumber,
             //       product.name,
-            //       "3-5", 
+            //       "3-5",
             //     )
             //     .catch((err) =>
             //       console.error("Error sending design approved email:", err),
             //     );
             try {
                 await notificationService.createForUser(user._id, {
-                    type: 'design-approved',
-                    title: allProductsApproved ? 'All Designs Approved' : 'Design Approved',
+                    type: "design-approved",
+                    title: allProductsApproved
+                        ? "All Designs Approved"
+                        : "Design Approved",
                     message: allProductsApproved
                         ? `All designs for order #${order.orderNumber} have been approved! Production will begin shortly.`
                         : `Your design for ${product.name} (order #${order.orderNumber}) has been approved!`,
@@ -480,13 +483,15 @@ export const approveDesign = async (id) => {
                         productName: product.name,
                         version: design.version,
                         approvedAt: design.approvedAt,
-                        allProductsApproved
+                        allProductsApproved,
                     },
-                    link: `/orders/${order._id}`
+                    link: `/orders/${order._id}`,
                 });
                 await notificationService.createForAdmins({
-                    type: 'admin-design-approved',
-                    title: allProductsApproved ? 'All Designs Approved' : 'Design Approved',
+                    type: "admin-design-approved",
+                    title: allProductsApproved
+                        ? "All Designs Approved"
+                        : "Design Approved",
                     message: allProductsApproved
                         ? `All designs for order #${order.orderNumber} have been approved by customer`
                         : `Design for ${product.name} (order #${order.orderNumber}) was approved by customer`,
@@ -497,13 +502,13 @@ export const approveDesign = async (id) => {
                         productId: design.productId,
                         productName: product.name,
                         customerId: user._id,
-                        allProductsApproved
+                        allProductsApproved,
                     },
-                    link: `/dashboards/admin/orders/${order._id}/designs/${design._id}`
+                    link: `/dashboards/admin/orders/${order._id}/designs/${design._id}`,
                 });
             }
             catch (notifErr) {
-                console.error('Failed to create design approval notifications:', notifErr.message);
+                console.error("Failed to create design approval notifications:", notifErr.message);
             }
         }
         return design;

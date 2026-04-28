@@ -6,13 +6,13 @@ export const signUpController = async (req, res) => {
         res.status(201).json({
             success: true,
             message: "Account created successfully",
-            data: result
+            data: result,
         });
     }
     catch (err) {
         res.status(400).json({
             success: false,
-            error: err.message || "Failed to sign up"
+            error: err.message || "Failed to sign up",
         });
     }
 };
@@ -23,14 +23,14 @@ export const signInController = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Signed in successfully",
-            data: result
+            data: result,
         });
     }
     catch (err) {
         const status = err.message.includes("password") ? 401 : 400;
         res.status(status).json({
             success: false,
-            error: err.message || "Failed to sign in"
+            error: err.message || "Failed to sign in",
         });
     }
 };
@@ -40,19 +40,19 @@ export const logoutController = async (req, res) => {
         if (!refreshToken) {
             return res.status(400).json({
                 success: false,
-                error: "Refresh token is required"
+                error: "Refresh token is required",
             });
         }
         await logoutService(refreshToken);
         res.status(200).json({
             success: true,
-            message: "Logged out successfully"
+            message: "Logged out successfully",
         });
     }
     catch (err) {
         res.status(400).json({
             success: false,
-            error: err.message || "Failed to logout"
+            error: err.message || "Failed to logout",
         });
     }
 };
@@ -62,20 +62,20 @@ export const refreshTokenController = async (req, res) => {
         if (!refreshToken) {
             return res.status(400).json({
                 success: false,
-                error: "Refresh token is required"
+                error: "Refresh token is required",
             });
         }
         const tokens = await refreshTokenService(refreshToken);
         res.status(200).json({
             success: true,
             message: "Token refreshed successfully",
-            data: tokens
+            data: tokens,
         });
     }
     catch (err) {
         res.status(401).json({
             success: false,
-            error: err.message || "Failed to refresh token"
+            error: err.message || "Failed to refresh token",
         });
     }
 };
@@ -84,7 +84,7 @@ export const createAdminController = async (req, res) => {
         if (!req.user) {
             return res.status(401).json({
                 success: false,
-                error: "Unauthorized"
+                error: "Unauthorized",
             });
         }
         const data = req.body;
@@ -93,13 +93,13 @@ export const createAdminController = async (req, res) => {
         res.status(201).json({
             success: true,
             message: "Admin created successfully",
-            data: result
+            data: result,
         });
     }
     catch (err) {
         res.status(400).json({
             success: false,
-            error: err.message || "Failed to create admin"
+            error: err.message || "Failed to create admin",
         });
     }
 };
@@ -110,13 +110,13 @@ export const createSuperAdminController = async (req, res) => {
         res.status(201).json({
             success: true,
             message: "Super admin created successfully",
-            data: result
+            data: result,
         });
     }
     catch (err) {
         res.status(400).json({
             success: false,
-            error: err.message || "Failed to create superadmin"
+            error: err.message || "Failed to create superadmin",
         });
     }
 };
@@ -125,27 +125,27 @@ export const deactivateAdminController = async (req, res) => {
         if (!req.user) {
             return res.status(401).json({
                 success: false,
-                error: "Unauthorized"
+                error: "Unauthorized",
             });
         }
         const { email } = req.body;
         if (!email) {
             return res.status(400).json({
                 success: false,
-                error: "Email is required"
+                error: "Email is required",
             });
         }
         await deactivateAdminService(email);
         res.status(200).json({
             success: true,
-            message: "Admin deactivated successfully"
+            message: "Admin deactivated successfully",
         });
     }
     catch (err) {
         const status = err.message.includes("not found") ? 404 : 400;
         res.status(status).json({
             success: false,
-            error: err.message || "Failed to deactivate admin"
+            error: err.message || "Failed to deactivate admin",
         });
     }
 };
@@ -154,27 +154,27 @@ export const reactivateAdminController = async (req, res) => {
         if (!req.user) {
             return res.status(401).json({
                 success: false,
-                error: "Unauthorized"
+                error: "Unauthorized",
             });
         }
         const { email } = req.body;
         if (!email) {
             return res.status(400).json({
                 success: false,
-                error: "Email is required"
+                error: "Email is required",
             });
         }
         await reactivateAdminService(email);
         res.status(200).json({
             success: true,
-            message: "Admin reactivated successfully"
+            message: "Admin reactivated successfully",
         });
     }
     catch (err) {
         const status = err.message.includes("not found") ? 404 : 400;
         res.status(status).json({
             success: false,
-            error: err.message || "Failed to reactivate admin"
+            error: err.message || "Failed to reactivate admin",
         });
     }
 };
@@ -184,19 +184,19 @@ export const forgotPasswordController = async (req, res) => {
         if (!email) {
             return res.status(400).json({
                 success: false,
-                error: "Email is required"
+                error: "Email is required",
             });
         }
         const result = await forgotPasswordService(email);
         res.status(200).json({
             success: true,
-            message: result.message
+            message: result.message,
         });
     }
     catch (err) {
         res.status(400).json({
             success: false,
-            error: err.message || "Failed to send password reset email"
+            error: err.message || "Failed to send password reset email",
         });
     }
 };
@@ -207,26 +207,28 @@ export const effectForgotPasswordController = async (req, res) => {
         if (!token) {
             return res.status(400).json({
                 success: false,
-                error: "Reset token is required"
+                error: "Reset token is required",
             });
         }
         if (!newPassword || !confirmPassword) {
             return res.status(400).json({
                 success: false,
-                error: "New password and confirm password are required"
+                error: "New password and confirm password are required",
             });
         }
         const result = await effectForgotPassword(token, newPassword, confirmPassword);
         res.status(200).json({
             success: true,
-            message: result.message
+            message: result.message,
         });
     }
     catch (err) {
-        const status = err.message.includes("expired") || err.message.includes("Invalid") ? 400 : 400;
+        const status = err.message.includes("expired") || err.message.includes("Invalid")
+            ? 400
+            : 400;
         res.status(status).json({
             success: false,
-            error: err.message || "Failed to reset password"
+            error: err.message || "Failed to reset password",
         });
     }
 };
@@ -237,25 +239,25 @@ export const resetPasswordController = async (req, res) => {
         if (!userId) {
             return res.status(400).json({
                 success: false,
-                error: "User ID is required"
+                error: "User ID is required",
             });
         }
         if (!newPassword || !confirmPassword) {
             return res.status(400).json({
                 success: false,
-                error: "New password and confirm password are required"
+                error: "New password and confirm password are required",
             });
         }
         const result = await resetPasswordService(userId, newPassword, confirmPassword);
         res.status(200).json({
             success: true,
-            message: result.message
+            message: result.message,
         });
     }
     catch (err) {
         res.status(400).json({
             success: false,
-            error: err.message || "Failed to reset password"
+            error: err.message || "Failed to reset password",
         });
     }
 };

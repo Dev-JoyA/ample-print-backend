@@ -1,4 +1,4 @@
-import { User, IUser, UserRole } from "../model/userModel.js";
+import { User, UserRole } from "../model/userModel.js";
 import { Profile, IProfile } from "../model/profileModel.js";
 import mongoose from "mongoose";
 

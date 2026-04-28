@@ -65,7 +65,6 @@ const TransactionSchema = new Schema({
         type: Schema.Types.Mixed,
         required: true,
     },
-    // For bank transfers
     receiptUrl: String,
     verifiedBy: {
         type: Schema.Types.ObjectId,
@@ -76,7 +75,6 @@ const TransactionSchema = new Schema({
 }, {
     timestamps: true,
 });
-// Indexes
 TransactionSchema.index({ orderId: 1, createdAt: -1 });
 TransactionSchema.index({ transactionStatus: 1, createdAt: -1 });
 TransactionSchema.index({ transactionType: 1, transactionStatus: 1 });

@@ -69,7 +69,7 @@ const OrderSchema = new Schema({
         type: String,
         required: true,
         index: true,
-        unique: true
+        unique: true,
     },
     items: {
         type: [OrderItemSchema],
@@ -78,7 +78,6 @@ const OrderSchema = new Schema({
     totalAmount: { type: Number, required: true },
     amountPaid: { type: Number, default: 0 },
     remainingBalance: { type: Number, required: true },
-    // New fields
     requiredPaymentType: {
         type: String,
         enum: ["full", "part"],
@@ -110,7 +109,6 @@ const OrderSchema = new Schema({
 }, {
     timestamps: true,
 });
-// Indexes
 OrderSchema.index({ status: 1, createdAt: -1 });
 OrderSchema.index({ paymentStatus: 1, userId: 1 });
 OrderSchema.index({ invoiceId: 1 });

@@ -1,5 +1,4 @@
 import { Types, Document, model, Schema } from "mongoose";
-import { v4 as uuid } from "uuid";
 
 export enum PaymentStatus {
   Pending = "Pending",
@@ -89,15 +88,10 @@ export interface IOrderModel extends Document {
   totalAmount: number;
   amountPaid: number;
   remainingBalance: number;
-
-  // ✅ Add these to track invoice requirements
-  requiredPaymentType?: "full" | "part"; // What super admin decided
-  requiredDeposit?: number; // If part payment, how much deposit needed
-
+  requiredPaymentType?: "full" | "part";
+  requiredDeposit?: number;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
-
-  // ✅ Track which invoice applies to this order
   invoiceId?: Types.ObjectId;
   shippingId?: Types.ObjectId;
 
@@ -141,7 +135,6 @@ const OrderSchema = new Schema<IOrderModel>(
     amountPaid: { type: Number, default: 0 },
     remainingBalance: { type: Number, required: true },
 
-    // New fields
     requiredPaymentType: {
       type: String,
       enum: ["full", "part"],
@@ -178,7 +171,6 @@ const OrderSchema = new Schema<IOrderModel>(
   },
 );
 
-// Indexes
 OrderSchema.index({ status: 1, createdAt: -1 });
 OrderSchema.index({ paymentStatus: 1, userId: 1 });
 OrderSchema.index({ invoiceId: 1 });

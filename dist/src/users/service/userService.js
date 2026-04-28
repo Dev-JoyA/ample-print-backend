@@ -21,7 +21,9 @@ export async function getAllUsers() {
         }
         const profiles = await Profile.find({
             userId: { $in: users.map((u) => u._id) },
-        }).lean().exec();
+        })
+            .lean()
+            .exec();
         const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
         return users.map((u) => {
             const profile = profileMap.get(u._id.toString());
@@ -122,8 +124,10 @@ export async function updateProfileDetails(userId, profileData) {
             }
             const existingUser = await Profile.findOne({
                 userName: trimmedUserName,
-                userId: { $ne: userId }
-            }).lean().exec();
+                userId: { $ne: userId },
+            })
+                .lean()
+                .exec();
             if (existingUser) {
                 throw new Error("Username is already taken");
             }
@@ -156,14 +160,18 @@ export async function updateProfileDetails(userId, profileData) {
         if (Object.keys(updates).length === 0) {
             throw new Error("No valid fields to update");
         }
-        const profile = await Profile.findOneAndUpdate({ userId }, updates, { new: true, runValidators: true }).exec();
+        const profile = await Profile.findOneAndUpdate({ userId }, updates, {
+            new: true,
+            runValidators: true,
+        }).exec();
         if (!profile) {
             throw new Error(`Profile not found`);
         }
         return { user, profile };
     }
     catch (error) {
-        if (error.message === "Profile not found" || error.message.includes("Username is already taken")) {
+        if (error.message === "Profile not found" ||
+            error.message.includes("Username is already taken")) {
             throw error;
         }
         throw new Error(`Failed to update profile: ${error.message}`);
@@ -215,8 +223,10 @@ export async function changeUserRole(userId, newRole) {
         if (user.role === UserRole.SuperAdmin && newRole !== UserRole.SuperAdmin) {
             const superAdminCount = await User.countDocuments({
                 role: UserRole.SuperAdmin,
-                _id: { $ne: userId }
-            }).session(session).exec();
+                _id: { $ne: userId },
+            })
+                .session(session)
+                .exec();
             if (superAdminCount === 0) {
                 await session.abortTransaction();
                 session.endSession();
@@ -232,7 +242,8 @@ export async function changeUserRole(userId, newRole) {
     catch (error) {
         await session.abortTransaction();
         session.endSession();
-        if (error.message === "User not found" || error.message.includes("last superadmin")) {
+        if (error.message === "User not found" ||
+            error.message.includes("last superadmin")) {
             throw error;
         }
         throw new Error(`Failed to change user role: ${error.message}`);
@@ -265,7 +276,8 @@ export async function toggleUserActiveness(userId) {
     catch (error) {
         await session.abortTransaction();
         session.endSession();
-        if (error.message === "User not found" || error.message.includes("SuperAdmin accounts cannot be deactivated")) {
+        if (error.message === "User not found" ||
+            error.message.includes("SuperAdmin accounts cannot be deactivated")) {
             throw error;
         }
         throw new Error(`Failed to toggle user activeness: ${error.message}`);

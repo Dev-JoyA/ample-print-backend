@@ -13,6 +13,7 @@ export interface IShipping extends Document {
     orderNumber: string;
     shippingMethod: ShippingMethod;
     trackingNumber?: string;
+    carrier?: string;
     recipientName?: string;
     recipientPhone?: string;
     address?: {
@@ -33,6 +34,8 @@ export interface IShipping extends Document {
     }>;
     estimatedDelivery?: Date;
     actualDelivery?: Date;
+    driverName?: string;
+    driverPhone?: string;
     metadata?: {
         createdBy?: Types.ObjectId;
         pickupNotes?: string;

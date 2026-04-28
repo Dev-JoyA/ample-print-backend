@@ -2,7 +2,7 @@ import mongoose, { Types } from "mongoose";
 import { Feedback, IFeedback, FeedBackStatus } from "../model/feedback.js";
 import { Order } from "../../order/model/orderModel.js";
 import { Design } from "../../design/model/designModel.js";
-import { User, UserRole } from "../../users/model/userModel.js";
+import { User } from "../../users/model/userModel.js";
 import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
 import { notificationService } from "../../notification/service/notificationService.js";
@@ -316,9 +316,9 @@ export const updateFeedbackStatus = async (
       .session(session);
 
     const user = await User.findById(feedback.userId).session(session);
-    const profile = await Profile.findOne({ userId: feedback.userId }).session(
-      session,
-    );
+    // const profile = await Profile.findOne({ userId: feedback.userId }).session(
+    //   session,
+    // );
 
     await session.commitTransaction();
     session.endSession();
@@ -681,10 +681,10 @@ export const deleteFeedback = async (
       .select("orderNumber")
       .session(session);
 
-    const user = await User.findById(feedback.userId).session(session);
-    const profile = await Profile.findOne({ userId: feedback.userId }).session(
-      session,
-    );
+    // const user = await User.findById(feedback.userId).session(session);
+    // const profile = await Profile.findOne({ userId: feedback.userId }).session(
+    //   session,
+    // );
 
     await Feedback.findByIdAndDelete(feedbackId).session(session);
     await session.commitTransaction();

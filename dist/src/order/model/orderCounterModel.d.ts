@@ -18,7 +18,7 @@ export declare const OrderCounter: import("mongoose").Model<{
 }, import("mongoose").Document<unknown, {}, import("mongoose").FlatRecord<{
     year: number;
     seq: number;
-}>, {}, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & import("mongoose").FlatRecord<{
+}>, {}, import("mongoose").DefaultSchemaOptions> & import("mongoose").FlatRecord<{
     year: number;
     seq: number;
 }> & {

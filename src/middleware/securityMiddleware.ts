@@ -5,10 +5,8 @@ export const securityMiddleware = (
   res: Response,
   next: NextFunction,
 ) => {
-  // Remove sensitive headers
   res.removeHeader("X-Powered-By");
 
-  // Add security headers not covered by helmet
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-XSS-Protection", "1; mode=block");
@@ -18,12 +16,11 @@ export const securityMiddleware = (
     "geolocation=(), microphone=(), camera=()",
   );
 
-  // Log suspicious requests
   const suspiciousPatterns = [
-    /['"`;]?\s*OR\s*['"`;]?\s*1\s*=\s*1/i, // SQL injection
-    /\$\{.*?\}/i, // Template injection
-    /\.\.\/|\.\.\\/i, // Path traversal
-    /<script/i, // XSS
+    /['"`;]?\s*OR\s*['"`;]?\s*1\s*=\s*1/i,
+    /\$\{.*?\}/i,
+    /\.\.\/|\.\.\\/i,
+    /<script/i,
   ];
 
   const url = req.url.toLowerCase();

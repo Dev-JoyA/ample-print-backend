@@ -45,8 +45,6 @@ export const initializePayment = (amount, email) => {
 
 export const verifyPayment = (reference) => {
   try {
-    const https = require("https");
-
     const options = {
       hostname: "api.paystack.co",
       port: 443,

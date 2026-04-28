@@ -28,7 +28,6 @@ import {
 
 const router = Router();
 
-// ==================== PUBLIC ROUTES ====================
 router.post("/sign-up", signUpController);
 router.post("/sign-in", signInController);
 router.post("/forgot-password", forgotPasswordController);
@@ -36,7 +35,6 @@ router.post("/effect-forgot-password", effectForgotPasswordController);
 router.post("/logout", logoutController);
 router.post("/refresh-token", refreshTokenController);
 
-// ==================== SUPER ADMIN ONLY ROUTES ====================
 router.post(
   "/admin-sign-up",
   authMiddleware,
@@ -56,10 +54,8 @@ router.post(
   reactivateAdminController,
 );
 
-// ==================== SUPER ADMIN CREATION (PROTECTED - ONCE) ====================
 router.post("/superadmin-sign-up", createSuperAdminController);
 
-// ==================== AUTHENTICATED ROUTES ====================
 router.post(
   "/reset-password/:userId",
   authMiddleware,
@@ -67,7 +63,6 @@ router.post(
   resetPasswordController,
 );
 
-// ==================== TOKEN VERIFICATION ROUTES ====================
 router.get("/verify-token", (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
 
@@ -138,7 +133,6 @@ router.post(
   },
 );
 
-// ==================== GOOGLE OAUTH ROUTES ====================
 router.get(
   "/google",
   passport.authenticate("google", {

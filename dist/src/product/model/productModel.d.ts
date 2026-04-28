@@ -1,15 +1,15 @@
-import { Document, Schema, Types } from "mongoose";
+import { Schema } from "mongoose";
 import { IProduct } from "./productInterface.js";
-export declare const Product: import("mongoose").Model<IProduct, {}, {}, {}, Document<unknown, {}, IProduct, {}, import("mongoose").DefaultSchemaOptions> & IProduct & Required<{
-    _id: Types.ObjectId;
+export declare const Product: import("mongoose").Model<IProduct, {}, {}, {}, import("mongoose").Document<unknown, {}, IProduct, {}, import("mongoose").DefaultSchemaOptions> & IProduct & Required<{
+    _id: import("mongoose").Types.ObjectId;
 }> & {
     __v: number;
-}, Schema<IProduct, import("mongoose").Model<IProduct, any, any, any, Document<unknown, any, IProduct, any, {}> & IProduct & Required<{
-    _id: Types.ObjectId;
+}, Schema<IProduct, import("mongoose").Model<IProduct, any, any, any, import("mongoose").Document<unknown, any, IProduct, any, {}> & IProduct & Required<{
+    _id: import("mongoose").Types.ObjectId;
 }> & {
     __v: number;
-}, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, IProduct, Document<unknown, {}, import("mongoose").FlatRecord<IProduct>, {}, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & import("mongoose").FlatRecord<IProduct> & Required<{
-    _id: Types.ObjectId;
+}, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, IProduct, import("mongoose").Document<unknown, {}, import("mongoose").FlatRecord<IProduct>, {}, import("mongoose").DefaultSchemaOptions> & import("mongoose").FlatRecord<IProduct> & Required<{
+    _id: import("mongoose").Types.ObjectId;
 }> & {
     __v: number;
 }>>;

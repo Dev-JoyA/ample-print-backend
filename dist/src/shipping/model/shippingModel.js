@@ -15,7 +15,7 @@ const ShippingSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "Order",
         required: true,
-        unique: true, // One shipping record per order
+        unique: true,
         index: true,
     },
     orderNumber: {
@@ -28,10 +28,18 @@ const ShippingSchema = new Schema({
         enum: Object.values(ShippingMethod),
         required: true,
     },
-    // For delivery orders (optional for pickup)
     trackingNumber: {
         type: String,
-        sparse: true, // Allows null/undefined for pickup
+        sparse: true,
+    },
+    carrier: {
+        type: String,
+    },
+    driverName: {
+        type: String,
+    },
+    driverPhone: {
+        type: String,
     },
     recipientName: {
         type: String,
@@ -73,7 +81,6 @@ const ShippingSchema = new Schema({
         },
         postalCode: String,
     },
-    // Cost and invoice
     shippingCost: {
         type: Number,
         required: true,
@@ -88,7 +95,6 @@ const ShippingSchema = new Schema({
         type: Boolean,
         default: false,
     },
-    // Status
     status: {
         type: String,
         enum: Object.values(ShippingStatus),
@@ -96,7 +102,6 @@ const ShippingSchema = new Schema({
         required: true,
         index: true,
     },
-    // Tracking history
     trackingHistory: [
         {
             status: {
@@ -112,15 +117,12 @@ const ShippingSchema = new Schema({
             },
         },
     ],
-    // Dates
     estimatedDelivery: Date,
     actualDelivery: Date,
-    // Metadata
     metadata: {
         type: Schema.Types.Mixed,
     },
 }, { timestamps: true });
-// Conditional validation: ensure all required fields for delivery
 ShippingSchema.pre("validate", function (next) {
     if (this.shippingMethod === ShippingMethod.Delivery) {
         if (!this.recipientName) {
@@ -135,7 +137,6 @@ ShippingSchema.pre("validate", function (next) {
     }
     next();
 });
-// Indexes for performance
 ShippingSchema.index({ status: 1, createdAt: -1 });
 ShippingSchema.index({ trackingNumber: 1 }, { sparse: true });
 ShippingSchema.index({ shippingInvoiceId: 1 });

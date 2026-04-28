@@ -13,7 +13,12 @@ export declare const getAllOrders: (userRole: string, page?: number, limit?: num
     paymentStatus?: PaymentStatus;
     search?: string;
 }) => Promise<PaginatedOrder>;
-export declare const getOrdersReadyForInvoice: (userRole: string) => Promise<IOrderModel[]>;
+export declare const getOrdersReadyForInvoice: (userRole: string, page?: number, limit?: number) => Promise<{
+    orders: IOrderModel[];
+    total: number;
+    page: number;
+    pages: number;
+}>;
 export declare const markOrderAsAwaitingInvoice: (orderId: string, userRole: string) => Promise<IOrderModel>;
 export declare const searchByOrderNumber: (orderNumber: string, userId: string, userRole: string) => Promise<IOrderModel>;
 export declare const filterOrders: (filters: {

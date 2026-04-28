@@ -1,18 +1,5 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import dotenv from "dotenv";
-
-declare global {
-  namespace Express {
-    interface Request {
-      rateLimit?: {
-        limit: number;
-        current: number;
-        remaining: number;
-        resetTime?: Date;
-      };
-    }
-  }
-}
 import { startServer } from "./src/config/db.js";
 import designRoute from "./src/design/routes/designRoute.js";
 import authRoute from "./src/auth/routes/authRoute.js";
@@ -41,7 +28,6 @@ import shippingRoute from "./src/shipping/routes/shippingRoute.js";
 import { verifyToken } from "./src/utils/auth.js";
 import bankAccountRoute from "./src/bankAccount/routes/bankAccountRoute.js";
 
-// Security imports
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
@@ -64,7 +50,6 @@ const server = http.createServer(app);
 
 const PORT = process.env.PORT || 4001;
 
-// ==================== CORS (must be first) ====================
 const allowedOrigins =
   process.env.NODE_ENV === "production"
     ? [process.env.FRONTEND_URL!]
@@ -86,7 +71,6 @@ const corsOptions: cors.CorsOptions = {
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
-// ==================== HELMET ====================
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -102,7 +86,6 @@ app.use(
   }),
 );
 
-// ==================== GENERAL MIDDLEWARE ====================
 app.use(compression());
 app.use(cookieParser(process.env.COOKIE_SECRET));
 
@@ -138,11 +121,9 @@ const authLimiter = rateLimit({
 // app.use("/api", limiter);
 app.use("/api/v1/auth", authLimiter);
 
-// ==================== BODY PARSERS ====================
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// ==================== SANITIZATION ====================
 app.use(mongoSanitize());
 app.use(xss());
 app.use(
@@ -159,16 +140,13 @@ app.use(
   }),
 );
 
-// ==================== CUSTOM SECURITY ====================
 app.use(securityMiddleware);
 
-// ==================== CSRF (skip OPTIONS preflight) ====================
-app.use("/api", (req: Request, res: Response, next: any) => {
+app.use("/api", (req: Request, res: Response, next: NextFunction) => {
   if (req.method === "OPTIONS") return next();
   csrfProtection(req, res, next);
 });
 
-// ==================== STATIC FILES ====================
 app.use(
   "/uploads",
   express.static("uploads", {
@@ -179,10 +157,8 @@ app.use(
   }),
 );
 
-// ==================== PASSPORT ====================
 app.use(passport.initialize());
 
-// ==================== SWAGGER ====================
 try {
   const swaggerPath = path.join(__dirname, "swagger", "swagger.yaml");
   const swaggerDocument = YAML.load(swaggerPath);
@@ -206,7 +182,6 @@ try {
   console.error("✗ Error setting up Swagger:", error);
 }
 
-// ==================== HEALTH CHECK ====================
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({
     status: "healthy",
@@ -216,7 +191,6 @@ app.get("/health", (req: Request, res: Response) => {
   });
 });
 
-// ==================== ROUTES ====================
 app.get("/", (req: Request, res: Response) => {
   res.status(200).json({
     message: "Welcome to AMPLE PRINT HUB API",
@@ -243,7 +217,6 @@ app.use("/api/v1/receipts", receiptRoute);
 app.use("/api/v1/shipping", shippingRoute);
 app.use("/api/v1/bank-accounts", bankAccountRoute);
 
-// ==================== SOCKET.IO ====================
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -270,7 +243,7 @@ io.use(async (socket, next) => {
 
     socket.data.user = decoded;
     next();
-  } catch (error) {
+  } catch {
     next(new Error("Authentication failed"));
   }
 });
@@ -298,7 +271,6 @@ io.on("connection", (socket) => {
 
 app.set("io", io);
 
-// ==================== ERROR HANDLING ====================
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     success: false,
@@ -306,7 +278,7 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-app.use((err: any, req: Request, res: Response, next: any) => {
+app.use((err: any, req: Request, res: Response) => {
   console.error("❌ Error:", err);
 
   const message =
@@ -321,7 +293,6 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   });
 });
 
-// ==================== START SERVER ====================
 server.listen(PORT, () => {
   console.log(`🚀 Server started on port ${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV ?? "development"}`);

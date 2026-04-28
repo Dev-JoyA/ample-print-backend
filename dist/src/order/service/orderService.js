@@ -1,5 +1,6 @@
 import mongoose, { Types } from "mongoose";
 import { User, UserRole } from "../../users/model/userModel.js";
+import { CustomerBrief } from "../../customerBrief/model/customerBrief.js";
 import { OrderStatus, Order, PaymentStatus, } from "../model/orderModel.js";
 import { Product } from "../../product/model/productModel.js";
 import { Profile } from "../../users/model/profileModel.js";
@@ -48,7 +49,11 @@ const validStatusTransitions = {
         OrderStatus.AwaitingFinalPayment,
         OrderStatus.Cancelled,
     ],
-    [OrderStatus.InProduction]: [OrderStatus.Completed, OrderStatus.Cancelled],
+    [OrderStatus.InProduction]: [
+        OrderStatus.Completed,
+        OrderStatus.AwaitingFinalPayment,
+        OrderStatus.Cancelled,
+    ],
     [OrderStatus.Completed]: [
         OrderStatus.ReadyForShipping,
         OrderStatus.AwaitingFinalPayment,
@@ -118,7 +123,8 @@ export const createOrder = async (userId, data, io) => {
             totalAmount += product.price * item.quantity;
         }
         const orderNumber = await generateOrderNumber();
-        const [order] = await Order.create([{
+        const [order] = await Order.create([
+            {
                 userId: user._id,
                 items: orderItems,
                 totalAmount: totalAmount,
@@ -128,8 +134,11 @@ export const createOrder = async (userId, data, io) => {
                 status: OrderStatus.OrderReceived,
                 paymentStatus: PaymentStatus.Pending,
                 createdAt: new Date(),
-            }], { session });
-        const profile = await Profile.findOne({ userId: user._id }).session(session).exec();
+            },
+        ], { session });
+        const profile = await Profile.findOne({ userId: user._id })
+            .session(session)
+            .exec();
         if (!profile)
             throw new Error("Profile not found");
         await session.commitTransaction();
@@ -143,29 +152,35 @@ export const createOrder = async (userId, data, io) => {
             orderId: order._id,
             orderNumber: order.orderNumber,
         });
+        const emailItems = orderItems.map((item) => ({
+            productName: item.productName,
+            quantity: item.quantity,
+            price: item.price,
+            total: item.quantity * item.price,
+        }));
         await emailService
-            .sendOrderConfirmation(user.email, profile.firstName, order.orderNumber, orderItems, totalAmount)
+            .sendOrderConfirmation(user.email, profile.firstName, order.orderNumber, emailItems, totalAmount)
             .catch((err) => console.error("Error sending order confirmation email", err));
         try {
             await notificationService.createForUser(user._id, {
-                type: 'order-created',
-                title: 'Order Created',
+                type: "order-created",
+                title: "Order Created",
                 message: `Order #${order.orderNumber} has been created successfully`,
                 data: {
                     orderId: order._id,
                     orderNumber: order.orderNumber,
                     totalAmount,
-                    items: orderItems.map(item => ({
+                    items: orderItems.map((item) => ({
                         productName: item.productName,
                         quantity: item.quantity,
-                        price: item.price
-                    }))
+                        price: item.price,
+                    })),
                 },
-                link: `/dashboards/customer/orders/${order._id}`
+                link: `/dashboards/customer/orders/${order._id}`,
             });
             await notificationService.createForAdmins({
-                type: 'admin-new-order',
-                title: 'New Order Received',
+                type: "admin-new-order",
+                title: "New Order Received",
                 message: `New order #${order.orderNumber} has been placed by ${profile.firstName}`,
                 data: {
                     orderId: order._id,
@@ -173,13 +188,13 @@ export const createOrder = async (userId, data, io) => {
                     customerId: user._id,
                     customerName: `${profile.firstName} ${profile.lastName}`,
                     totalAmount,
-                    itemCount: orderItems.length
+                    itemCount: orderItems.length,
                 },
-                link: `/dashboards/admin/orders/${order._id}`
+                link: `/dashboards/admin/orders/${order._id}`,
             });
         }
         catch (notifErr) {
-            console.error('Failed to create order notifications:', notifErr);
+            console.error("Failed to create order notifications:", notifErr);
         }
         return order;
     }
@@ -228,7 +243,8 @@ export const superAdminCreateOrder = async (customerId, data, superAdminId, io) 
             totalAmount += product.price * item.quantity;
         }
         const orderNumber = await generateOrderNumber();
-        const [order] = await Order.create([{
+        const [order] = await Order.create([
+            {
                 userId: customer._id,
                 items: orderItems,
                 totalAmount: totalAmount,
@@ -239,13 +255,20 @@ export const superAdminCreateOrder = async (customerId, data, superAdminId, io) 
                 paymentStatus: PaymentStatus.Pending,
                 createdBy: new Types.ObjectId(superAdminId),
                 createdAt: new Date(),
-            }], { session });
+            },
+        ], { session });
         const profile = await Profile.findOne({ userId: customer._id }).session(session);
         await session.commitTransaction();
         session.endSession();
         if (profile) {
+            const emailItems = orderItems.map((item) => ({
+                productName: item.productName,
+                quantity: item.quantity,
+                price: item.price,
+                total: item.quantity * item.price,
+            }));
             await emailService
-                .sendOrderConfirmation(customer.email, profile.firstName, order.orderNumber, orderItems, totalAmount)
+                .sendOrderConfirmation(customer.email, profile.firstName, order.orderNumber, emailItems, totalAmount)
                 .catch((err) => console.error("Error sending email", err));
         }
         io.to("admin-room").emit("new-order", {
@@ -255,37 +278,39 @@ export const superAdminCreateOrder = async (customerId, data, superAdminId, io) 
         });
         try {
             await notificationService.createForUser(customer._id, {
-                type: 'order-created',
-                title: 'Order Created for You',
+                type: "order-created",
+                title: "Order Created for You",
                 message: `An order #${order.orderNumber} has been created for you by admin`,
                 data: {
                     orderId: order._id,
                     orderNumber: order.orderNumber,
                     totalAmount,
                     items: orderItems,
-                    createdBy: superAdminId
+                    createdBy: superAdminId,
                 },
-                link: `/dashboards/customer/orders/${order._id}`
+                link: `/dashboards/customer/orders/${order._id}`,
             });
             const superAdmin = await User.findById(superAdminId);
             await notificationService.createForAdmins({
-                type: 'admin-order-created',
-                title: 'Order Created by Admin',
-                message: `Order #${order.orderNumber} was created for customer by ${superAdmin?.email || 'admin'}`,
+                type: "admin-order-created",
+                title: "Order Created by Admin",
+                message: `Order #${order.orderNumber} was created for customer by ${superAdmin?.email || "admin"}`,
                 data: {
                     orderId: order._id,
                     orderNumber: order.orderNumber,
                     customerId: customer._id,
-                    customerName: profile?.firstName ? `${profile.firstName} ${profile.lastName}` : 'Customer',
+                    customerName: profile?.firstName
+                        ? `${profile.firstName} ${profile.lastName}`
+                        : "Customer",
                     totalAmount,
                     itemCount: orderItems.length,
-                    createdBy: superAdminId
+                    createdBy: superAdminId,
                 },
-                link: `/dashboards/admin/orders/${order._id}`
+                link: `/dashboards/admin/orders/${order._id}`,
             });
         }
         catch (notifErr) {
-            console.error('Failed to create order notifications:', notifErr);
+            console.error("Failed to create order notifications:", notifErr);
         }
         return order;
     }
@@ -316,7 +341,11 @@ export const updateOrder = async (orderId, data, userId, userRole) => {
                 }
             }
         }
-        const updatedOrder = await Order.findByIdAndUpdate(orderId, data, { new: true, runValidators: true, session });
+        const updatedOrder = await Order.findByIdAndUpdate(orderId, data, {
+            new: true,
+            runValidators: true,
+            session,
+        });
         if (!updatedOrder)
             throw new Error("Failed to update order");
         await session.commitTransaction();
@@ -343,41 +372,43 @@ export const deleteOrder = async (orderId, userId, userRole) => {
         }
         if (order.status !== OrderStatus.Pending &&
             order.status !== OrderStatus.OrderReceived &&
+            order.status !== OrderStatus.FilesUploaded &&
             !isSuperAdmin) {
             throw new Error("Cannot delete order once it's been processed");
         }
+        await CustomerBrief.deleteMany({ orderId: order._id }).session(session);
         await Order.findByIdAndDelete(orderId).session(session);
         await session.commitTransaction();
         session.endSession();
         try {
             if (isSuperAdmin && !isOwner) {
                 await notificationService.createForUser(order.userId, {
-                    type: 'order-deleted',
-                    title: 'Order Deleted',
+                    type: "order-deleted",
+                    title: "Order Deleted",
                     message: `Order #${order.orderNumber} has been deleted by admin`,
                     data: {
                         orderId: order._id,
                         orderNumber: order.orderNumber,
-                        deletedBy: userId
+                        deletedBy: userId,
                     },
-                    link: `/dashboards/customer/orders`
+                    link: `/dashboards/customer/orders`,
                 });
                 await notificationService.createForAdmins({
-                    type: 'admin-order-deleted',
-                    title: 'Order Deleted',
+                    type: "admin-order-deleted",
+                    title: "Order Deleted",
                     message: `Order #${order.orderNumber} was deleted by admin`,
                     data: {
                         orderId: order._id,
                         orderNumber: order.orderNumber,
                         customerId: order.userId,
-                        deletedBy: userId
+                        deletedBy: userId,
                     },
-                    link: `/dashboards/admin/orders`
+                    link: `/dashboards/admin/orders`,
                 });
             }
         }
         catch (notifErr) {
-            console.error('Failed to create order deletion notification:', notifErr);
+            console.error("Failed to create order deletion notification:", notifErr);
         }
         return "Order deleted successfully";
     }
@@ -407,8 +438,8 @@ export const getUserOrders = async (userId, page = 1, limit = 10, search, status
     }
     if (search) {
         query.$or = [
-            { orderNumber: { $regex: search, $options: 'i' } },
-            { 'items.productName': { $regex: search, $options: 'i' } }
+            { orderNumber: { $regex: search, $options: "i" } },
+            { "items.productName": { $regex: search, $options: "i" } },
         ];
     }
     const skip = (page - 1) * limit;
@@ -460,7 +491,8 @@ export const updateOrderStatus = async (orderId, newStatus, userId, userRole, io
             });
             if (user && profile) {
                 await emailService
-                    .sendPaymentConfirmation(user.email, profile.firstName, order.orderNumber, order.requiredDeposit || order.totalAmount * 0.3, "part", "Bank Transfer or Paystack", order.totalAmount - (order.requiredDeposit || order.totalAmount * 0.3))
+                    .sendPaymentConfirmation(user.email, profile.firstName, order.orderNumber, order.requiredDeposit || order.totalAmount * 0.3, "part", "Bank Transfer or Paystack", order.totalAmount -
+                    (order.requiredDeposit || order.totalAmount * 0.3))
                     .catch((err) => console.error("Error sending part payment email:", err));
             }
             io.to("admin-room").emit("order-awaiting-part-payment", {
@@ -555,46 +587,46 @@ export const updateOrderStatus = async (orderId, newStatus, userId, userRole, io
             oldStatus,
         });
         try {
-            let title = 'Order Status Updated';
+            let title = "Order Status Updated";
             let message = `Order #${order.orderNumber} status changed from ${oldStatus} to ${newStatus}`;
             if (newStatus === OrderStatus.AwaitingPartPayment) {
-                title = 'Part Payment Required';
+                title = "Part Payment Required";
                 message = `A deposit of ₦${(order.requiredDeposit || order.totalAmount * 0.3).toLocaleString()} is required for order #${order.orderNumber}`;
             }
             else if (newStatus === OrderStatus.Delivered) {
-                title = 'Order Delivered';
+                title = "Order Delivered";
                 message = `Order #${order.orderNumber} has been delivered!`;
             }
             else if (newStatus === OrderStatus.InProduction) {
-                title = 'Order In Production';
+                title = "Order In Production";
                 message = `Order #${order.orderNumber} is now in production`;
             }
             else if (newStatus === OrderStatus.ReadyForShipping) {
-                title = 'Order Ready for Shipping';
+                title = "Order Ready for Shipping";
                 message = `Order #${order.orderNumber} is ready for shipping`;
             }
             else if (newStatus === OrderStatus.AwaitingInvoice) {
-                title = 'Order Awaiting Invoice';
+                title = "Order Awaiting Invoice";
                 message = `Order #${order.orderNumber} is awaiting invoice generation`;
             }
             else if (newStatus === OrderStatus.FilesUploaded) {
-                title = 'Briefs Submitted';
+                title = "Briefs Submitted";
                 message = `Customization briefs submitted for order #${order.orderNumber}`;
             }
             else if (newStatus === OrderStatus.AwaitingFinalPayment) {
-                title = 'Final Payment Required';
+                title = "Final Payment Required";
                 message = `Order #${order.orderNumber} is complete! Please pay the remaining balance of ₦${order.remainingBalance} to proceed with shipping.`;
             }
             else if (newStatus === OrderStatus.Completed) {
-                title = 'Order Ready for Shipping Selection';
+                title = "Order Ready for Shipping Selection";
                 message = `Order #${order.orderNumber} is ready! Please log in to select a shipping method.`;
             }
             else if (newStatus === OrderStatus.Shipped) {
-                title = 'Order Shipped';
+                title = "Order Shipped";
                 message = `Order #${order.orderNumber} has been shipped!`;
             }
             await notificationService.createForUser(order.userId, {
-                type: 'order-status-updated',
+                type: "order-status-updated",
                 title,
                 message,
                 data: {
@@ -605,14 +637,18 @@ export const updateOrderStatus = async (orderId, newStatus, userId, userRole, io
                     updatedBy: userId,
                     ...(newStatus === OrderStatus.AwaitingPartPayment && {
                         depositAmount: order.requiredDeposit || order.totalAmount * 0.3,
-                        totalAmount: order.totalAmount
+                        totalAmount: order.totalAmount,
                     }),
-                    ...(newStatus === OrderStatus.AwaitingFinalPayment && { amount: order.remainingBalance }),
-                    ...(newStatus === OrderStatus.Completed && { shippingSelectionLink: `/orders/${order.orderNumber}/shipping` }),
+                    ...(newStatus === OrderStatus.AwaitingFinalPayment && {
+                        amount: order.remainingBalance,
+                    }),
+                    ...(newStatus === OrderStatus.Completed && {
+                        shippingSelectionLink: `/orders/${order.orderNumber}/shipping`,
+                    }),
                 },
                 link: newStatus === OrderStatus.Completed
                     ? `/orders/${order.orderNumber}/shipping`
-                    : `/dashboards/customer/orders/${order._id}`
+                    : `/dashboards/customer/orders/${order._id}`,
             });
             const significantStatuses = [
                 OrderStatus.AwaitingPartPayment,
@@ -627,8 +663,8 @@ export const updateOrderStatus = async (orderId, newStatus, userId, userRole, io
             ];
             if (significantStatuses.includes(newStatus)) {
                 await notificationService.createForAdmins({
-                    type: 'admin-order-status-updated',
-                    title: 'Order Status Updated',
+                    type: "admin-order-status-updated",
+                    title: "Order Status Updated",
                     message: `Order #${order.orderNumber} status changed from ${oldStatus} to ${newStatus}`,
                     data: {
                         orderId: order._id,
@@ -639,17 +675,21 @@ export const updateOrderStatus = async (orderId, newStatus, userId, userRole, io
                         updatedBy: userId,
                         ...(newStatus === OrderStatus.AwaitingPartPayment && {
                             depositAmount: order.requiredDeposit || order.totalAmount * 0.3,
-                            totalAmount: order.totalAmount
+                            totalAmount: order.totalAmount,
                         }),
-                        ...(newStatus === OrderStatus.AwaitingFinalPayment && { amount: order.remainingBalance }),
-                        ...(newStatus === OrderStatus.Completed && { requiresShippingSelection: true }),
+                        ...(newStatus === OrderStatus.AwaitingFinalPayment && {
+                            amount: order.remainingBalance,
+                        }),
+                        ...(newStatus === OrderStatus.Completed && {
+                            requiresShippingSelection: true,
+                        }),
                     },
-                    link: `/dashboards/admin/orders/${order._id}`
+                    link: `/dashboards/admin/orders/${order._id}`,
                 });
             }
         }
         catch (notifErr) {
-            console.error('Failed to create order status notification:', notifErr);
+            console.error("Failed to create order status notification:", notifErr);
         }
         return order;
     }
@@ -670,25 +710,25 @@ export const getAllOrders = async (userRole, page = 1, limit = 10, filters) => {
     if (filters?.paymentStatus) {
         query.paymentStatus = filters.paymentStatus;
     }
-    if (filters?.search && filters.search.trim() !== '') {
-        const searchRegex = new RegExp(filters.search, 'i');
+    if (filters?.search && filters.search.trim() !== "") {
+        const searchRegex = new RegExp(filters.search, "i");
         const matchingUsers = await User.find({
-            email: searchRegex
-        }).select('_id');
+            email: searchRegex,
+        }).select("_id");
         const matchingProfiles = await Profile.find({
             $or: [
                 { firstName: searchRegex },
                 { lastName: searchRegex },
-                { userName: searchRegex }
-            ]
-        }).select('userId');
+                { userName: searchRegex },
+            ],
+        }).select("userId");
         const userIds = [
-            ...matchingUsers.map(u => u._id),
-            ...matchingProfiles.map(p => p.userId)
+            ...matchingUsers.map((u) => u._id),
+            ...matchingProfiles.map((p) => p.userId),
         ];
         query.$or = [
             { orderNumber: searchRegex },
-            { 'items.productName': searchRegex }
+            { "items.productName": searchRegex },
         ];
         if (userIds.length > 0) {
             query.$or.push({ userId: { $in: userIds } });
@@ -703,8 +743,8 @@ export const getAllOrders = async (userRole, page = 1, limit = 10, filters) => {
             populate: {
                 path: "profile",
                 model: "Profile",
-                select: "firstName lastName userName"
-            }
+                select: "firstName lastName userName",
+            },
         })
             .populate("items.productId", "name")
             .populate("invoiceId")
@@ -722,18 +762,33 @@ export const getAllOrders = async (userRole, page = 1, limit = 10, filters) => {
         limit,
     };
 };
-export const getOrdersReadyForInvoice = async (userRole) => {
+export const getOrdersReadyForInvoice = async (userRole, page = 1, limit = 10) => {
     if (userRole !== UserRole.SuperAdmin) {
         throw new Error("Unauthorized - Only super admin can view orders ready for invoice");
     }
-    return Order.find({
-        status: OrderStatus.AwaitingInvoice,
-        invoiceId: { $exists: false },
-    })
-        .populate("userId", "email fullname")
-        .populate("items.productId", "name price")
-        .sort({ createdAt: 1 })
-        .exec();
+    const skip = (page - 1) * limit;
+    const [orders, total] = await Promise.all([
+        Order.find({
+            status: OrderStatus.AwaitingInvoice,
+            invoiceId: { $exists: false },
+        })
+            .populate("userId", "email fullname")
+            .populate("items.productId", "name price")
+            .sort({ createdAt: 1 })
+            .skip(skip)
+            .limit(limit)
+            .exec(),
+        Order.countDocuments({
+            status: OrderStatus.AwaitingInvoice,
+            invoiceId: { $exists: false },
+        }),
+    ]);
+    return {
+        orders,
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+    };
 };
 export const markOrderAsAwaitingInvoice = async (orderId, userRole) => {
     const session = await mongoose.startSession();
@@ -1012,7 +1067,7 @@ export const addItemToOrderService = async (orderId, userId, productId, quantity
             OrderStatus.Pending,
             OrderStatus.OrderReceived,
             OrderStatus.FilesUploaded,
-            OrderStatus.AwaitingInvoice
+            OrderStatus.AwaitingInvoice,
         ];
         if (!allowedStatuses.includes(order.status)) {
             throw new Error("Cannot add items to order in current status");
@@ -1059,11 +1114,11 @@ export const getUserActiveOrders = async (userId, statuses = [
     OrderStatus.OrderReceived,
     OrderStatus.Pending,
     OrderStatus.FilesUploaded,
-    OrderStatus.AwaitingInvoice
+    OrderStatus.AwaitingInvoice,
 ]) => {
     const orders = await Order.find({
         userId: userId,
-        status: { $in: statuses }
+        status: { $in: statuses },
     })
         .sort({ createdAt: -1 })
         .populate("items.productId", "name images")

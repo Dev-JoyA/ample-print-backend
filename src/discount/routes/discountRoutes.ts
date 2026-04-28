@@ -14,16 +14,12 @@ import {
 
 const router = Router();
 
-// Public validation endpoint (no auth required for checkout)
 router.post("/validate", validateDiscount);
 
-// Protected routes (require authentication)
 router.use(authMiddleware);
 
-// Get all active discounts (for checkout page)
 router.get("/active", getActiveDiscounts);
 
-// Super admin only routes
 router.use(checkSuperAdmin);
 
 router.post("/", createDiscount);

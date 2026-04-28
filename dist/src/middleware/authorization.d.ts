@@ -5,5 +5,5 @@ export declare const checkRole: (roles: UserRole[]) => (req: Request, res: Respo
 export declare const checkSuperAdmin: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const checkAdmin: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const checkOwnership: (req: Request, res: Response, next: NextFunction) => void | Response<any, Record<string, any>>;
-export declare const errorHandler: (err: any, req: Request, res: Response, next: NextFunction) => void;
+export declare const errorHandler: (err: any, req: Request, res: Response) => void;
 //# sourceMappingURL=authorization.d.ts.map

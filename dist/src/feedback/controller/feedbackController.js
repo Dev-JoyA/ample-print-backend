@@ -3,14 +3,12 @@ import { FeedBackStatus } from "../model/feedback.js";
 const getIO = (req) => {
     return req.io || req.app.get("io");
 };
-// ==================== CREATE FEEDBACK ====================
 export const createFeedback = async (req, res) => {
     try {
         const user = req.user;
         const io = getIO(req);
         const { orderId, designId, message } = req.body;
         const files = req.files;
-        // Validate required fields
         if (!orderId) {
             return res.status(400).json({
                 success: false,
@@ -23,7 +21,6 @@ export const createFeedback = async (req, res) => {
                 message: "Feedback message is required",
             });
         }
-        // Process attachments if any
         const attachments = files?.map((file) => `/uploads/${file.filename}`) || [];
         const feedback = await feedbackService.createCustomerFeedback({
             orderId,
@@ -51,11 +48,11 @@ export const respondToFeedback = async (req, res) => {
         const { feedbackId } = req.params;
         let response;
         let attachments = [];
-        if (req.is('multipart/form-data')) {
+        if (req.is("multipart/form-data")) {
             response = req.body.response;
             const files = req.files;
             if (files && files.length > 0) {
-                attachments = files.map(file => `/uploads/${file.filename}`);
+                attachments = files.map((file) => `/uploads/${file.filename}`);
             }
         }
         else {
@@ -67,7 +64,6 @@ export const respondToFeedback = async (req, res) => {
                 message: "Response message is required",
             });
         }
-        // Now passing 5 arguments correctly
         const feedback = await feedbackService.adminRespondToFeedback(feedbackId, response, attachments, user._id, io);
         res.status(200).json({
             success: true,
@@ -82,7 +78,6 @@ export const respondToFeedback = async (req, res) => {
         });
     }
 };
-// ==================== UPDATE FEEDBACK STATUS ====================
 export const updateStatus = async (req, res) => {
     try {
         const user = req.user;
@@ -95,7 +90,6 @@ export const updateStatus = async (req, res) => {
                 message: "Status is required",
             });
         }
-        // Validate status enum
         if (!Object.values(FeedBackStatus).includes(status)) {
             return res.status(400).json({
                 success: false,
@@ -116,7 +110,6 @@ export const updateStatus = async (req, res) => {
         });
     }
 };
-// ==================== DELETE FEEDBACK ====================
 export const deleteFeedback = async (req, res) => {
     try {
         const user = req.user;
@@ -135,7 +128,6 @@ export const deleteFeedback = async (req, res) => {
         });
     }
 };
-// ==================== GET PENDING FEEDBACK ====================
 export const getPendingFeedback = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -153,7 +145,6 @@ export const getPendingFeedback = async (req, res) => {
         });
     }
 };
-// ==================== GET ALL FEEDBACK (NEW) ====================
 export const getAllFeedback = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -178,7 +169,6 @@ export const getAllFeedback = async (req, res) => {
         });
     }
 };
-// ==================== FILTER FEEDBACK (NEW) ====================
 export const filterFeedback = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -186,8 +176,12 @@ export const filterFeedback = async (req, res) => {
         const status = req.query.status;
         const orderId = req.query.orderId;
         const userId = req.query.userId;
-        const startDate = req.query.startDate ? new Date(req.query.startDate) : undefined;
-        const endDate = req.query.endDate ? new Date(req.query.endDate) : undefined;
+        const startDate = req.query.startDate
+            ? new Date(req.query.startDate)
+            : undefined;
+        const endDate = req.query.endDate
+            ? new Date(req.query.endDate)
+            : undefined;
         const result = await feedbackService.filterFeedback({
             page,
             limit,
@@ -209,7 +203,6 @@ export const filterFeedback = async (req, res) => {
         });
     }
 };
-// ==================== GET FEEDBACK BY ID ====================
 export const getFeedbackById = async (req, res) => {
     try {
         const user = req.user;
@@ -227,7 +220,6 @@ export const getFeedbackById = async (req, res) => {
         });
     }
 };
-// ==================== GET FEEDBACK BY ORDER ID ====================
 export const getFeedbackByOrderId = async (req, res) => {
     try {
         const user = req.user;
@@ -251,7 +243,7 @@ export const getUserFeedback = async (req, res) => {
         const user = req.user;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const status = req.query.status; // Get status from query
+        const status = req.query.status;
         const result = await feedbackService.getUserFeedback(user._id, page, limit, status);
         res.status(200).json({
             success: true,

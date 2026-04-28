@@ -17,7 +17,6 @@ const fileFilter = (req, file, cb) => {
         cb(new Error("Only image files (jpeg, jpg, png, gif, webp) are allowed"), false);
     }
 };
-// Multer config for file uploads
 const upload = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => cb(null, "uploads/"),
@@ -29,23 +28,16 @@ const upload = multer({
     fileFilter,
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
-// All routes require authentication
 router.use(authMiddleware);
-// ===== CUSTOMER ROUTES =====
 router.post("/", checkRole([UserRole.Customer]), upload.array("attachments", 5), createFeedback);
 router.get("/user", checkRole([UserRole.Customer]), getUserFeedback);
-// ===== ADMIN ROUTES =====
 router.get("/pending", checkAdmin, getPendingFeedback);
-// NEW: Get all feedback with pagination and filters
 router.get("/all", checkAdmin, getAllFeedback);
-// NEW: Advanced filtering
 router.get("/filter", checkAdmin, filterFeedback);
 router.post("/:feedbackId/respond", checkAdmin, upload.array("attachments", 5), respondToFeedback);
 router.patch("/:feedbackId/status", checkAdmin, updateStatus);
-// ===== SHARED ROUTES =====
 router.get("/:feedbackId", checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]), getFeedbackById);
 router.get("/order/:orderId", checkRole([UserRole.Customer, UserRole.Admin, UserRole.SuperAdmin]), getFeedbackByOrderId);
-// ===== SUPER ADMIN ONLY =====
 router.delete("/:feedbackId", checkRole([UserRole.SuperAdmin]), deleteFeedback);
 export default router;
 //# sourceMappingURL=feedbackRoute.js.map

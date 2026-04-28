@@ -2,8 +2,6 @@ import { Request, Response } from "express";
 import * as productService from "../service/productService.js";
 import { ProductData, ProductFilter } from "../model/productInterface.js";
 
-// ---------------- COLLECTION ---------------- //
-
 export const createCollection = async (req: Request, res: Response) => {
   try {
     const { name } = req.body;
@@ -64,8 +62,6 @@ export const getCollectionById = async (
     res.status(404).json({ success: false, message: error.message });
   }
 };
-
-// ---------------- PRODUCT ---------------- //
 
 export const createProduct = async (
   req: Request<{ collectionId: string }>,

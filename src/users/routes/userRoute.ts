@@ -11,7 +11,6 @@ import {
 
 import { authMiddleware } from "../../middleware/authMiddleware.js";
 import {
-  checkAdmin,
   checkSuperAdmin,
   checkOwnership,
 } from "../../middleware/authorization.js";

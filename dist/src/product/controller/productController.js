@@ -1,5 +1,4 @@
 import * as productService from "../service/productService.js";
-// ---------------- COLLECTION ---------------- //
 export const createCollection = async (req, res) => {
     try {
         const { name } = req.body;
@@ -52,20 +51,21 @@ export const getCollectionById = async (req, res) => {
         res.status(404).json({ success: false, message: error.message });
     }
 };
-// ---------------- PRODUCT ---------------- //
 export const createProduct = async (req, res) => {
     try {
         const { collectionId } = req.params;
         const files = req.files;
         if (!files || files.length === 0)
-            return res.status(400).json({ success: false, message: "At least one image is required." });
+            return res
+                .status(400)
+                .json({ success: false, message: "At least one image is required." });
         const parsedProductData = JSON.parse(req.body.productData);
         const productData = {
             ...parsedProductData,
             image: `/uploads/${files[0].filename}`,
             filename: files[0].filename,
-            images: files.map(f => `/uploads/${f.filename}`),
-            filenames: files.map(f => f.filename),
+            images: files.map((f) => `/uploads/${f.filename}`),
+            filenames: files.map((f) => f.filename),
         };
         const product = await productService.createProduct(collectionId, productData);
         res.status(201).json({ success: true, product });
@@ -82,8 +82,8 @@ export const updateProduct = async (req, res) => {
         if (files && files.length > 0) {
             updatedData.image = `/uploads/${files[0].filename}`;
             updatedData.filename = files[0].filename;
-            updatedData.images = files.map(f => `/uploads/${f.filename}`);
-            updatedData.filenames = files.map(f => f.filename);
+            updatedData.images = files.map((f) => `/uploads/${f.filename}`);
+            updatedData.filenames = files.map((f) => f.filename);
         }
         const updatedProduct = await productService.updateProduct(id, updatedData);
         res.status(200).json({ success: true, product: updatedProduct });

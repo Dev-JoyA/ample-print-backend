@@ -1020,25 +1020,6 @@ export const getOrdersReadyForInvoice = async (
   };
 };
 
-// export const getOrdersReadyForInvoice = async (
-//   userRole: string,
-// ): Promise<IOrderModel[]> => {
-//   if (userRole !== UserRole.SuperAdmin) {
-//     throw new Error(
-//       "Unauthorized - Only super admin can view orders ready for invoice",
-//     );
-//   }
-
-//   return Order.find({
-//     status: OrderStatus.AwaitingInvoice,
-//     invoiceId: { $exists: false },
-//   })
-//     .populate("userId", "email fullname")
-//     .populate("items.productId", "name price")
-//     .sort({ createdAt: 1 })
-//     .exec();
-// };
-
 export const markOrderAsAwaitingInvoice = async (
   orderId: string,
   userRole: string,
