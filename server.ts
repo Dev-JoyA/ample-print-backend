@@ -50,14 +50,30 @@ const server = http.createServer(app);
 
 const PORT = process.env.PORT || 4001;
 
+// const allowedOrigins =
+//   process.env.NODE_ENV === "production"
+//     ? [process.env.FRONTEND_URL!]
+//     : [
+//         "http://localhost:3000",
+//         "http://localhost:3001",
+//         "http://localhost:4001",
+//       ];
+
 const allowedOrigins =
   process.env.NODE_ENV === "production"
-    ? [process.env.FRONTEND_URL!]
+    ? ([
+        "https://ample-print-frontend.vercel.app",
+        process.env.FRONTEND_URL,
+      ].filter(Boolean) as string[])
     : [
         "http://localhost:3000",
         "http://localhost:3001",
         "http://localhost:4001",
       ];
+
+console.log("Allowed origins:", allowedOrigins);
+console.log("FRONTEND_URL env:", process.env.FRONTEND_URL);
+console.log("NODE_ENV:", process.env.NODE_ENV);
 
 const corsOptions: cors.CorsOptions = {
   origin: allowedOrigins,
