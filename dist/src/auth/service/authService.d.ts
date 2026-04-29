@@ -33,7 +33,7 @@ export declare function refreshTokenService(refreshToken: string): Promise<{
     refreshToken: string;
 }>;
 export declare function logoutService(refreshToken: string): Promise<void>;
-export declare function createAdminService(data: SignUpData, superAdmin: AdminData): Promise<{
+export declare function createAdminService(data: SignUpData, _superAdmin: AdminData): Promise<{
     user: Partial<IUser> | null;
     profile: Partial<IProfile> | null;
 }>;

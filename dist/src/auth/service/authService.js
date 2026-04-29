@@ -168,8 +168,7 @@ export async function refreshTokenService(refreshToken) {
 export async function logoutService(refreshToken) {
     await RefreshToken.deleteOne({ token: refreshToken });
 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function createAdminService(data, superAdmin) {
+export async function createAdminService(data, _superAdmin) {
     const { firstName, lastName, userName, email, password, phoneNumber, address, } = data;
     if (!email ||
         !password ||
