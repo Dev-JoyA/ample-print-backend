@@ -115,7 +115,7 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 // });
 
 const authLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
+  windowMs: 10 * 60 * 1000,
   max: process.env.NODE_ENV === "production" ? 10 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
