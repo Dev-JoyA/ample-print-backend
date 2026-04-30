@@ -114,28 +114,28 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 //   legacyHeaders: false,
 // });
 
-const authLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: process.env.NODE_ENV === "production" ? 10 : 1000,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res) => {
-    const resetTime = req.rateLimit?.resetTime;
-    const now = new Date();
-    const diffMs = resetTime
-      ? resetTime.getTime() - now.getTime()
-      : 60 * 60 * 1000;
-    const diffMins = Math.ceil(Math.max(diffMs, 0) / 1000 / 60);
+// const authLimiter = rateLimit({
+//   windowMs: 10 * 60 * 1000,
+//   max: process.env.NODE_ENV === "production" ? 10 : 1000,
+//   standardHeaders: true,
+//   legacyHeaders: false,
+//   handler: (req, res) => {
+//     const resetTime = req.rateLimit?.resetTime;
+//     const now = new Date();
+//     const diffMs = resetTime
+//       ? resetTime.getTime() - now.getTime()
+//       : 60 * 60 * 1000;
+//     const diffMins = Math.ceil(Math.max(diffMs, 0) / 1000 / 60);
 
-    res.status(429).json({
-      success: false,
-      message: `Too many login attempts. Please wait ${diffMins} minute${diffMins === 1 ? "" : "s"} and try again.`,
-    });
-  },
-});
+//     res.status(429).json({
+//       success: false,
+//       message: `Too many login attempts. Please wait ${diffMins} minute${diffMins === 1 ? "" : "s"} and try again.`,
+//     });
+//   },
+// });
 
 // app.use("/api", limiter);
-app.use("/api/v1/auth", authLimiter);
+//app.use("/api/v1/auth", authLimiter);
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
