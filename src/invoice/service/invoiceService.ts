@@ -53,6 +53,9 @@ export const createInvoice = async (
       quantity: number;
       totalPrice: number;
       originalTotal: number;
+      designFee?: number;
+      printingCost?: number;
+      needsDesignAssistance?: boolean;
     }>;
   },
   superAdminId: string,
@@ -131,6 +134,30 @@ export const createInvoice = async (
 
     const invoiceNumber = await generateInvoiceNumber();
 
+    const invoiceItems = order.items.map((item) => {
+      const customItem = data.items?.find(
+        (i) => i.productId.toString() === item.productId.toString(),
+      );
+
+      const printingCost =
+        customItem?.printingCost || item.price * item.quantity;
+      const designFee = customItem?.designFee || 0;
+      const needsDesignAssistance = customItem?.needsDesignAssistance || false;
+      const total = printingCost + designFee;
+
+      return {
+        description: needsDesignAssistance
+          ? `${item.productName} (with design assistance)`
+          : item.productName,
+        quantity: item.quantity,
+        unitPrice: total / item.quantity,
+        total: total,
+        designFee: designFee,
+        printingCost: printingCost,
+        needsDesignAssistance: needsDesignAssistance,
+      };
+    });
+
     const [invoice] = await Invoice.create(
       [
         {
@@ -138,12 +165,7 @@ export const createInvoice = async (
           orderNumber: order.orderNumber,
           invoiceNumber,
           invoiceType: InvoiceType.Main,
-          items: order.items.map((item) => ({
-            description: item.productName,
-            quantity: item.quantity,
-            unitPrice: item.price,
-            total: item.price * item.quantity,
-          })),
+          items: invoiceItems,
           subtotal,
           discount,
           totalAmount,

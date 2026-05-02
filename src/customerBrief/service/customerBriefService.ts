@@ -98,6 +98,7 @@ export const createOrUpdateCustomerBrief = async (
     viewed: false,
     viewedAt: null,
     status: briefStatus,
+    hasOwnDesign: brief.hasOwnDesign || false,
   });
 
   await savedBrief.save();

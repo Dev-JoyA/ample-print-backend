@@ -27,6 +27,7 @@ export interface ICustomerBrief extends Document {
   adminViewed?: boolean;
   adminViewedAt?: Date;
   status: CustomerBriefStatus;
+  hasOwnDesign: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,6 +41,7 @@ export interface CreateCustomerBriefDTO {
   voiceNote?: string;
   video?: string;
   description?: string;
+  hasOwnDesign?: boolean;
   logo?: string;
 }
 
@@ -98,6 +100,10 @@ const CustomerBriefSchema = new Schema<ICustomerBrief>(
       default: CustomerBriefStatus.Pending,
       index: true,
     },
+    hasOwnDesign: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );
@@ -112,6 +118,8 @@ CustomerBriefSchema.index({
   viewed: 1,
   createdAt: -1,
 });
+
+CustomerBriefSchema.index({ hasOwnDesign: 1 });
 
 export const CustomerBrief = model<ICustomerBrief>(
   "CustomerBrief",

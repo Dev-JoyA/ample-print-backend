@@ -221,6 +221,7 @@ app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/users", userRoute);
 app.use("/api/v1", productRoute);
 app.use("/api/v1/attachments", attachmentRoute);
+app.use("/api/v1/receipts", receiptRoute);
 app.use("/api/v1/design", designRoute);
 app.use("/api/v1/orders", orderRoute);
 app.use("/api/v1/feedback", feedbackRoute);
@@ -229,7 +230,6 @@ app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/discounts", discountRoute);
 app.use("/api/v1/invoices", invoiceRoute);
 app.use("/api/v1/payments", paymentRoute);
-app.use("/api/v1/receipts", receiptRoute);
 app.use("/api/v1/shipping", shippingRoute);
 app.use("/api/v1/bank-accounts", bankAccountRoute);
 

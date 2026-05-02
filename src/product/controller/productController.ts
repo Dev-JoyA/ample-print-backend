@@ -1,6 +1,227 @@
+// import { Request, Response } from "express";
+// import * as productService from "../service/productService.js";
+// import { ProductData, ProductFilter } from "../model/productInterface.js";
+
+// export const createCollection = async (req: Request, res: Response) => {
+//   try {
+//     const { name } = req.body;
+//     const collection = await productService.createCollection(name);
+//     res.status(201).json({ success: true, collection });
+//   } catch (error: any) {
+//     res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
+// export const updateCollection = async (
+//   req: Request<{ id: string }>,
+//   res: Response,
+// ) => {
+//   try {
+//     const { name } = req.body;
+//     const { id } = req.params;
+//     const collection = await productService.updateCollection(id, name);
+//     res.status(200).json({ success: true, collection });
+//   } catch (error: any) {
+//     res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
+// export const deleteCollection = async (
+//   req: Request<{ id: string }>,
+//   res: Response,
+// ) => {
+//   try {
+//     const { id } = req.params;
+//     const message = await productService.deleteCollection(id);
+//     res.status(200).json({ success: true, message });
+//   } catch (error: any) {
+//     res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
+// export const getCollectionsPaginated = async (req: Request, res: Response) => {
+//   try {
+//     const page = Number(req.query.page) || 1;
+//     const limit = Number(req.query.limit) || 10;
+//     const result = await productService.getCollectionsPaginated(page, limit);
+//     res.status(200).json({ success: true, ...result });
+//   } catch (error: any) {
+//     res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
+// export const getCollectionById = async (
+//   req: Request<{ id: string }>,
+//   res: Response,
+// ) => {
+//   try {
+//     const { id } = req.params;
+//     const collection = await productService.getCollectionById(id);
+//     res.status(200).json({ success: true, collection });
+//   } catch (error: any) {
+//     res.status(404).json({ success: false, message: error.message });
+//   }
+// };
+
+// export const createProduct = async (
+//   req: Request<{ collectionId: string }>,
+//   res: Response,
+// ) => {
+//   try {
+//     const { collectionId } = req.params;
+//     const files = req.files as Express.Multer.File[];
+
+//     if (!files || files.length === 0)
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "At least one image is required." });
+
+//     const parsedProductData = JSON.parse(req.body.productData) as ProductData;
+//     const productData: ProductData = {
+//       ...parsedProductData,
+//       image: `/uploads/${files[0].filename}`,
+//       filename: files[0].filename,
+//       images: files.map((f) => `/uploads/${f.filename}`),
+//       filenames: files.map((f) => f.filename),
+//     };
+
+//     const product = await productService.createProduct(
+//       collectionId,
+//       productData,
+//     );
+//     res.status(201).json({ success: true, product });
+//   } catch (error: any) {
+//     res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
+// export const updateProduct = async (
+//   req: Request<{ id: string }>,
+//   res: Response,
+// ) => {
+//   try {
+//     const { id } = req.params;
+//     const files = req.files as Express.Multer.File[];
+//     const updatedData: Partial<ProductData> = { ...req.body };
+
+//     if (files && files.length > 0) {
+//       updatedData.image = `/uploads/${files[0].filename}`;
+//       updatedData.filename = files[0].filename;
+//       updatedData.images = files.map((f) => `/uploads/${f.filename}`);
+//       updatedData.filenames = files.map((f) => f.filename);
+//     }
+
+//     const updatedProduct = await productService.updateProduct(id, updatedData);
+//     res.status(200).json({ success: true, product: updatedProduct });
+//   } catch (error: any) {
+//     res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
+// export const deleteProduct = async (
+//   req: Request<{ id: string }>,
+//   res: Response,
+// ) => {
+//   try {
+//     const { id } = req.params;
+//     const message = await productService.deleteProduct(id);
+//     res.status(200).json({ success: true, message });
+//   } catch (error: any) {
+//     res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
+// export const getProductById = async (
+//   req: Request<{ id: string }>,
+//   res: Response,
+// ) => {
+//   try {
+//     const { id } = req.params;
+//     const product = await productService.getProductById(id);
+//     res.status(200).json({ success: true, product });
+//   } catch (error: any) {
+//     res.status(404).json({ success: false, message: error.message });
+//   }
+// };
+
+// export const getProductsPaginated = async (req: Request, res: Response) => {
+//   try {
+//     const page = Number(req.query.page) || 1;
+//     const limit = Number(req.query.limit) || 10;
+//     const result = await productService.getProductsPaginated(page, limit);
+//     res.status(200).json({ success: true, ...result });
+//   } catch (error: any) {
+//     res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
+// export const filterProducts = async (req: Request, res: Response) => {
+//   try {
+//     const { priceMin, priceMax, status, collectionId } = req.query;
+//     const page = Number(req.query.page) || 1;
+//     const limit = Number(req.query.limit) || 10;
+
+//     const result = await productService.filterProducts(
+//       {
+//         priceMin: priceMin ? Number(priceMin) : undefined,
+//         priceMax: priceMax ? Number(priceMax) : undefined,
+//         status: status as any,
+//         collectionId: collectionId as string,
+//       } as ProductFilter,
+//       page,
+//       limit,
+//     );
+
+//     res.status(200).json({ success: true, ...result });
+//   } catch (error: any) {
+//     res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
+// export const getProductsByCollectionId = async (
+//   req: Request<{ collectionId: string }>,
+//   res: Response,
+// ) => {
+//   try {
+//     const { collectionId } = req.params;
+//     const products =
+//       await productService.getProductsByCollectionId(collectionId);
+//     res.status(200).json({ success: true, products });
+//   } catch (error: any) {
+//     res.status(404).json({ success: false, message: error.message });
+//   }
+// };
+
+// export const searchProductsByName = async (req: Request, res: Response) => {
+//   try {
+//     const { search } = req.query;
+//     const page = Number(req.query.page) || 1;
+//     const limit = Number(req.query.limit) || 10;
+
+//     const result = await productService.searchProductsByName(
+//       search as string,
+//       page,
+//       limit,
+//     );
+//     res.status(200).json({ success: true, ...result });
+//   } catch (error: any) {
+//     res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
 import { Request, Response } from "express";
 import * as productService from "../service/productService.js";
 import { ProductData, ProductFilter } from "../model/productInterface.js";
+
+// Helper function to get Cloudinary URL or fallback to local path
+const getFileUrl = (file: Express.Multer.File): string => {
+  const cloudinaryFile = file as any;
+  return (
+    cloudinaryFile.path ||
+    cloudinaryFile.secure_url ||
+    `/uploads/${file.filename}`
+  );
+};
 
 export const createCollection = async (req: Request, res: Response) => {
   try {
@@ -77,11 +298,12 @@ export const createProduct = async (
         .json({ success: false, message: "At least one image is required." });
 
     const parsedProductData = JSON.parse(req.body.productData) as ProductData;
+
     const productData: ProductData = {
       ...parsedProductData,
-      image: `/uploads/${files[0].filename}`,
+      image: getFileUrl(files[0]),
       filename: files[0].filename,
-      images: files.map((f) => `/uploads/${f.filename}`),
+      images: files.map((f) => getFileUrl(f)),
       filenames: files.map((f) => f.filename),
     };
 
@@ -105,9 +327,9 @@ export const updateProduct = async (
     const updatedData: Partial<ProductData> = { ...req.body };
 
     if (files && files.length > 0) {
-      updatedData.image = `/uploads/${files[0].filename}`;
+      updatedData.image = getFileUrl(files[0]);
       updatedData.filename = files[0].filename;
-      updatedData.images = files.map((f) => `/uploads/${f.filename}`);
+      updatedData.images = files.map((f) => getFileUrl(f));
       updatedData.filenames = files.map((f) => f.filename);
     }
 
