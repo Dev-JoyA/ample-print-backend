@@ -26,6 +26,9 @@ export interface IInvoice extends Document {
     quantity: number;
     unitPrice: number;
     total: number;
+    designFee?: number;
+    printingCost?: number;
+    needsDesignAssistance?: boolean;
   }[];
 
   subtotal: number;
@@ -88,6 +91,9 @@ const InvoiceSchema = new Schema<IInvoice>(
         quantity: { type: Number, required: true, min: 1 },
         unitPrice: { type: Number, required: true, min: 0 },
         total: { type: Number, required: true, min: 0 },
+        designFee: { type: Number, default: 0 },
+        printingCost: { type: Number, default: 0 },
+        needsDesignAssistance: { type: Boolean, default: false },
       },
     ],
 
