@@ -28,7 +28,6 @@ import shippingRoute from "./src/shipping/routes/shippingRoute.js";
 import { verifyToken } from "./src/utils/auth.js";
 import bankAccountRoute from "./src/bankAccount/routes/bankAccountRoute.js";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 import xss from "xss-clean";
 import hpp from "hpp";
@@ -96,26 +95,26 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 //   standardHeaders: true,
 //   legacyHeaders: false,
 // });
-const authLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000,
-    max: process.env.NODE_ENV === "production" ? 10 : 1000,
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        const resetTime = req.rateLimit?.resetTime;
-        const now = new Date();
-        const diffMs = resetTime
-            ? resetTime.getTime() - now.getTime()
-            : 60 * 60 * 1000;
-        const diffMins = Math.ceil(Math.max(diffMs, 0) / 1000 / 60);
-        res.status(429).json({
-            success: false,
-            message: `Too many login attempts. Please wait ${diffMins} minute${diffMins === 1 ? "" : "s"} and try again.`,
-        });
-    },
-});
+// const authLimiter = rateLimit({
+//   windowMs: 10 * 60 * 1000,
+//   max: process.env.NODE_ENV === "production" ? 10 : 1000,
+//   standardHeaders: true,
+//   legacyHeaders: false,
+//   handler: (req, res) => {
+//     const resetTime = req.rateLimit?.resetTime;
+//     const now = new Date();
+//     const diffMs = resetTime
+//       ? resetTime.getTime() - now.getTime()
+//       : 60 * 60 * 1000;
+//     const diffMins = Math.ceil(Math.max(diffMs, 0) / 1000 / 60);
+//     res.status(429).json({
+//       success: false,
+//       message: `Too many login attempts. Please wait ${diffMins} minute${diffMins === 1 ? "" : "s"} and try again.`,
+//     });
+//   },
+// });
 // app.use("/api", limiter);
-app.use("/api/v1/auth", authLimiter);
+//app.use("/api/v1/auth", authLimiter);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(mongoSanitize());
@@ -180,6 +179,7 @@ app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/users", userRoute);
 app.use("/api/v1", productRoute);
 app.use("/api/v1/attachments", attachmentRoute);
+app.use("/api/v1/receipts", receiptRoute);
 app.use("/api/v1/design", designRoute);
 app.use("/api/v1/orders", orderRoute);
 app.use("/api/v1/feedback", feedbackRoute);
@@ -188,7 +188,6 @@ app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/discounts", discountRoute);
 app.use("/api/v1/invoices", invoiceRoute);
 app.use("/api/v1/payments", paymentRoute);
-app.use("/api/v1/receipts", receiptRoute);
 app.use("/api/v1/shipping", shippingRoute);
 app.use("/api/v1/bank-accounts", bankAccountRoute);
 const io = new Server(server, {

@@ -1,7 +1,17 @@
+// import { Request, Response } from "express";
+// import * as paymentService from "../service/paymentService.js";
+// import { TransactionType } from "../model/transactionModel.js";
 import * as paymentService from "../service/paymentService.js";
 import { TransactionType } from "../model/transactionModel.js";
 const getIO = (req) => {
     return req.io || req.app.get("io");
+};
+// Helper function to get Cloudinary URL or fallback to local path
+const getFileUrl = (file) => {
+    const cloudinaryFile = file;
+    return (cloudinaryFile.path ||
+        cloudinaryFile.secure_url ||
+        `/uploads/receipts/${file.filename}`);
 };
 export const initializePaystackPayment = async (req, res) => {
     try {
@@ -91,7 +101,8 @@ export const uploadBankTransferReceipt = async (req, res) => {
                 message: "Invalid transaction type. Must be 'final' or 'part'",
             });
         }
-        const receiptUrl = `/uploads/receipts/${file.filename}`;
+        // Store full Cloudinary URL instead of local path
+        const receiptUrl = getFileUrl(file);
         const transaction = await paymentService.uploadBankTransferReceipt(orderId, invoiceId, amount, user._id, receiptUrl, transactionType, io);
         res.status(201).json({
             success: true,

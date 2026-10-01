@@ -1,4 +1,14 @@
+// import { Request, Response } from "express";
+// import * as productService from "../service/productService.js";
+// import { ProductData, ProductFilter } from "../model/productInterface.js";
 import * as productService from "../service/productService.js";
+// Helper function to get Cloudinary URL or fallback to local path
+const getFileUrl = (file) => {
+    const cloudinaryFile = file;
+    return (cloudinaryFile.path ||
+        cloudinaryFile.secure_url ||
+        `/uploads/${file.filename}`);
+};
 export const createCollection = async (req, res) => {
     try {
         const { name } = req.body;
@@ -62,9 +72,9 @@ export const createProduct = async (req, res) => {
         const parsedProductData = JSON.parse(req.body.productData);
         const productData = {
             ...parsedProductData,
-            image: `/uploads/${files[0].filename}`,
+            image: getFileUrl(files[0]),
             filename: files[0].filename,
-            images: files.map((f) => `/uploads/${f.filename}`),
+            images: files.map((f) => getFileUrl(f)),
             filenames: files.map((f) => f.filename),
         };
         const product = await productService.createProduct(collectionId, productData);
@@ -80,9 +90,9 @@ export const updateProduct = async (req, res) => {
         const files = req.files;
         const updatedData = { ...req.body };
         if (files && files.length > 0) {
-            updatedData.image = `/uploads/${files[0].filename}`;
+            updatedData.image = getFileUrl(files[0]);
             updatedData.filename = files[0].filename;
-            updatedData.images = files.map((f) => `/uploads/${f.filename}`);
+            updatedData.images = files.map((f) => getFileUrl(f));
             updatedData.filenames = files.map((f) => f.filename);
         }
         const updatedProduct = await productService.updateProduct(id, updatedData);

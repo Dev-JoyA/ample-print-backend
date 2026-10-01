@@ -1,3 +1,9 @@
+// import { Request, Response } from "express";
+// import { Types } from "mongoose";
+// import upload from "../../config/upload.js";
+// import * as customerBriefService from "../service/customerBriefService.js";
+// import { CreateCustomerBriefDTO } from "../model/customerBrief.js";
+// import { UserRole } from "../../users/model/userModel.js";
 import { Types } from "mongoose";
 import upload from "../../config/upload.js";
 import * as customerBriefService from "../service/customerBriefService.js";
@@ -6,6 +12,13 @@ const getIO = (req) => {
 };
 const getStringParam = (param) => {
     return Array.isArray(param) ? param[0] : param;
+};
+// Helper function to get Cloudinary URL or fallback to local path
+const getFileUrl = (file) => {
+    const cloudinaryFile = file;
+    return (cloudinaryFile.path ||
+        cloudinaryFile.secure_url ||
+        `/uploads/${file.filename}`);
 };
 export const uploadBriefFiles = upload.fields([
     { name: "image", maxCount: 1 },
@@ -18,7 +31,7 @@ export const submitCustomerBrief = async (req, res) => {
         const user = req.user;
         const orderId = getStringParam(req.params.orderId);
         const productId = getStringParam(req.params.productId);
-        const { description } = req.body;
+        const { description, hasOwnDesign } = req.body;
         const io = getIO(req);
         const files = req.files;
         if (!orderId || !productId) {
@@ -39,19 +52,22 @@ export const submitCustomerBrief = async (req, res) => {
         if (!finalDescription || finalDescription.trim() === "") {
             finalDescription = "Custom order - please check product specifications";
         }
+        const hasOwnDesignBoolean = hasOwnDesign === "true";
         const briefData = {
             orderId: new Types.ObjectId(orderId),
             productId: new Types.ObjectId(productId),
             description: finalDescription || undefined,
+            hasOwnDesign: hasOwnDesignBoolean,
         };
+        // Store full Cloudinary URLs instead of local paths
         if (files?.image)
-            briefData.image = `/uploads/${files.image[0].filename}`;
+            briefData.image = getFileUrl(files.image[0]);
         if (files?.voiceNote)
-            briefData.voiceNote = `/uploads/${files.voiceNote[0].filename}`;
+            briefData.voiceNote = getFileUrl(files.voiceNote[0]);
         if (files?.video)
-            briefData.video = `/uploads/${files.video[0].filename}`;
+            briefData.video = getFileUrl(files.video[0]);
         if (files?.logo)
-            briefData.logo = `/uploads/${files.logo[0].filename}`;
+            briefData.logo = getFileUrl(files.logo[0]);
         const brief = await customerBriefService.createOrUpdateCustomerBrief(briefData, user._id, user.role, io);
         res.status(201).json({
             success: true,
@@ -88,14 +104,15 @@ export const adminRespondToBrief = async (req, res) => {
             description: description || undefined,
             designId: designId ? new Types.ObjectId(designId) : undefined,
         };
+        // Store full Cloudinary URLs instead of local paths
         if (files?.image)
-            briefData.image = `/uploads/${files.image[0].filename}`;
+            briefData.image = getFileUrl(files.image[0]);
         if (files?.voiceNote)
-            briefData.voiceNote = `/uploads/${files.voiceNote[0].filename}`;
+            briefData.voiceNote = getFileUrl(files.voiceNote[0]);
         if (files?.video)
-            briefData.video = `/uploads/${files.video[0].filename}`;
+            briefData.video = getFileUrl(files.video[0]);
         if (files?.logo)
-            briefData.logo = `/uploads/${files.logo[0].filename}`;
+            briefData.logo = getFileUrl(files.logo[0]);
         const brief = await customerBriefService.createOrUpdateCustomerBrief(briefData, user._id, user.role, io);
         res.status(201).json({
             success: true,
@@ -142,14 +159,15 @@ export const customerReplyToAdmin = async (req, res) => {
             productId: new Types.ObjectId(productId),
             description: finalDescription || undefined,
         };
+        // Store full Cloudinary URLs instead of local paths
         if (files?.image)
-            briefData.image = `/uploads/${files.image[0].filename}`;
+            briefData.image = getFileUrl(files.image[0]);
         if (files?.voiceNote)
-            briefData.voiceNote = `/uploads/${files.voiceNote[0].filename}`;
+            briefData.voiceNote = getFileUrl(files.voiceNote[0]);
         if (files?.video)
-            briefData.video = `/uploads/${files.video[0].filename}`;
+            briefData.video = getFileUrl(files.video[0]);
         if (files?.logo)
-            briefData.logo = `/uploads/${files.logo[0].filename}`;
+            briefData.logo = getFileUrl(files.logo[0]);
         const brief = await customerBriefService.customerReplyToAdmin(briefData, user._id, user.role, io);
         res.status(201).json({
             success: true,
