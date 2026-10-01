@@ -69,6 +69,7 @@ export const createOrUpdateCustomerBrief = async (brief, userId, userRole, io) =
         viewed: false,
         viewedAt: null,
         status: briefStatus,
+        hasOwnDesign: brief.hasOwnDesign || false,
     });
     await savedBrief.save();
     if (userRole === UserRole.Customer) {

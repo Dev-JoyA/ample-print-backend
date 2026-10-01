@@ -65,6 +65,10 @@ const CustomerBriefSchema = new Schema({
         default: CustomerBriefStatus.Pending,
         index: true,
     },
+    hasOwnDesign: {
+        type: Boolean,
+        default: false,
+    },
 }, { timestamps: true });
 CustomerBriefSchema.index({ orderId: 1, productId: 1, role: 1 });
 CustomerBriefSchema.index({ orderId: 1 });
@@ -76,5 +80,6 @@ CustomerBriefSchema.index({
     viewed: 1,
     createdAt: -1,
 });
+CustomerBriefSchema.index({ hasOwnDesign: 1 });
 export const CustomerBrief = model("CustomerBrief", CustomerBriefSchema);
 //# sourceMappingURL=customerBrief.js.map

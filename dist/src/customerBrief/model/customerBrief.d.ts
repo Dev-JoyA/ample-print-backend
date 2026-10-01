@@ -24,6 +24,7 @@ export interface ICustomerBrief extends Document {
     adminViewed?: boolean;
     adminViewedAt?: Date;
     status: CustomerBriefStatus;
+    hasOwnDesign: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -36,6 +37,7 @@ export interface CreateCustomerBriefDTO {
     voiceNote?: string;
     video?: string;
     description?: string;
+    hasOwnDesign?: boolean;
     logo?: string;
 }
 export declare const CustomerBrief: import("mongoose").Model<ICustomerBrief, {}, {}, {}, Document<unknown, {}, ICustomerBrief, {}, {}> & ICustomerBrief & Required<{

@@ -34,6 +34,9 @@ export declare const createInvoice: (orderId: string, data: {
         quantity: number;
         totalPrice: number;
         originalTotal: number;
+        designFee?: number;
+        printingCost?: number;
+        needsDesignAssistance?: boolean;
     }>;
 }, superAdminId: string, io: Server) => Promise<IInvoice>;
 export declare const createShippingInvoice: (orderId: string, shippingId: string, data: {

@@ -22,6 +22,9 @@ export interface IInvoice extends Document {
         quantity: number;
         unitPrice: number;
         total: number;
+        designFee?: number;
+        printingCost?: number;
+        needsDesignAssistance?: boolean;
     }[];
     subtotal: number;
     discount: number;
