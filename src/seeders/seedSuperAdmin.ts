@@ -8,7 +8,7 @@ import { hashPassword } from "../utils/auth.js";
 dotenv.config();
 
 const DB_URL =
-  process.env.MONGO_URI ?? "mongodb://localhost:27017/ample_printhub";
+  process.env.MONGO_URI ?? "mongodb+srv://aph_db:ampleprinthub@aph-db.6pdiaqv.mongodb.net/";
 
 async function seedSuperAdmin() {
   try {
