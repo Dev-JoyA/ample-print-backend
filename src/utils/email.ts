@@ -144,6 +144,14 @@ export const sendWelcomeEmail = (to: string, name: string): Promise<void> =>
     data: { name },
   });
 
+  export const sendAdminWelcomeEmail = (to: string, name: string): Promise<void> =>
+  sendEmail({
+    to,
+    subject: "Welcome to Ample Printhub!",
+    template: "admin-welcome.html",
+    data: { name },
+  });
+
 export const sendOrderConfirmation = (
   to: string,
   name: string,
@@ -578,6 +586,7 @@ export const sendAdminNewBrief = (
 
 const emailService = {
   sendWelcomeEmail,
+  sendAdminWelcomeEmail,
   sendOrderConfirmation,
   sendInvoiceReady,
   sendDesignReady,

@@ -1,4 +1,3 @@
-// seeders/seedSuperAdmin.ts
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { User, UserRole } from "../users/model/userModel.js";
@@ -8,7 +7,9 @@ import { hashPassword } from "../utils/auth.js";
 dotenv.config();
 
 const DB_URL =
-  process.env.MONGO_URI ?? "mongodb+srv://aph_db:ampleprinthub@aph-db.6pdiaqv.mongodb.net/";
+  process.env.MONGO_URI ?? "mongodb";
+
+  const password = process.env.SUPER_ADMIN_PASSWORD;
 
 async function seedSuperAdmin() {
   try {
@@ -25,7 +26,7 @@ async function seedSuperAdmin() {
       await Profile.deleteMany({ userId: existingSuperAdmin._id });
     }
 
-    const hashedPassword = await hashPassword("StrongPassword123");
+    const hashedPassword = await hashPassword(password  || "pass");
 
     const superAdminUser = await User.create({
       email: "joy.gold13@gmail.com",
@@ -36,16 +37,13 @@ async function seedSuperAdmin() {
 
     const superAdminProfile = await Profile.create({
       userId: superAdminUser._id,
-      firstName: "Super",
-      lastName: "Admin",
-      userName: "superadmin",
-      phoneNumber: "08000000000",
+      firstName: "Ample",
+      lastName: "Printhub",
+      userName: "AmplePrinthub",
+      phoneNumber: "08142534202",
       address: "Lagos, Nigeria",
     });
 
-    console.log("✅ SuperAdmin created successfully:");
-    console.log("   Email:", superAdminUser.email);
-    console.log("   Password: StrongPassword123");
     console.log(
       "   Profile:",
       superAdminProfile.firstName,
