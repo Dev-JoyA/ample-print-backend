@@ -205,7 +205,7 @@ export const createOrder = async (
         profile.firstName,
         order.orderNumber,
         emailItems,
-        totalAmount,
+        totalAmount
       )
       .catch((err) =>
         console.error("Error sending order confirmation email", err),

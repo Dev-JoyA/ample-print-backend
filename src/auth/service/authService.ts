@@ -351,21 +351,9 @@ export async function createAdminService(
     }).lean();
 
     if (superAdminUser?.email) {
-      await emailService
-        .sendAdminNewOrder(
-          superAdminUser.email,
-          "N/A",
-          `${firstName} ${lastName}`,
+      await emailService.sendAdminWelcomeEmail(
           email,
-          0,
-          [
-            {
-              productName: "Admin Account Creation",
-              quantity: 1,
-              price: 0,
-              total: 0,
-            },
-          ],
+            firstName,
         )
         .catch(console.error);
     }
