@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Customization Confirmed - Ample Printhub</title>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: Arial, Helvetica, sans-serif; color: #1f2937;">
+    <div style="display: none; max-height: 0; overflow: hidden; opacity: 0;">
+      Your customization for order #{{orderNumber}} is confirmed. Your invoice will follow shortly.
+    </div>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f3f4f6">
+      <tr>
+        <td align="center" style="padding: 32px 16px;">
+          <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px;">
+            <tr>
+              <td align="left" style="padding: 28px 40px 20px 40px; border-bottom: 3px solid #059669;">
+                <img src="cid:ample_logo" alt="Ample Printhub" width="150" style="display: block; border: 0; height: auto; max-width: 150px;" />
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 32px 40px 8px 40px;">
+                <h1 style="margin: 0 0 20px 0; font-size: 22px; line-height: 1.3; font-weight: 700; color: #111827;">
+                  Your customization is confirmed
+                </h1>
+                <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #374151;">
+                  Hello {{name}},
+                </p>
+                <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #374151;">
+                  The customization details for every item on order
+                  <strong>#{{orderNumber}}</strong> are now confirmed. Our team will
+                  prepare your invoice based on these details, and we will email you as
+                  soon as it is ready.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 8px 40px 8px 40px;">
+                <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #6b7280;">
+                  Confirmed items
+                </p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border: 1px solid #e5e7eb; border-radius: 6px;">
+                  {{#each items}}
+                  <tr>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #111827; border-bottom: 1px solid #e5e7eb;">
+                      {{productName}}
+                    </td>
+                    <td align="right" style="padding: 12px 16px; font-size: 14px; color: #059669; font-weight: 600; border-bottom: 1px solid #e5e7eb;">
+                      Confirmed
+                    </td>
+                  </tr>
+                  {{/each}}
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 24px 40px 8px 40px;">
+                <p style="margin: 0 0 8px 0; font-size: 15px; font-weight: 700; color: #111827;">How items are confirmed</p>
+                <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #374151;">
+                  Each item was confirmed in one of three ways: 
+                  <ul style="margin: 0 0 16px 20px; padding: 0; font-size: 15px; line-height: 1.6; color: #374151;">
+                    <li>You approved the details yourself</li>
+                    <li>Admin close brief after you have responded and there is an agreement or no further discussion.</li>
+                    <li>Brief was confirmed automatically 24hours after our last message went unanswered.</li>
+                </ul>
+                </p>
+                <p style="margin: 0 0 8px 0; font-size: 15px; font-weight: 700; color: #111827;">What happens next</p>
+                <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #374151;">
+                  We will prepare your invoice and notify you by email and in your
+                  account. If any detail above is not right, please contact our support
+                  team before your invoice is issued, because changes may not be
+                  possible afterwards.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="left" style="padding: 8px 40px 32px 40px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td align="center" bgcolor="#059669" style="border-radius: 6px;">
+                      <a href="{{orderUrl}}" style="display: inline-block; padding: 12px 28px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 6px;">View your order</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 24px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+                <p style="margin: 0 0 8px 0; font-size: 13px; line-height: 1.5; color: #6b7280;">
+                  Questions? Contact us through our
+                  <a href="{{supportUrl}}" style="color: #059669; text-decoration: underline;">support page</a>.
+                </p>
+                <p style="margin: 0 0 8px 0; font-size: 13px; line-height: 1.5; color: #6b7280;">
+                  &copy; {{year}} Ample Printhub. All rights reserved.<br />
+                  5 Boyle Street, Shomolu, Lagos
+                </p>
+                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #6b7280;">
+                  <a href="{{privacyUrl}}" style="color: #6b7280; text-decoration: underline;">Privacy Policy</a>
+                  &nbsp;|&nbsp;
+                  <a href="{{unsubscribeUrl}}" style="color: #6b7280; text-decoration: underline;">Unsubscribe</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

@@ -17,6 +17,7 @@ export interface ICustomerBrief extends Document {
   role: CustomerBriefRole;
   productId: Types.ObjectId;
   designId?: Types.ObjectId;
+  respondedBy?: Types.ObjectId;
   image?: string;
   voiceNote?: string;
   video?: string;
@@ -71,6 +72,12 @@ const CustomerBriefSchema = new Schema<ICustomerBrief>(
     designId: {
       type: Schema.Types.ObjectId,
       ref: "Design",
+      required: false,
+      index: true,
+    },
+      respondedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
       required: false,
       index: true,
     },

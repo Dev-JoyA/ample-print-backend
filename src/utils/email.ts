@@ -152,6 +152,28 @@ export const sendWelcomeEmail = (to: string, name: string): Promise<void> =>
     data: { name },
   });
 
+export const sendBriefsConfirmed = (
+  to: string,
+  name: string,
+  orderNumber: string,
+  productNames: string[],
+  orderUrl: string,
+): Promise<void> =>
+  sendEmail({
+    to,
+    subject: `Customization confirmed for Order #${orderNumber}`,
+    template: "briefs-confirmed.html",
+    data: {
+      name,
+      orderNumber,
+      items: productNames.map((productName) => ({ productName })),
+      orderUrl,
+      supportUrl: `${process.env.FRONTEND_URL}/support`,
+      privacyUrl: `${process.env.FRONTEND_URL}/privacy`,
+      unsubscribeUrl: `${process.env.FRONTEND_URL}/unsubscribe`,
+    },
+  });
+
 export const sendOrderConfirmation = (
   to: string,
   name: string,
@@ -603,6 +625,7 @@ const emailService = {
   sendPasswordReset,
   sendAdminNewOrder,
   sendAdminNewBrief,
+  sendBriefsConfirmed,
 };
 
 export default emailService;

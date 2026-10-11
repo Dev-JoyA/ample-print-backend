@@ -27,6 +27,7 @@ import paymentRoute from "./src/payments/routes/paymentRoute.js";
 import shippingRoute from "./src/shipping/routes/shippingRoute.js";
 import { verifyToken } from "./src/utils/auth.js";
 import bankAccountRoute from "./src/bankAccount/routes/bankAccountRoute.js";
+import { autoCompleteSilentBriefs } from "./src/customerBrief/service/customerBriefService.js";
 
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -284,6 +285,12 @@ io.on("connection", (socket) => {
     console.log("❌ Client disconnected:", socket.id);
   });
 });
+
+setInterval(() => {
+  autoCompleteSilentBriefs(io).catch((err) =>
+    console.error("Brief auto-complete failed:", err),
+  );
+}, 5 * 60 * 1000);
 
 app.set("io", io);
 
