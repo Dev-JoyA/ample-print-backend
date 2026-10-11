@@ -8,9 +8,82 @@ import {
 import { Order, OrderStatus } from "../../order/model/orderModel.js";
 import { Product } from "../../product/model/productModel.js";
 import { Types } from "mongoose";
-import { UserRole } from "../../users/model/userModel.js";
+import { User, UserRole } from "../../users/model/userModel.js";
+import { Profile } from "../../users/model/profileModel.js";
 import { Server } from "socket.io";
+import emailService from "../../utils/email.js";
 import { notificationService } from "../../notification/service/notificationService.js";
+
+const assertThreadOpen = async (
+  orderId: Types.ObjectId,
+  productId: Types.ObjectId,
+): Promise<void> => {
+  const latest = await CustomerBrief.findOne({ orderId, productId }).sort({
+    createdAt: -1,
+    _id: -1,
+  });
+  if (latest?.status === CustomerBriefStatus.Complete) {
+    throw new Error(
+      "This brief thread is complete. No further messages can be added.",
+    );
+  }
+};
+
+const getDisplayNames = async (
+  userIds: Array<Types.ObjectId | string | undefined | null>,
+): Promise<Map<string, string>> => {
+  const ids = Array.from(
+    new Set(userIds.filter(Boolean).map((id) => String(id))),
+  );
+  const names = new Map<string, string>();
+  if (ids.length === 0) return names;
+
+  const profiles = await Profile.find({ userId: { $in: ids } })
+    .select("userId firstName lastName")
+    .lean();
+
+  for (const p of profiles as any[]) {
+    const name = [p.firstName, p.lastName].filter(Boolean).join(" ").trim();
+    if (name) names.set(String(p.userId), name);
+  }
+  return names;
+};
+
+const attachResponderNames = async (briefs: any[]): Promise<any[]> => {
+  const names = await getDisplayNames(briefs.map((b) => b.respondedBy));
+  return briefs.map((b) => {
+    const plain = typeof b.toObject === "function" ? b.toObject() : b;
+    return {
+      ...plain,
+      respondedByName: plain.respondedBy
+        ? names.get(String(plain.respondedBy)) || null
+        : null,
+    };
+  });
+};
+
+
+const getCustomerNames = async (
+  userIds: Array<Types.ObjectId | string | undefined | null>,
+): Promise<Map<string, { fullName: string; userName: string }>> => {
+  const ids = Array.from(
+    new Set(userIds.filter(Boolean).map((id) => String(id))),
+  );
+  const result = new Map<string, { fullName: string; userName: string }>();
+  if (ids.length === 0) return result;
+ 
+  const profiles = await Profile.find({ userId: { $in: ids } })
+    .select("userId firstName lastName userName")
+    .lean();
+ 
+  for (const p of profiles as any[]) {
+    result.set(String(p.userId), {
+      fullName: [p.firstName, p.lastName].filter(Boolean).join(" ").trim(),
+      userName: p.userName || "",
+    });
+  }
+  return result;
+};
 
 export const createOrUpdateCustomerBrief = async (
   brief: CreateCustomerBriefDTO,
@@ -39,6 +112,8 @@ export const createOrUpdateCustomerBrief = async (
       "Customer brief must contain at least one customization detail",
     );
   }
+
+  await assertThreadOpen(brief.orderId, brief.productId);
 
   let briefRole: CustomerBriefRole;
   let briefStatus: CustomerBriefStatus;
@@ -72,7 +147,7 @@ export const createOrUpdateCustomerBrief = async (
       orderId: brief.orderId,
       productId: brief.productId,
       role: CustomerBriefRole.Customer,
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1, _id: -1 });
 
     if (
       previousCustomerBrief &&
@@ -98,6 +173,10 @@ export const createOrUpdateCustomerBrief = async (
     viewed: false,
     viewedAt: null,
     status: briefStatus,
+    respondedBy:
+      briefRole === CustomerBriefRole.Customer
+        ? undefined
+        : new Types.ObjectId(userId),
     hasOwnDesign: brief.hasOwnDesign || false,
   });
 
@@ -161,6 +240,14 @@ export const createOrUpdateCustomerBrief = async (
       timestamp: new Date(),
     });
 
+    let responderName = userRole === UserRole.Admin ? "Admin" : "Super Admin";
+    try {
+      const names = await getDisplayNames([userId]);
+      responderName = names.get(userId) || responderName;
+    } catch (nameErr) {
+      console.error("Failed to load responder name:", nameErr);
+    }
+
     try {
       await notificationService.createForUser(order.userId, {
         type: "admin-brief-response",
@@ -182,7 +269,7 @@ export const createOrUpdateCustomerBrief = async (
       await notificationService.createForAdmins({
         type: "admin-brief-responded",
         title: "Admin Responded to Brief",
-        message: `${userRole === UserRole.Admin ? "Admin" : "Super Admin"} responded to brief for ${product.name} (order #${order.orderNumber})`,
+        message: `${responderName} responded to brief for ${product.name} (order #${order.orderNumber})`,
         data: {
           briefId: savedBrief._id,
           orderId: order._id,
@@ -243,7 +330,6 @@ export const markBriefAsViewed = async (
 
     brief.viewed = true;
     brief.viewedAt = new Date();
-    brief.status = CustomerBriefStatus.Complete;
     await brief.save();
   } else if (isAdmin) {
     if (brief.role !== CustomerBriefRole.Customer) {
@@ -252,17 +338,11 @@ export const markBriefAsViewed = async (
 
     brief.adminViewed = true;
     brief.adminViewedAt = new Date();
-    brief.status = CustomerBriefStatus.Complete;
     await brief.save();
   } else {
     throw new Error("Unauthorized");
   }
 
-  if (io) {
-    await checkOrderReadyForInvoice(brief.orderId.toString(), io);
-  }
-
-  await checkAndUpdateOrderStatus(order._id.toString(), io);
   return brief;
 };
 
@@ -334,19 +414,11 @@ export const customerReplyToAdmin = async (
     throw new Error("Reply must contain at least one customization detail");
   }
 
-  const previousAdminBrief = await CustomerBrief.findOne({
-    orderId: brief.orderId,
-    productId: brief.productId,
-    role: { $in: [CustomerBriefRole.Admin, CustomerBriefRole.SuperAdmin] },
-  }).sort({ createdAt: -1 });
-
-  if (
-    previousAdminBrief &&
-    previousAdminBrief.status !== CustomerBriefStatus.Complete
-  ) {
-    previousAdminBrief.status = CustomerBriefStatus.Pending;
-    await previousAdminBrief.save();
+  if (order.userId.toString() !== userId) {
+    throw new Error("Unauthorized to reply on this order");
   }
+
+  await assertThreadOpen(brief.orderId, brief.productId);
 
   const savedBrief = new CustomerBrief({
     orderId: brief.orderId,
@@ -408,7 +480,7 @@ export const checkOrderReadyForInvoice = async (
     const latestBrief = await CustomerBrief.findOne({
       orderId: orderId,
       productId: productId,
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1, _id: -1 });
 
     if (!latestBrief || latestBrief.status !== CustomerBriefStatus.Complete) {
       allProductsComplete = false;
@@ -425,6 +497,12 @@ export const checkOrderReadyForInvoice = async (
         orderId: order._id,
         orderNumber: order.orderNumber,
         message: "Order ready for invoice",
+      });
+
+      io.to(`user-${order.userId}`).emit("briefs-confirmed", {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        timestamp: new Date(),
       });
     }
 
@@ -445,6 +523,38 @@ export const checkOrderReadyForInvoice = async (
     } catch (notifErr) {
       console.error("Failed to create order ready notification:", notifErr);
     }
+
+    try {
+      await notificationService.createForUser(order.userId, {
+        type: "briefs-confirmed",
+        title: "Customization Confirmed",
+        message: `Your customization for order #${order.orderNumber} is confirmed. Your invoice will follow shortly.`,
+        data: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+        },
+        link: `/orders/${order._id}`,
+      });
+    } catch (notifErr) {
+      console.error("Failed to create briefs-confirmed notification:", notifErr);
+    }
+
+    try {
+      const customer: any = await User.findById(order.userId).select("email");
+      if (customer?.email) {
+        const names = await getDisplayNames([order.userId]);
+        const fullName = names.get(order.userId.toString());
+        await emailService.sendBriefsConfirmed(
+          customer.email,
+          fullName ? fullName.split(" ")[0] : "there",
+          order.orderNumber,
+          order.items.map((item: any) => item.productName || "Your product"),
+          `${process.env.FRONTEND_URL}/orders/${order._id}`,
+        );
+      }
+    } catch (mailErr) {
+      console.error("Failed to send briefs-confirmed email:", mailErr);
+    }
   }
 
   return allProductsComplete;
@@ -458,38 +568,41 @@ export const getCustomerPendingBriefResponses = async (
     .lean();
 
   const orderIds = userOrders.map((order) => order._id);
-
   if (orderIds.length === 0) return [];
 
-  const briefs = await CustomerBrief.find({
-    orderId: { $in: orderIds },
-    role: { $in: [CustomerBriefRole.Admin, CustomerBriefRole.SuperAdmin] },
-    status: CustomerBriefStatus.Responded,
-    viewed: false,
-  })
+  const briefs = await CustomerBrief.find({ orderId: { $in: orderIds } })
     .populate("orderId", "orderNumber")
     .populate("productId", "name")
     .sort({ createdAt: -1 })
     .lean();
 
-  const pendingResponses = briefs.map((brief: any) => {
-    const order = brief.orderId as any;
-    const product = brief.productId as any;
+  const latestByThread = new Map<string, any>();
+  for (const b of briefs as any[]) {
+    const key = `${String(b.orderId?._id ?? b.orderId)}:${String(b.productId?._id ?? b.productId)}`;
+    if (!latestByThread.has(key)) latestByThread.set(key, b);
+  }
 
-    return {
-      briefId: brief._id,
-      orderId: order?._id || brief.orderId,
-      orderNumber: order?.orderNumber || "N/A",
-      productName: product?.name || "Product",
-      respondedAt: brief.createdAt,
-      hasDesign: !!brief.designId,
-      description: brief.description || "",
-      viewed: brief.viewed || false,
-      status: brief.status,
-    };
-  });
-
-  return pendingResponses;
+  return Array.from(latestByThread.values())
+    .filter(
+      (b) =>
+        (b.role === CustomerBriefRole.Admin ||
+          b.role === CustomerBriefRole.SuperAdmin) &&
+        (b.status === CustomerBriefStatus.Responded ||
+          b.status === CustomerBriefStatus.Complete),
+    )
+    .slice(0, 50)
+    .map((b) => ({
+      briefId: b._id,
+      orderId: b.orderId?._id || b.orderId,
+      orderNumber: b.orderId?.orderNumber || "N/A",
+      productName: b.productId?.name || "Product",
+      respondedAt: b.createdAt,
+      hasDesign: !!b.designId,
+      description: b.description || "",
+      viewed: b.viewed || false,
+      viewedAt: b.viewedAt || null,
+      status: b.status,
+    }));
 };
 
 export const getAdminCustomerBriefs = async (
@@ -518,74 +631,106 @@ export const getAdminCustomerBriefs = async (
     sortBy = "createdAt",
     sortOrder = "desc",
   } = filters;
-
-  const query: any = {};
-
+ 
+  const conditions: any[] = [];
+ 
   if (hasFiles) {
-    query.$or = [
-      { image: { $exists: true, $ne: null } },
-      { voiceNote: { $exists: true, $ne: null } },
-      { video: { $exists: true, $ne: null } },
-      { logo: { $exists: true, $ne: null } },
-    ];
+    conditions.push({
+      $or: [
+        { image: { $exists: true, $ne: null } },
+        { voiceNote: { $exists: true, $ne: null } },
+        { video: { $exists: true, $ne: null } },
+        { logo: { $exists: true, $ne: null } },
+      ],
+    });
   }
-
-  if (status && status !== "all") {
-    query.status = status;
-  }
-
+ 
   if (search && search.trim()) {
-    const searchRegex = new RegExp(search, "i");
-
-    const matchingOrders = await Order.find({
-      orderNumber: searchRegex,
-    }).select("_id");
-
-    const orderIds = matchingOrders.map((o) => o._id);
-
-    const matchingProducts = await Product.find({
-      name: searchRegex,
-    }).select("_id");
-
-    const productIds = matchingProducts.map((p) => p._id);
-
-    query.$or = [
-      { description: searchRegex },
-      { orderId: { $in: orderIds } },
-      { productId: { $in: productIds } },
-    ];
+    const searchRegex = new RegExp(
+      search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      "i",
+    );
+ 
+    const [matchingOrders, matchingProducts, matchingProfiles] =
+      await Promise.all([
+        Order.find({ orderNumber: searchRegex }).select("_id"),
+        Product.find({ name: searchRegex }).select("_id"),
+        Profile.find({
+          $or: [
+            { firstName: searchRegex },
+            { lastName: searchRegex },
+            { userName: searchRegex },
+          ],
+        }).select("userId"),
+      ]);
+ 
+    const customerOrders =
+      matchingProfiles.length > 0
+        ? await Order.find({
+            userId: { $in: matchingProfiles.map((p) => p.userId) },
+          }).select("_id")
+        : [];
+ 
+    conditions.push({
+      $or: [
+        { description: searchRegex },
+        {
+          orderId: {
+            $in: [...matchingOrders, ...customerOrders].map((o) => o._id),
+          },
+        },
+        { productId: { $in: matchingProducts.map((p) => p._id) } },
+      ],
+    });
   }
-
+ 
+  const query: any = conditions.length > 0 ? { $and: conditions } : {};
+ 
   const allBriefs = await CustomerBrief.find(query)
-    .populate({
-      path: "orderId",
-      select: "orderNumber userId status",
-      populate: { path: "userId", select: "email" },
-    })
+    .populate("orderId", "orderNumber userId status")
     .populate("productId", "name")
     .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
     .lean();
-
+ 
+  const latestByThread = new Map<string, any>();
+  for (const b of allBriefs as any[]) {
+    const key = `${String(b.orderId?._id ?? b.orderId)}:${String(b.productId?._id ?? b.productId)}`;
+    const existing = latestByThread.get(key);
+    if (!existing || new Date(b.createdAt) > new Date(existing.createdAt)) {
+      latestByThread.set(key, b);
+    }
+  }
+ 
+  const threadBriefs = Array.from(latestByThread.values()).filter(
+    (b) => !status || status === "all" || b.status === status,
+  );
+ 
+  const responderNames = await getDisplayNames(
+    threadBriefs.map((b: any) => b.respondedBy),
+  );
+ 
+  const customerInfo = await getCustomerNames(
+    threadBriefs.map((b: any) => b.orderId?.userId),
+  );
+ 
   const briefsList = [];
-
-  for (const brief of allBriefs) {
+ 
+  for (const brief of threadBriefs) {
     const hasFilesAttached = !!(
       brief.image ||
       brief.voiceNote ||
       brief.video ||
       brief.logo
     );
-
+ 
     const order = brief.orderId as any;
     const product = brief.productId as any;
-    const user = order?.userId as any;
-
+    const customer = customerInfo.get(String(order?.userId));
+ 
     const orderNumber = order?.orderNumber || "N/A";
     const productName = product?.name || "Unknown Product";
-    const customerEmail = user?.email || "customer@example.com";
-
     const briefStatus = brief.status || "pending";
-
+ 
     briefsList.push({
       _id: brief._id,
       description: brief.description,
@@ -603,18 +748,22 @@ export const getAdminCustomerBriefs = async (
       orderId: brief.orderId,
       productId: brief.productId,
       role: brief.role,
+      respondedByName: brief.respondedBy
+        ? responderNames.get(String(brief.respondedBy)) || null
+        : null,
       status: briefStatus,
       hasFiles: hasFilesAttached,
       orderNumber,
       productName,
-      customerName: customerEmail.split("@")[0],
+      customerName: customer?.fullName || customer?.userName || "Customer",
+      customerUserName: customer?.userName || null,
     });
   }
-
+ 
   const skip = (page - 1) * limit;
   const paginatedBriefs = briefsList.slice(skip, skip + limit);
   const total = briefsList.length;
-
+ 
   return {
     briefs: paginatedBriefs,
     total,
@@ -723,7 +872,11 @@ export const getCustomerBriefByOrderId = async (
     .sort({ createdAt: 1 })
     .exec();
 
-  return briefs;
+  if (userRole === UserRole.Customer) {
+    return briefs;
+  }
+
+  return (await attachResponderNames(briefs)) as unknown as ICustomerBrief[];
 };
 
 export const getCustomerBriefById = async (
@@ -734,22 +887,34 @@ export const getCustomerBriefById = async (
   if (!Types.ObjectId.isValid(briefId)) {
     throw new Error("Invalid brief ID format");
   }
-
+ 
   const brief = await CustomerBrief.findById(briefId)
     .populate("orderId", "orderNumber status userId totalAmount")
     .populate("productId", "name price dimensions mainImage")
     .populate("designId", "designUrl filename status")
     .exec();
-
+ 
   if (!brief) return null;
-
+ 
   const order = brief.orderId as any;
   if (userRole === UserRole.Customer && order.userId.toString() !== userId) {
     throw new Error("Unauthorized to view this brief");
   }
-
-  return brief;
+ 
+  if (userRole === UserRole.Customer) {
+    return brief;
+  }
+ 
+  const customers = await getCustomerNames([order?.userId]);
+  const customer = customers.get(String(order?.userId));
+ 
+  return {
+    ...brief.toObject(),
+    customerName: customer?.fullName || customer?.userName || "Customer",
+    customerUserName: customer?.userName || null,
+  } as unknown as ICustomerBrief;
 };
+ 
 
 export const getAllBriefsByOrderId = async (
   orderId: string,
@@ -794,7 +959,7 @@ export const getOrderBriefStatus = async (orderId: string): Promise<any> => {
     const latestBrief = await CustomerBrief.findOne({
       orderId: orderId,
       productId: productId,
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1, _id: -1 });
 
     const product = order.items.find(
       (i) => i.productId.toString() === productId,
@@ -834,12 +999,12 @@ export const checkAdminResponseStatus = async (
       orderId: new Types.ObjectId(orderId),
       productId: new Types.ObjectId(productId),
       role: CustomerBriefRole.Customer,
-    }).sort({ createdAt: -1 }),
+    }).sort({ createdAt: -1, _id: -1 }),
     CustomerBrief.findOne({
       orderId: new Types.ObjectId(orderId),
       productId: new Types.ObjectId(productId),
       role: { $in: [CustomerBriefRole.Admin, CustomerBriefRole.SuperAdmin] },
-    }).sort({ createdAt: -1 }),
+    }).sort({ createdAt: -1, _id: -1 }),
   ]);
 
   return {
@@ -972,7 +1137,7 @@ export const filterCustomerBriefs = async (
     CustomerBrief.find(query)
       .populate({
         path: "orderId",
-        populate: { path: "userId", select: "fullname email" },
+        populate: { path: "userId", select: "email" },
       })
       .populate("productId", "name price")
       .populate("designId", "designUrl status")
@@ -1102,81 +1267,82 @@ export const markBriefAsComplete = async (
 const checkAndUpdateOrderStatus = async (
   orderId: string,
   io?: Server,
-): Promise<boolean> => {
-  const order = await Order.findById(orderId);
-  if (!order) {
-    throw new Error("Order not found");
-  }
+): Promise<boolean> => checkOrderReadyForInvoice(orderId, io);
 
-  if (order.status !== OrderStatus.FilesUploaded) {
-    console.log(
-      `Order ${order.orderNumber} is not in FilesUploaded status (current: ${order.status})`,
-    );
-    return false;
-  }
+const getAutoCompleteHours = () =>
+  Number(process.env.BRIEF_AUTO_COMPLETE_HOURS ?? 24);
 
-  if (order.invoiceId) {
-    console.log(`Order ${order.orderNumber} already has an invoice`);
-    return false;
-  }
+export const autoCompleteSilentBriefs = async (
+  io?: Server,
+): Promise<number> => {
+  const hours = getAutoCompleteHours();
+  const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
 
-  const productIds = order.items.map((item) => item.productId.toString());
+  const candidates = await CustomerBrief.find({
+    role: { $in: [CustomerBriefRole.Admin, CustomerBriefRole.SuperAdmin] },
+    status: CustomerBriefStatus.Responded,
+    viewed: true,
+    viewedAt: { $lte: cutoff },
+  });
 
-  let allProductsHaveCompleteBrief = true;
+  let completed = 0;
 
-  for (const productId of productIds) {
-    const completeBrief = await CustomerBrief.findOne({
-      orderId: orderId,
-      productId: productId,
-      status: CustomerBriefStatus.Complete,
-    }).sort({ createdAt: -1 });
+  for (const brief of candidates) {
+    try {
+      const latest = await CustomerBrief.findOne({
+        orderId: brief.orderId,
+        productId: brief.productId,
+      }).sort({ createdAt: -1, _id: -1 });
 
-    if (!completeBrief) {
-      console.log(`Product ${productId} has no complete brief`);
-      allProductsHaveCompleteBrief = false;
-      break;
-    }
-  }
+      if (!latest || latest._id.toString() !== brief._id.toString()) continue;
 
-  if (allProductsHaveCompleteBrief) {
-    console.log(
-      `All briefs for order ${order.orderNumber} are complete. Moving to AwaitingInvoice`,
-    );
+      const updated = await CustomerBrief.findOneAndUpdate(
+        { _id: brief._id, status: CustomerBriefStatus.Responded },
+        { $set: { status: CustomerBriefStatus.Complete } },
+      );
+      if (!updated) continue;
 
-    order.status = OrderStatus.AwaitingInvoice;
-    await order.save();
+      completed++;
 
-    if (io) {
-      io.to("superadmin-room").emit("order-ready-for-invoice", {
+      const [order, product] = await Promise.all([
+        Order.findById(brief.orderId),
+        Product.findById(brief.productId),
+      ]);
+      if (!order) continue;
+
+      const productName = product?.name || "your product";
+
+      io?.to(`user-${order.userId}`).emit("brief-auto-confirmed", {
+        briefId: brief._id,
         orderId: order._id,
         orderNumber: order.orderNumber,
-        message: "Order ready for invoice - all briefs completed",
+        productName,
+        timestamp: new Date(),
       });
-    }
 
-    try {
-      await notificationService.createForSuperAdmins({
-        type: "order-ready-for-invoice",
-        title: "Order Ready for Invoice",
-        message: `Order #${order.orderNumber} is ready for invoice generation (all briefs completed)`,
-        data: {
-          orderId: order._id,
-          orderNumber: order.orderNumber,
-          totalAmount: order.totalAmount,
-          itemCount: order.items.length,
-          productIds: productIds,
-        },
-        link: `/dashboards/super-admin/invoices/ready?order=${order._id}`,
-      });
-    } catch (notifErr) {
-      console.error("Failed to create order ready notification:", notifErr);
+      try {
+        await notificationService.createForUser(order.userId, {
+          type: "brief-auto-confirmed",
+          title: "Customization Confirmed",
+          message: `Your customization for ${productName} (order #${order.orderNumber}) was confirmed automatically after ${hours} hours without a reply.`,
+          data: {
+            briefId: brief._id,
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            productId: brief.productId,
+            productName,
+          },
+          link: `/briefs/${brief._id}`,
+        });
+      } catch (notifErr) {
+        console.error("Failed to create auto-confirm notification:", notifErr);
+      }
+
+      await checkOrderReadyForInvoice(order._id.toString(), io);
+    } catch (err) {
+      console.error("Auto-complete failed for brief", brief._id, err);
     }
-  } else {
-    console.log(
-      `⏳ Order ${order.orderNumber} not ready - some briefs still pending`,
-    );
   }
 
-  return allProductsHaveCompleteBrief;
+  return completed;
 };
-
