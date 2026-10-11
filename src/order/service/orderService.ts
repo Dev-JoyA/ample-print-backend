@@ -535,23 +535,45 @@ export const deleteOrder = async (
   }
 };
 
+
 export const getOrderById = async (
   id: string,
   userId: string,
   userRole: string,
 ): Promise<IOrderModel> => {
-  const order = await Order.findById(id)
+  const isStaff =
+    userRole === UserRole.Admin || userRole === UserRole.SuperAdmin;
+ 
+  const profileFields =
+    userRole === UserRole.SuperAdmin
+      ? "firstName lastName userName phoneNumber"
+      : "firstName lastName userName";
+ 
+  const query = Order.findById(id)
     .populate("items.productId", "name images dimensions")
     .populate("invoiceId")
-    .populate("shippingId")
-    .exec();
-
+    .populate("shippingId");
+ 
+  if (isStaff) {
+    query.populate({
+      path: "userId",
+      select: "email",
+      populate: {
+        path: "profile",
+        model: "Profile",
+        select: profileFields,
+      },
+    });
+  }
+ 
+  const order = await query.exec();
+ 
   if (!order) throw new Error("Order not found");
-
+ 
   if (userRole === UserRole.Customer && order.userId.toString() !== userId) {
     throw new Error("Unauthorized to view this order");
   }
-
+ 
   return order;
 };
 
@@ -905,24 +927,24 @@ export const getAllOrders = async (
   if (userRole !== UserRole.Admin && userRole !== UserRole.SuperAdmin) {
     throw new Error("Unauthorized");
   }
-
+ 
   const query: any = {};
-
+ 
   if (filters?.status) {
     query.status = filters.status;
   }
-
+ 
   if (filters?.paymentStatus) {
     query.paymentStatus = filters.paymentStatus;
   }
-
+ 
   if (filters?.search && filters.search.trim() !== "") {
     const searchRegex = new RegExp(filters.search, "i");
-
+ 
     const matchingUsers = await User.find({
       email: searchRegex,
     }).select("_id");
-
+ 
     const matchingProfiles = await Profile.find({
       $or: [
         { firstName: searchRegex },
@@ -930,29 +952,29 @@ export const getAllOrders = async (
         { userName: searchRegex },
       ],
     }).select("userId");
-
+ 
     const userIds = [
       ...matchingUsers.map((u) => u._id),
       ...matchingProfiles.map((p) => p.userId),
     ];
-
+ 
     query.$or = [
       { orderNumber: searchRegex },
       { "items.productName": searchRegex },
     ];
-
+ 
     if (userIds.length > 0) {
       query.$or.push({ userId: { $in: userIds } });
     }
   }
-
+ 
   const skip = (page - 1) * limit;
-
+ 
   const [orders, total] = await Promise.all([
     Order.find(query)
-      .populate("userId", "email")
       .populate({
         path: "userId",
+        select: "email",
         populate: {
           path: "profile",
           model: "Profile",
@@ -968,7 +990,7 @@ export const getAllOrders = async (
       .exec(),
     Order.countDocuments(query),
   ]);
-
+ 
   return {
     order: orders,
     total,
@@ -992,15 +1014,23 @@ export const getOrdersReadyForInvoice = async (
       "Unauthorized - Only super admin can view orders ready for invoice",
     );
   }
-
+ 
   const skip = (page - 1) * limit;
-
+ 
   const [orders, total] = await Promise.all([
     Order.find({
       status: OrderStatus.AwaitingInvoice,
       invoiceId: { $exists: false },
     })
-      .populate("userId", "email fullname")
+      .populate({
+        path: "userId",
+        select: "email",
+        populate: {
+          path: "profile",
+          model: "Profile",
+          select: "firstName lastName userName",
+        },
+      })
       .populate("items.productId", "name price")
       .sort({ createdAt: 1 })
       .skip(skip)
@@ -1011,7 +1041,7 @@ export const getOrdersReadyForInvoice = async (
       invoiceId: { $exists: false },
     }),
   ]);
-
+ 
   return {
     orders,
     total,
@@ -1019,6 +1049,7 @@ export const getOrdersReadyForInvoice = async (
     pages: Math.ceil(total / limit),
   };
 };
+ 
 
 export const markOrderAsAwaitingInvoice = async (
   orderId: string,
